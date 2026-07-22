@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JSON Whisperer — what your JSON would say if it could talk</title>
+<meta name="description" content="Paste any JSON and hear what it would say out loud. A dramatic, over-sharing, slightly unhinged translator for your data." />
+<style>
+  /* ============================================================
+     PALETTE — validated dataviz reference instance (light + dark)
+     ============================================================ */
+  :root {
+    color-scheme: dark;
+    /* surfaces */
+    --page:        #0d0d0d;
+    --surface:     #1a1a19;
+    --surface-2:   #232322;
+    /* ink */
+    --ink:         #ffffff;
+    --ink-2:       #c3c2b7;
+    --muted:       #898781;
+    --hair:        rgba(255,255,255,0.10);
+    --grid:        #2c2c2a;
+    /* categorical hues (dark steps) */
+    --c-blue:      #3987e5;
+    --c-orange:    #d95926;
+    --c-aqua:      #199e70;
+    --c-yellow:    #c98500;
+    --c-magenta:   #d55181;
+    --c-green:     #008300;
+    --c-violet:    #9085e9;
+    --c-red:       #e66767;
+    --good:        #0ca30c;
+    --warning:     #fab219;
+    --critical:    #d03b3b;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --surface-2:   #f0efec;
+    --ink:         #0b0b0b;
+    --ink-2:       #52514e;
+    --muted:       #898781;
+    --hair:        rgba(11,11,11,0.10);
+    --grid:        #e1e0d9;
+    --c-blue:      #2a78d6;
+    --c-orange:    #eb6834;
+    --c-aqua:      #1baf7a;
+    --c-yellow:    #eda100;
+    --c-magenta:   #e87ba4;
+    --c-green:     #008300;
+    --c-violet:    #4a3aa7;
+    --c-red:       #e34948;
+    --good:        #0ca30c;
+    --warning:     #fab219;
+    --critical:    #d03b3b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    min-height: 100vh;
+    transition: background .5s ease, color .5s ease;
+  }
+  code, .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace; }
+
+  /* ============================================================
+     ANIMATED MESH BACKGROUND
+     ============================================================ */
+  .mesh {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    filter: blur(70px) saturate(1.2);
+    opacity: .55;
+  }
+  .blob { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+  :root[data-theme="light"] .blob { mix-blend-mode: multiply; }
+  .blob.b1 { width: 46vw; height: 46vw; left: -8vw; top: -10vh; background: var(--c-blue);    animation: drift1 22s ease-in-out infinite; }
+  .blob.b2 { width: 40vw; height: 40vw; right: -6vw; top: 6vh;   background: var(--c-magenta); animation: drift2 26s ease-in-out infinite; }
+  .blob.b3 { width: 42vw; height: 42vw; left: 18vw;  bottom: -18vh;background: var(--c-violet); animation: drift3 30s ease-in-out infinite; }
+  .blob.b4 { width: 30vw; height: 30vw; right: 12vw; bottom: -8vh; background: var(--c-aqua);   animation: drift1 28s ease-in-out infinite reverse; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(6vw,7vh) scale(1.12)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-7vw,5vh) scale(.9)} }
+  @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(4vw,-6vh) scale(1.1)} }
+
+  /* floating bracket glyphs */
+  .floaties { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .floaty {
+    position: absolute; bottom: -60px; font-size: 28px; opacity: .10;
+    color: var(--ink); font-family: ui-monospace, monospace; font-weight: 700;
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10%  { opacity: .14; }
+    90%  { opacity: .14; }
+    100% { transform: translateY(-115vh) rotate(320deg); opacity: 0; }
+  }
+
+  /* ============================================================
+     LAYOUT
+     ============================================================ */
+  .wrap { position: relative; z-index: 2; max-width: 1120px; margin: 0 auto; padding: 28px 22px 80px; }
+
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--c-blue), var(--c-violet));
+    box-shadow: 0 8px 26px -8px var(--c-violet);
+    font-family: ui-monospace, monospace; font-weight: 800; font-size: 22px; color: #fff;
+    animation: logopulse 3.4s ease-in-out infinite;
+  }
+  @keyframes logopulse { 0%,100%{transform:rotate(-3deg) scale(1)} 50%{transform:rotate(3deg) scale(1.06)} }
+  .brand h1 { font-size: 19px; letter-spacing: -.02em; }
+  .brand .sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .theme-btn {
+    appearance: none; border: 1px solid var(--hair); background: var(--surface);
+    color: var(--ink); width: 44px; height: 44px; border-radius: 13px; cursor: pointer;
+    font-size: 19px; display: grid; place-items: center; transition: transform .2s, background .3s;
+  }
+  .theme-btn:hover { transform: rotate(20deg) scale(1.08); }
+
+  .hero { text-align: center; margin: 10px 0 30px; }
+  .hero h2 {
+    font-size: clamp(30px, 6vw, 58px); line-height: 1.02; letter-spacing: -.03em; font-weight: 800;
+  }
+  .hero h2 .grad {
+    background: linear-gradient(100deg, var(--c-blue), var(--c-magenta) 45%, var(--c-orange) 85%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    background-size: 220% 100%; animation: sheen 6s ease-in-out infinite;
+  }
+  @keyframes sheen { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+  .hero p { color: var(--ink-2); font-size: clamp(15px,2.4vw,18px); margin: 14px auto 0; max-width: 620px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--hair); border-radius: 20px;
+    padding: 20px; position: relative; backdrop-filter: blur(6px);
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,.6);
+    transition: background .5s ease;
+  }
+  .card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; display:flex; align-items:center; gap:8px; }
+  .card h3 .dot { width:9px;height:9px;border-radius:50%; }
+
+  /* editor */
+  .editor-wrap { position: relative; }
+  textarea#input {
+    width: 100%; min-height: 320px; resize: vertical; border-radius: 14px;
+    border: 1px solid var(--hair); background: var(--surface-2); color: var(--ink);
+    padding: 16px; font-family: ui-monospace, "SF Mono", monospace; font-size: 14px; line-height: 1.6;
+    outline: none; transition: border-color .2s, box-shadow .2s;
+    tab-size: 2;
+  }
+  textarea#input:focus { border-color: var(--c-blue); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-blue) 22%, transparent); }
+
+  .samples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip {
+    appearance: none; border: 1px solid var(--hair); background: transparent; color: var(--ink-2);
+    padding: 7px 12px; border-radius: 999px; font-size: 12.5px; cursor: pointer; transition: all .18s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--c-blue); background: color-mix(in srgb, var(--c-blue) 12%, transparent); transform: translateY(-1px); }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-primary {
+    flex: 1; appearance: none; border: none; cursor: pointer; border-radius: 14px; padding: 15px;
+    font-size: 16px; font-weight: 700; color: #fff; letter-spacing: .01em;
+    background: linear-gradient(120deg, var(--c-blue), var(--c-violet));
+    background-size: 180% 100%;
+    box-shadow: 0 14px 30px -12px var(--c-violet); transition: transform .15s, box-shadow .2s, background-position .5s;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary:hover { transform: translateY(-2px); background-position: 100% 0; box-shadow: 0 18px 40px -12px var(--c-violet); }
+  .btn-primary:active { transform: translateY(0) scale(.98); }
+  .btn-ghost {
+    appearance: none; border: 1px solid var(--hair); background: transparent; color: var(--ink-2);
+    cursor: pointer; border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 600; transition: all .18s;
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--muted); }
+
+  /* ============================================================
+     MASCOT
+     ============================================================ */
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .mascot {
+    width: 118px; height: 100px; position: relative; transition: transform .3s;
+    animation: bob 3.2s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  .mascot.talking { animation: bobfast .5s ease-in-out infinite; }
+  @keyframes bobfast { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-5px) rotate(1deg)} }
+  .mascot.shake { animation: shake .4s ease-in-out 2; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px) rotate(-4deg)} 75%{transform:translateX(7px) rotate(4deg)} }
+  .brace {
+    position: absolute; top: 0; font-size: 100px; font-family: ui-monospace, monospace; font-weight: 800; line-height: .9;
+    background: linear-gradient(180deg, var(--c-yellow), var(--c-orange));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--c-orange) 45%, transparent));
+  }
+  .brace.l { left: 2px; } .brace.r { right: 2px; }
+  .face { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); width: 56px; height: 40px; }
+  .eye { position: absolute; top: 4px; width: 15px; height: 15px; border-radius: 50%; background: var(--ink);
+         animation: blink 4.2s infinite; }
+  :root[data-theme="light"] .eye { background: #0b0b0b; }
+  .eye::after { content:""; position:absolute; top:2px; right:2px; width:5px; height:5px; border-radius:50%; background:#fff; }
+  .eye.l { left: 2px; } .eye.r { right: 2px; }
+  @keyframes blink { 0%,92%,100%{transform:scaleY(1)} 96%{transform:scaleY(.1)} }
+  .mouth { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 20px; height: 10px;
+           border-radius: 0 0 20px 20px; background: var(--c-red); transition: all .15s; }
+  .mascot.talking .mouth { animation: chatter .28s steps(2) infinite; }
+  @keyframes chatter { 0%{height:4px} 100%{height:14px} }
+
+  /* output */
+  .transcript { min-height: 320px; max-height: 560px; overflow-y: auto; padding-right: 6px; scroll-behavior: smooth; }
+  .transcript::-webkit-scrollbar { width: 8px; }
+  .transcript::-webkit-scrollbar-thumb { background: var(--hair); border-radius: 8px; }
+
+  .placeholder { color: var(--muted); text-align: center; padding: 40px 10px; font-size: 15px; line-height: 1.7; }
+  .placeholder .big { font-size: 40px; display:block; margin-bottom: 10px; animation: bob 3s ease-in-out infinite; }
+
+  .bubble {
+    background: var(--surface-2); border: 1px solid var(--hair); border-radius: 16px 16px 16px 4px;
+    padding: 12px 15px; margin-bottom: 10px; font-size: 15px; line-height: 1.55; color: var(--ink);
+    max-width: 96%; opacity: 0; transform: translateY(12px) scale(.98);
+    animation: pop .45s cubic-bezier(.2,.9,.3,1.3) forwards;
+    position: relative;
+  }
+  @keyframes pop { to { opacity: 1; transform: translateY(0) scale(1); } }
+  .bubble .k { font-family: ui-monospace, monospace; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+               background: color-mix(in srgb, var(--c-blue) 18%, transparent); color: var(--c-blue); font-size: 13px; }
+  .bubble .v { font-family: ui-monospace, monospace; font-weight: 700; }
+  .bubble .v.str { color: var(--c-aqua); }
+  .bubble .v.num { color: var(--c-orange); }
+  .bubble .v.bool { color: var(--c-violet); }
+  .bubble .v.null { color: var(--muted); }
+  .bubble.depth-1 { margin-left: 20px; opacity:0; }
+  .bubble.depth-2 { margin-left: 40px; }
+  .bubble.depth-3 { margin-left: 60px; }
+  .bubble.intro { background: linear-gradient(120deg, color-mix(in srgb,var(--c-blue) 20%,transparent), color-mix(in srgb,var(--c-violet) 20%,transparent)); border-color: color-mix(in srgb,var(--c-blue) 30%, transparent); font-weight: 600; }
+  .bubble.outro { background: linear-gradient(120deg, color-mix(in srgb,var(--c-magenta) 18%,transparent), color-mix(in srgb,var(--c-orange) 18%,transparent)); }
+  .bubble.error { background: color-mix(in srgb, var(--critical) 16%, transparent); border-color: var(--critical); }
+  .caret { display:inline-block; width:8px; height:1.05em; background: var(--ink); margin-left:2px; vertical-align:-2px; animation: caret .9s steps(1) infinite; border-radius:1px; }
+  @keyframes caret { 50%{opacity:0} }
+
+  .toolbar { display:flex; justify-content: space-between; align-items:center; margin-bottom: 10px; gap: 8px; }
+  .stat { font-size: 12px; color: var(--muted); }
+  .mini { appearance:none;border:1px solid var(--hair);background:transparent;color:var(--ink-2);border-radius:9px;padding:6px 10px;font-size:12px;cursor:pointer;transition:all .16s; }
+  .mini:hover { color: var(--ink); border-color: var(--muted); }
+
+  /* confetti */
+  .confetti { position: fixed; top: -12px; width: 10px; height: 14px; z-index: 50; pointer-events: none; border-radius: 2px; }
+
+  footer { text-align:center; color: var(--muted); font-size: 13px; margin-top: 40px; line-height: 1.7; }
+  footer .heart { color: var(--c-red); }
+
+  .reduced * { animation: none !important; }
+</style>
+</head>
+<body>
+  <div class="mesh" aria-hidden="true">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
+  </div>
+  <div class="floaties" id="floaties" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">{ }</div>
+        <div>
+          <h1>JSON Whisperer</h1>
+          <div class="sub">what your data would say if it had a mouth</div>
+        </div>
+      </div>
+      <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle light and dark theme">🌙</button>
+    </header>
+
+    <div class="hero">
+      <h2>Your JSON has <span class="grad">so much to say.</span></h2>
+      <p>Paste any JSON below. Our slightly dramatic, deeply over-sharing translator will read it aloud — in plain, unhinged English.</p>
+    </div>
+
+    <div class="grid2">
+      <!-- INPUT -->
+      <div class="card">
+        <h3><span class="dot" style="background:var(--c-blue)"></span> Feed it some JSON</h3>
+        <div class="editor-wrap">
+          <textarea id="input" spellcheck="false" placeholder='{ "paste": "your json here", "and": "watch it talk" }'></textarea>
+        </div>
+        <div class="samples" id="samples"></div>
+        <div class="actions">
+          <button class="btn-primary" id="translateBtn">🔮 Translate it</button>
+          <button class="btn-ghost" id="clearBtn">Clear</button>
+        </div>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="card">
+        <div class="stage">
+          <div class="mascot" id="mascot">
+            <span class="brace l">{</span>
+            <span class="brace r">}</span>
+            <div class="face">
+              <div class="eye l"></div><div class="eye r"></div>
+              <div class="mouth"></div>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <h3 style="margin:0"><span class="dot" style="background:var(--c-aqua)"></span> The translation</h3>
+          <span class="stat" id="stat"></span>
+        </div>
+        <div class="transcript" id="transcript">
+          <div class="placeholder" id="placeholder">
+            <span class="big">👂</span>
+            I'm listening. Feed me some JSON and I'll tell you<br>exactly what it's been trying to say this whole time.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Built for humans who suspect their data has feelings. <span class="heart">♥</span><br>
+      No JSON was harmed. It was, however, thoroughly interpreted.
+    </footer>
+  </div>
+
+<script>
+/* ============================================================
+   Reduced motion respect
+   ============================================================ */
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.body.classList.add('reduced');
+}
+
+/* ============================================================
+   Floating bracket glyphs
+   ============================================================ */
+(function seedFloaties(){
+  const glyphs = ['{','}','[',']',':',',','"','0','1','null','true'];
+  const host = document.getElementById('floaties');
+  const N = 16;
+  for (let i=0;i<N;i++){
+    const s = document.createElement('span');
+    s.className = 'floaty';
+    s.textContent = glyphs[Math.floor(Math.random()*glyphs.length)];
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.fontSize = (18 + Math.random()*34) + 'px';
+    s.style.animationDuration = (16 + Math.random()*22) + 's';
+    s.style.animationDelay = (-Math.random()*30) + 's';
+    host.appendChild(s);
+  }
+})();
+
+/* ============================================================
+   Theme toggle
+   ============================================================ */
+const themeBtn = document.getElementById('themeBtn');
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  themeBtn.textContent = t === 'dark' ? '🌙' : '☀️';
+}
+themeBtn.addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'dark' ? 'light' : 'dark');
+});
+
+/* ============================================================
+   THE TRANSLATOR — turns JSON into unhinged narration
+   ============================================================ */
+const rand = arr => arr[Math.floor(Math.random()*arr.length)];
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function keyPhrase(k){
+  const opts = [
+    `My <span class="k">${esc(k)}</span>?`,
+    `You want to know about my <span class="k">${esc(k)}</span>?`,
+    `As for <span class="k">${esc(k)}</span> —`,
+    `Now, <span class="k">${esc(k)}</span>.`,
+    `And <span class="k">${esc(k)}</span>? Glad you asked.`,
+  ];
+  return rand(opts);
+}
+
+function describeString(v){
+  const s = String(v);
+  const val = `<span class="v str">"${esc(s)}"</span>`;
+  if (s.trim() === '') return `it's ${val} — an empty string. The literary equivalent of a shrug. 🤷`;
+  if (/^\S+@\S+\.\S+$/.test(s)) return `it's ${val}. That's an email. Please do not spam it. (You will spam it.)`;
+  if (/^https?:\/\//i.test(s)) return `it's ${val} — a whole URL. Somewhere out there, a server is waiting.`;
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s)) return `it's ${val}, which is a color. A vibe, if you will.`;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return `it's ${val}. A date. Mark your calendar. Or don't. I'm a string, not a cop.`;
+  if (s.length > 60) return `it's ${val}. That is... a lot of characters. Somebody had FEELINGS.`;
+  if (/^[A-Z\s!?]+$/.test(s) && s.length > 2) return `it's ${val}. AND YES, I'M YELLING. IT WAS STORED IN CAPS.`;
+  return `it's ${val}. Don't wear it out.`;
+}
+
+function describeNumber(v){
+  const val = `<span class="v num">${v}</span>`;
+  if (v === 0) return `it's ${val}. A big, round, confident zero. Nothing. Nada. But proudly.`;
+  if (v < 0) return `it's ${val}. Negative. Somebody owes somebody money.`;
+  if (!Number.isInteger(v)) return `it's ${val} — with DECIMALS, because precision is a personality.`;
+  if (v > 1e6) return `it's ${val}. That's a huge number. Are we rich? Are we in trouble? Only you know.`;
+  if (v === 42) return `it's ${val}. The answer to life, the universe, and everything. No pressure.`;
+  return `it's ${val}. A perfectly respectable number.`;
+}
+
+function describeBool(v){
+  return v
+    ? `it's <span class="v bool">true</span>. Absolutely. 100%. A resounding, unqualified YES. ✅`
+    : `it's <span class="v bool">false</span>. That's a no. A cold, hard, load-bearing no. ❌`;
+}
+
+const OPENERS = [
+  `Ahem. *taps microphone* Is this thing on?`,
+  `*clears throat dramatically*`,
+  `Oh, finally. Someone who'll listen.`,
+  `Right. Let me tell you EVERYTHING.`,
+  `You've come to the right object.`,
+];
+
+// returns array of {text, cls, depth}
+function narrate(node, depth, lines, label){
+  const t = typeof node;
+  if (node === null){
+    lines.push({ depth, text: `${label ? label+' ' : ''}it's <span class="v null">null</span>. Not zero. Not empty. <em>Nothing.</em> Like my will to serialize. 🕳️` });
+    return;
+  }
+  if (Array.isArray(node)){
+    const n = node.length;
+    if (label){
+      if (n===0) lines.push({ depth, text: `${label} it's an empty list. A guest list nobody RSVP'd to. 📭` });
+      else lines.push({ depth, text: `${label} it's a list of <b>${n}</b> thing${n>1?'s':''}, because one was never enough:` });
+    } else {
+      lines.push({ depth, cls:'intro', text: `I am an <b>array</b> — a proud list of <b>${n}</b> item${n===1?'':'s'}. We stand in a line. It's what we do.` });
+    }
+    node.forEach((item, i)=>{
+      const idx = `<span class="k">[${i}]</span>`;
+      const it = typeof item;
+      if (item === null) lines.push({ depth: depth+1, text: `${idx} → <span class="v null">null</span>. An empty seat at the table.` });
+      else if (Array.isArray(item)) narrate(item, depth+1, lines, `${idx} →`);
+      else if (it === 'object') { lines.push({ depth: depth+1, text: `${idx} → hold on, it's a whole object in here:` }); narrate(item, depth+1, lines, null); }
+      else if (it === 'string') lines.push({ depth: depth+1, text: `${idx} → ${describeString(item)}` });
+      else if (it === 'number') lines.push({ depth: depth+1, text: `${idx} → ${describeNumber(item)}` });
+      else if (it === 'boolean') lines.push({ depth: depth+1, text: `${idx} → ${describeBool(item)}` });
+    });
+    return;
+  }
+  if (t === 'object'){
+    const keys = Object.keys(node);
+    if (!label && depth === 0){
+      lines.push({ depth, cls:'intro', text: `${rand(OPENERS)} I'm a <b>JSON object</b>, and I'm holding onto <b>${keys.length}</b> ${keys.length===1?'secret':'secrets'}. Here goes.` });
+    } else if (label){
+      lines.push({ depth, text: `${label} it's a nested object. An object, inside an object. It's objects all the way down. 🌀` });
+    }
+    if (keys.length === 0){
+      lines.push({ depth: depth+1, text: `...actually I've got nothing. I'm an empty object. Beautiful, minimal, hollow inside. Relatable.` });
+    }
+    keys.forEach(k=>{
+      const v = node[k];
+      const vt = typeof v;
+      if (v === null) lines.push({ depth: depth+1, text: `${keyPhrase(k)} it's <span class="v null">null</span>. It's not that I forgot. There's genuinely nothing there. 🕳️` });
+      else if (Array.isArray(v)) narrate(v, depth+1, lines, keyPhrase(k));
+      else if (vt === 'object') { narrate(v, depth+1, lines, keyPhrase(k)); }
+      else if (vt === 'string') lines.push({ depth: depth+1, text: `${keyPhrase(k)} ${describeString(v)}` });
+      else if (vt === 'number') lines.push({ depth: depth+1, text: `${keyPhrase(k)} ${describeNumber(v)}` });
+      else if (vt === 'boolean') lines.push({ depth: depth+1, text: `${keyPhrase(k)} ${describeBool(v)}` });
+    });
+    return;
+  }
+  // top-level primitive
+  if (t === 'string') lines.push({ depth, cls:'intro', text: `I'm just a lonely string, floating out here with no object to call home. But ${describeString(node)}` });
+  else if (t === 'number') lines.push({ depth, cls:'intro', text: `I'm a naked number, no keys, no context. But ${describeNumber(node)}` });
+  else if (t === 'boolean') lines.push({ depth, cls:'intro', text: `I'm a lone boolean, and ${describeBool(node)}` });
+}
+
+const OUTROS = [
+  `And that, my friend, is the whole me. Thanks for reading my JSON diary. 📖`,
+  `That's everything. I feel so seen. Do you feel seen? I feel seen.`,
+  `And scene. 🎭 Tip your parser.`,
+  `That's the full download. Please close my curly braces gently on the way out.`,
+  `Anyway, that's my truth. Ship it responsibly.`,
+];
+
+const ERRORS = [
+  msg => `Hrmph. That's not valid JSON. My parser choked around here: <br><em>${esc(msg)}</em><br>Check your commas. It's ALWAYS the commas. 🫠`,
+  msg => `I tried to read that and my brackets got dizzy. 🥴<br><em>${esc(msg)}</em><br>Did you forget to close something? We've all been there.`,
+  msg => `That's... a beautiful string. But it is not JSON. 💔<br><em>${esc(msg)}</em>`,
+];
+
+/* ============================================================
+   RENDER with typewriter + bubble animation
+   ============================================================ */
+const transcript = document.getElementById('transcript');
+const placeholder = document.getElementById('placeholder');
+const mascot = document.getElementById('mascot');
+const stat = document.getElementById('stat');
+let typing = false;
+
+function countNodes(node){
+  if (node === null || typeof node !== 'object') return 1;
+  let c = 1;
+  if (Array.isArray(node)) node.forEach(v=>c+=countNodes(v));
+  else Object.values(node).forEach(v=>c+=countNodes(v));
+  return c;
+}
+
+async function typeInto(el, html){
+  // typewriter that preserves HTML tags
+  return new Promise(resolve=>{
+    let i = 0; let out = '';
+    const tokens = html.match(/(<[^>]+>|&[a-z]+;|.)/gs) || [];
+    const caret = document.createElement('span'); caret.className='caret';
+    el.appendChild(caret);
+    const speed = Math.max(6, 22 - tokens.length/12);
+    function step(){
+      if (i >= tokens.length){ caret.remove(); resolve(); return; }
+      out += tokens[i]; i++;
+      el.innerHTML = out; el.appendChild(caret);
+      transcript.scrollTop = transcript.scrollHeight;
+      setTimeout(step, tokens[i]==='<' ? 0 : speed);
+    }
+    step();
+  });
+}
+
+async function render(lines){
+  transcript.innerHTML = '';
+  mascot.classList.add('talking');
+  const reduced = document.body.classList.contains('reduced');
+  for (let i=0;i<lines.length;i++){
+    const l = lines[i];
+    const b = document.createElement('div');
+    b.className = 'bubble' + (l.depth ? ' depth-'+Math.min(l.depth,3) : '') + (l.cls ? ' '+l.cls : '');
+    b.style.animationDelay = '0s';
+    transcript.appendChild(b);
+    transcript.scrollTop = transcript.scrollHeight;
+    if (reduced){ b.innerHTML = l.text; b.style.opacity=1; b.style.transform='none'; }
+    else { await typeInto(b, l.text); await sleep(90); }
+  }
+  mascot.classList.remove('talking');
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+function fireConfetti(){
+  if (document.body.classList.contains('reduced')) return;
+  const colors = ['--c-blue','--c-magenta','--c-orange','--c-aqua','--c-violet','--c-yellow'].map(v=>getComputedStyle(document.documentElement).getPropertyValue(v));
+  for (let i=0;i<70;i++){
+    const c = document.createElement('div');
+    c.className='confetti';
+    c.style.left = Math.random()*100+'vw';
+    c.style.background = colors[i%colors.length];
+    c.style.transform = `rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(c);
+    const dur = 1200 + Math.random()*1400;
+    const drift = (Math.random()-.5)*260;
+    c.animate([
+      { transform:`translate(0,0) rotate(0deg)`, opacity:1 },
+      { transform:`translate(${drift}px, ${window.innerHeight+60}px) rotate(${Math.random()*900}deg)`, opacity:.9 }
+    ], { duration: dur, easing:'cubic-bezier(.3,.6,.4,1)' });
+    setTimeout(()=>c.remove(), dur);
+  }
+}
+
+/* ============================================================
+   Wire up buttons
+   ============================================================ */
+const input = document.getElementById('input');
+const translateBtn = document.getElementById('translateBtn');
+
+async function doTranslate(){
+  if (typing) return;
+  const raw = input.value.trim();
+  if (!raw){
+    mascot.classList.add('shake');
+    setTimeout(()=>mascot.classList.remove('shake'),800);
+    transcript.innerHTML = `<div class="bubble error">The input is empty. I have literally nothing to say, and yet — here we are. Paste some JSON, please. 🙏</div>`;
+    stat.textContent = '';
+    return;
+  }
+  let data;
+  try { data = JSON.parse(raw); }
+  catch(e){
+    mascot.classList.add('shake');
+    setTimeout(()=>mascot.classList.remove('shake'),800);
+    typing = true;
+    transcript.innerHTML='';
+    const b = document.createElement('div'); b.className='bubble error'; transcript.appendChild(b);
+    await typeInto(b, rand(ERRORS)(e.message));
+    typing = false;
+    stat.textContent = 'invalid JSON';
+    return;
+  }
+  typing = true;
+  translateBtn.disabled = true;
+  const lines = [];
+  narrate(data, 0, lines, null);
+  lines.push({ depth:0, cls:'outro', text: rand(OUTROS) });
+  stat.textContent = countNodes(data) + ' values interpreted';
+  await render(lines);
+  fireConfetti();
+  typing = false;
+  translateBtn.disabled = false;
+}
+
+translateBtn.addEventListener('click', doTranslate);
+input.addEventListener('keydown', e=>{
+  if ((e.metaKey||e.ctrlKey) && e.key==='Enter'){ e.preventDefault(); doTranslate(); }
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  input.value=''; input.focus();
+  transcript.innerHTML='';
+  transcript.appendChild(placeholder);
+  stat.textContent='';
+});
+
+/* ============================================================
+   Sample data
+   ============================================================ */
+const SAMPLES = {
+  '🧑 A person': {
+    name: "Kai",
+    age: 28,
+    email: "kai@example.com",
+    isAwake: true,
+    hasCoffee: false,
+    hobbies: ["napping", "avoiding JSON"],
+    middleName: null
+  },
+  '🛒 An order': {
+    orderId: 84213,
+    total: 129.99,
+    paid: true,
+    items: [
+      { product: "Rubber duck", qty: 3 },
+      { product: "Existential dread", qty: 1 }
+    ],
+    couponCode: ""
+  },
+  '⚙️ Some config': {
+    debug: false,
+    retries: 0,
+    endpoint: "https://api.example.com",
+    theme: "#3987e5",
+    features: { darkMode: true, telemetry: null }
+  },
+  '🐛 Chaos': {
+    answer: 42,
+    balance: -9999999,
+    empty: {},
+    nothingHere: [],
+    SHOUTING: "WHY IS THIS IN CAPS",
+    nested: { deeper: { deepest: { finally: "hi" } } }
+  }
+};
+
+const samplesHost = document.getElementById('samples');
+Object.entries(SAMPLES).forEach(([label, data])=>{
+  const btn = document.createElement('button');
+  btn.className='chip';
+  btn.textContent = label;
+  btn.addEventListener('click', ()=>{
+    input.value = JSON.stringify(data, null, 2);
+    input.focus();
+    doTranslate();
+  });
+  samplesHost.appendChild(btn);
+});
+
+// Preload the first sample so the page never looks empty
+input.value = JSON.stringify(SAMPLES['🧑 A person'], null, 2);
+</script>
+</body>
+</html>
