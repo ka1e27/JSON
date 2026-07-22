@@ -249,6 +249,30 @@ nav .meta .hs{color:var(--yellow);}
 .medals .m.got{filter:none;opacity:1;transform:scale(1.06);}
 .hidden{display:none!important;}
 
+/* ===== Round 3: boss rounds + alternate question modes ===== */
+.gpanel.boss{box-shadow:0 0 0 4px var(--purple),0 0 42px -6px var(--purple),var(--shadow);}
+.gpanel.boss .valuecard{border-color:var(--purple);box-shadow:4px 4px 0 var(--purple);}
+.modebanner{position:absolute;top:-16px;left:50%;transform:translateX(-50%) rotate(-2deg);z-index:39;
+  background:var(--blue);color:var(--yellow);font-family:"Bangers";font-size:20px;padding:3px 18px;border:var(--border);box-shadow:var(--shadow-sm);opacity:0;pointer-events:none;white-space:nowrap;}
+.modebanner.boss{background:var(--purple);}
+.modebanner.show{animation:modeban 1.5s var(--ease);}
+@keyframes modeban{0%{opacity:0;transform:translateX(-50%) translateY(-10px) rotate(-2deg) scale(.7);}15%,75%{opacity:1;transform:translateX(-50%) rotate(-2deg) scale(1);}100%{opacity:0;transform:translateX(-50%) translateY(-8px) rotate(-2deg) scale(1);}}
+.altanswers{display:grid;gap:12px;max-width:620px;margin:0 auto;}
+.altanswers.two{grid-template-columns:repeat(2,1fr);}
+.altanswers.grid{grid-template-columns:repeat(2,1fr);}
+.altbtn{position:relative;border:var(--border);border-radius:14px;box-shadow:var(--shadow-sm);padding:16px 12px;color:var(--paper);
+  font-family:"Bangers";font-size:24px;letter-spacing:.02em;line-height:1.05;transition:transform .1s var(--ease),box-shadow .1s;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:62px;justify-content:center;}
+.altbtn .ex{font-family:"Space Mono";font-weight:700;font-size:11px;letter-spacing:0;opacity:.92;}
+.altbtn .mono{font-size:18px;word-break:break-word;color:var(--paper);}
+.altbtn .key{position:absolute;top:-11px;right:8px;background:var(--ink);color:var(--paper);border-radius:6px;font-family:"Space Mono";font-weight:700;font-size:11px;padding:2px 7px;}
+.altbtn.valid{background:var(--green);} .altbtn.broken{background:var(--red);}
+.altbtn.pick{background:var(--blue);}
+.altbtn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+.altbtn:active:not(:disabled){transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink);}
+.altbtn:disabled{opacity:.9;}
+.altbtn.eliminated{opacity:.22;filter:grayscale(1);pointer-events:none;}
+.altbtn.correct{animation:flashg .5s ease;} .altbtn.wrong{animation:flashr .5s ease;}
+
 /* ===================== CHEAT SHEET ===================== */
 .sec{padding:60px 0;}
 .sec-head{display:flex;align-items:center;gap:16px;margin-bottom:26px;flex-wrap:wrap;}
@@ -327,6 +351,7 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
           <div class="valuecard mono" id="valueCard"><span class="v">42</span></div>
           <div class="flavor" id="flavor" aria-live="polite">Tap START and I'll show you my true self.</div>
           <div class="answers" id="answers"></div>
+          <div class="altanswers hidden" id="altAnswers" aria-label="Answers"></div>
           <div class="powtray" id="powtray" aria-label="Power-ups"></div>
         </div>
 
@@ -334,12 +359,13 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
         <div class="levelup bangers" id="levelup">LEVEL UP!</div>
         <div class="countdown bangers" id="countdown"></div>
         <div class="firebadge bangers" id="fireBadge">🔥 ON FIRE!</div>
+        <div class="modebanner bangers" id="modeBanner"></div>
 
         <!-- START overlay -->
         <div class="overlay" id="startOverlay">
           <div class="big bangers">Ready to <span class="r">listen?</span></div>
           <p>I'll show you a JSON value. <b>Name its type</b> before the timer runs out — String, Number, Boolean, Null, Array or Object. Chain correct answers for <b>combo points!</b></p>
-          <div class="rules"><span>⏱ Beat the clock</span><span>🔥 Build combos</span><span>❤ Lives</span><span>⌨ Keys 1–6</span></div>
+          <div class="rules"><span>⏱ Beat the clock</span><span>🔥 Build combos</span><span>👹 Boss rounds</span><span>🎯 Special modes</span><span>⌨ Keys 1–6</span></div>
           <div class="diffsel" id="diffSel">
             <button class="diff" data-diff="chill">😌 Chill</button>
             <button class="diff active" data-diff="normal">😎 Normal</button>
@@ -484,6 +510,46 @@ function pickValue(level){
   const value=JSON.parse(raw);
   return {raw,value,type:typeOf(value)};
 }
+function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
+
+/* ---- Round 3: boss values, broken-JSON samples, taunts ---- */
+const BOSS_EVERY=3;
+const BOSS=[
+  '{"user":{"name":"Ada","roles":["admin","dev"],"meta":{"active":true,"logins":42}}}',
+  '[[1,[2,[3,[4]]]],{"deep":null}]',
+  '{"a":[{"b":[{"c":[1,2,3]}]}],"ok":false}',
+  '[{"id":1,"tags":["x","y"]},{"id":2,"tags":[]}]',
+  '{"matrix":[[0,1],[1,0]],"size":2,"labels":["r","c"]}',
+  '{"tree":{"l":{"l":null,"r":1},"r":{"l":2,"r":null}}}',
+  '{"q":[null,[null,[null]]],"n":-0.0}',
+  '[{"k":"v"},[1,[2,[3]]],{"z":{"z":{"z":true}}}]'
+];
+function pickBoss(){ let raw; do{ raw=rand(BOSS); }while(raw===lastRaw&&BOSS.length>1); lastRaw=raw; const value=JSON.parse(raw); return {raw,value,type:typeOf(value)}; }
+const BROKEN=[
+  {raw:'{"a":}',   why:'no value after the colon.'},
+  {raw:'[1,2,]',   why:'trailing comma.'},
+  {raw:"{'x':1}",  why:'keys need double quotes.'},
+  {raw:'{a:1}',    why:'unquoted key.'},
+  {raw:'[1 2 3]',  why:'missing commas.'},
+  {raw:'"oops',    why:'unterminated string.'},
+  {raw:'{"a":1,}', why:'trailing comma.'},
+  {raw:'nul',      why:'that is not null.'},
+  {raw:'True',     why:'JSON keywords are lowercase.'},
+  {raw:'01',       why:'no leading zeros allowed.'},
+  {raw:'[1,,2]',   why:'empty array slot.'},
+  {raw:'{"a" 1}',  why:'missing colon.'}
+];
+const TAUNTS=[
+  '“Guess what I am… if you dare.”',
+  '“Come on. Name me. I haven\'t got all… oh, wait, I do.”',
+  '“Easy one. Probably. Maybe. Go.”',
+  '“Types are just vibes. Name mine.”',
+  '“I dare you to get this wrong.”',
+  '“Quotes lie. Numbers lie. I lie. Choose.”',
+  '“What am I, really? Existentially?”',
+  '“Tick, tock, whisperer.”'
+];
+function pickValidRaw(level){ const maxTier=level<=1?1:level<=3?2:3; const t=1+Math.floor(Math.random()*maxTier); return rand(TIERS[t]); }
 
 /* ===================== GAME ===================== */
 const TYPES=[
@@ -503,7 +569,8 @@ if(window._bindCursor) window._bindCursor();
 const DIFF={ chill:{time:6.5,drop:0.22,min:3.2,lives:5}, normal:{time:5,drop:0.32,min:2.2,lives:3}, chaos:{time:3.7,drop:0.4,min:1.6,lives:2} };
 let diff='normal';
 const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0,
-  coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false};
+  coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
+  mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -521,13 +588,14 @@ Object.entries(POWERS).forEach(([id,p])=>{ const b=document.createElement('butto
   b.innerHTML=`<span class="pk">${p.key.toUpperCase()}</span><span class="cnt">0</span><span class="ic">${p.ic}</span>${p.name}`;
   b.addEventListener('click',()=>usePower(id)); powtray.appendChild(b); });
 function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid,n=state.powers[id];
-  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive));
+  const okMode = id!=='fifty' || state.mode==='type' || state.mode==='boss';
+  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode);
   b.classList.toggle('armed', id==='double'&&state.doubleArmed); }); }
 function grantPower(id){ state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Power-up earned!'},'Power-up'); if(!muted){initAudio();beep(700,0.06,'triangle',0.05);setTimeout(()=>beep(1046,0.09,'triangle',0.05),70);} renderPowers(); }
 function usePower(id){ if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
   if(id==='life'){ state.powers[id]--; state.lives++; state.maxLives=Math.max(state.maxLives,state.lives); }
   else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen'); }
-  else if(id==='fifty'){ const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
+  else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
   else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
   state.usedAnyPower=true; unlock('powerup'); if(!muted){initAudio();beep(820,0.09,'triangle',0.05);} setHUD(); }
@@ -542,7 +610,9 @@ const ACH={
   perfect:{ic:'⭐',name:'Flawless',desc:'Clear a level with zero misses'},
   powerup:{ic:'🎁',name:'Power Player',desc:'Use a power-up'},
   grand  :{ic:'💰',name:'Grand',desc:'Score 1000 in one run'},
-  hoarder:{ic:'🪙',name:'Coin Hoarder',desc:'Bank 50 coins in one run'}
+  hoarder:{ic:'🪙',name:'Coin Hoarder',desc:'Bank 50 coins in one run'},
+  boss   :{ic:'👹',name:'Boss Slayer',desc:'Defeat a boss round'},
+  sharp  :{ic:'🕵️',name:'Sharp Eye',desc:'Ace a special-mode round'}
 };
 let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')); }catch(e){ ACHGOT=new Set(); }
 function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); toast(ACH[id],'Achievement'); renderMedals(); if(!muted){initAudio();[880,1174].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
@@ -576,25 +646,84 @@ function startGame(){
   initAudio();
   const cfg=DIFF[diff];
   Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,roundActive:false,
-    coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false});
+    coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
+    mode:'type',bossPending:false,lastWasAlt:false});
   $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden'); $('initialsBox').classList.add('hidden');
-  $('gpanel').classList.remove('onfire','urgent'); $('fireBadge').classList.remove('show');
+  $('answers').classList.remove('hidden'); $('altAnswers').classList.add('hidden');
+  $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
   timerBar.classList.remove('frozen');
   valueCard.innerHTML='<span class="v">?</span>'; flavorEl.textContent=''; timerFill.style.width='100%';
   setHUD(); renderPowers(); runCountdown(()=>nextRound());
 }
+function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.textContent=txt; el.classList.toggle('boss',!!boss);
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  if(!muted){ initAudio(); beep(boss?200:520,0.14,'sawtooth',0.05); if(boss)setTimeout(()=>beep(150,0.2,'sawtooth',0.05),150); } }
+
+function buildValidRound(alt){
+  const useValid=Math.random()<0.5; let raw,reason='';
+  if(useValid){ raw=pickValidRaw(state.level); state.altAnswer='valid'; }
+  else { const b=rand(BROKEN); raw=b.raw; reason=b.why; state.altAnswer='broken'; }
+  state.altReason=reason;
+  const long=raw.length>16;
+  valueCard.style.fontSize = long ? 'clamp(18px,4.2vw,28px)' : 'clamp(26px,6vw,44px)';
+  valueCard.innerHTML=`<span class="v">${esc(raw)}</span>`;
+  alt.className='altanswers two';
+  alt.innerHTML=`<button class="altbtn valid" data-v="valid"><span class="key">1</span>✔ VALID<span class="ex mono">parses clean</span></button>`+
+                `<button class="altbtn broken" data-v="broken"><span class="key">2</span>✘ BROKEN<span class="ex mono">syntax error</span></button>`;
+  alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(b.dataset.v,false)));
+  if(window._bindCursor)window._bindCursor();
+}
+function buildSpotRound(alt){
+  const target=rand(['string','number','boolean','array','object']); state.altTarget=target;
+  const pool=[]; [1,2,3].forEach(t=>TIERS[t].forEach(r=>pool.push(r)));
+  const typeFor=r=>typeOf(JSON.parse(r));
+  const matches=pool.filter(r=>typeFor(r)===target);
+  const others=shuffle(pool.filter(r=>typeFor(r)!==target));
+  const correctRaw=rand(matches);
+  const distract=[]; const seen=new Set([target]);
+  for(const r of others){ if(distract.length>=3)break; const tt=typeFor(r); if(!seen.has(tt)||distract.length>=2){ distract.push(r); seen.add(tt); } }
+  while(distract.length<3) distract.push(rand(others));
+  const cands=shuffle([{raw:correctRaw,type:target},...distract.map(r=>({raw:r,type:typeFor(r)}))]);
+  state.altCands=cands; state.altCorrectIdx=cands.findIndex(c=>c.raw===correctRaw&&c.type===target);
+  valueCard.style.fontSize='clamp(20px,4.6vw,34px)';
+  valueCard.innerHTML=`<span class="v">Which one is a <b style="color:var(--t-${target})">${target.toUpperCase()}</b>?</span>`;
+  alt.className='altanswers grid';
+  alt.innerHTML=cands.map((c,i)=>`<button class="altbtn pick" data-i="${i}"><span class="key">${i+1}</span><span class="mono">${esc(c.raw)}</span></button>`).join('');
+  alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(parseInt(b.dataset.i,10),false)));
+  if(window._bindCursor)window._bindCursor();
+}
+
 function nextRound(){
   if(!state.playing)return;
-  state.current=pickValue(state.level);
-  const raw=state.current.raw;
-  const long=raw.length>18;
-  valueCard.style.fontSize = long ? 'clamp(20px,4.6vw,30px)' : 'clamp(30px,7vw,52px)';
-  valueCard.innerHTML=`<span class="v">${esc(raw)}</span>`;
-  flavorEl.textContent='';
-  mascot.className='mascot talk';
-  answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
+  let mode='type';
+  if(state.bossPending){ mode='boss'; state.bossPending=false; }
+  else if(state.level>=2 && !state.lastWasAlt && Math.random()<0.32){ mode=rand(['valid','spot']); }
+  state.lastWasAlt=(mode==='valid'||mode==='spot');
+  state.mode=mode;
+  flavorEl.textContent=''; mascot.className='mascot talk';
   state.frozen=false; timerBar.classList.remove('frozen');
-  state.duration=timeForLevel(state.level); state.deadline=performance.now()+state.duration*1000; state.roundActive=true; state.lastTick=0;
+  $('gpanel').classList.remove('boss');
+  const answers=$('answers'), alt=$('altAnswers');
+  if(mode==='type'||mode==='boss'){
+    answers.classList.remove('hidden'); alt.classList.add('hidden');
+    if(mode==='boss'){ state.current=pickBoss(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
+    else state.current=pickValue(state.level);
+    const raw=state.current.raw, long=raw.length>18;
+    valueCard.style.fontSize = long ? 'clamp(16px,3.8vw,26px)' : 'clamp(30px,7vw,52px)';
+    valueCard.innerHTML=`<span class="v">${esc(raw)}</span>`;
+    answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
+    $('question').textContent = mode==='boss' ? '“BEHOLD. Name me… if you can.”' : rand(TAUNTS);
+    if(mode==='boss') announceMode('👹 BOSS ROUND!',true);
+  } else if(mode==='valid'){
+    answers.classList.add('hidden'); alt.classList.remove('hidden'); buildValidRound(alt);
+    $('question').textContent='“Real JSON… or garbage? You decide.”'; announceMode('🔍 VALID or BROKEN?');
+  } else {
+    answers.classList.add('hidden'); alt.classList.remove('hidden'); buildSpotRound(alt);
+    $('question').textContent=`“Point at the ${state.altTarget.toUpperCase()}. Quickly.”`; announceMode('🎯 SPOT THE '+state.altTarget.toUpperCase());
+  }
+  const base=timeForLevel(state.level);
+  state.duration = mode==='boss' ? base*1.7 : (mode!=='type' ? base*1.25 : base);
+  state.deadline=performance.now()+state.duration*1000; state.roundActive=true; state.lastTick=0;
   renderPowers();
   requestAnimationFrame(tick);
 }
@@ -606,55 +735,98 @@ function tick(now){
   timerFill.style.background = frac>0.5?'var(--green)':frac>0.25?'var(--yellow)':'var(--red)';
   const urgent=frac<0.28; $('gpanel').classList.toggle('urgent',urgent);
   if(!reduced){ const sec=Math.ceil(remain/1000); if(urgent && sec!==state.lastTick && sec>0){state.lastTick=sec;sTick();} }
-  if(remain<=0){ answer(null); return; }
+  if(remain<=0){ if(state.mode==='valid'||state.mode==='spot') answerAlt(null,true); else answer(null); return; }
   requestAnimationFrame(tick);
 }
+/* shared scoring core (used by standard, boss and alt-mode rounds) */
+function awardCorrect(mult){
+  const remain=Math.max(0,state.deadline-performance.now());
+  const timeBonus=Math.round(remain/(state.duration*1000)*100);
+  const comboMult=1+Math.min(state.streak,9)*0.25;
+  let pts=Math.round((100+timeBonus)*comboMult*(mult||1));
+  const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
+  state.score+=pts; state.streak++; state.correct++;
+  state.bestCombo=Math.max(state.bestCombo,state.streak);
+  const gain=2+Math.floor(pts/60); state.coins+=gain;
+  unlock('firstblood'); if(state.streak>=5)unlock('combo5'); if(state.streak>=10)unlock('combo10');
+  if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
+  if(state.streak>0 && state.streak%3===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(Math.random()*ids.length)]); }
+  const newLevel=1+Math.floor(state.correct/5);
+  if(newLevel>state.level){
+    const perfect=state.levelWrong===0;
+    state.level=newLevel; levelUp();
+    if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
+    if(perfect){ const bonus=150*(state.level-1); state.score+=bonus; state.coins+=10; unlock('perfect'); grantPower('freeze');
+      setTimeout(()=>showFeedback('PERFECT! +'+bonus,false),260); }
+    state.levelWrong=0;
+    if(state.level%BOSS_EVERY===0) state.bossPending=true;
+  }
+  return {pts,doubled};
+}
+function penalize(){ state.lives--; state.streak=0; state.levelWrong++; state.doubleArmed=false; }
+function finishRound(correct){ $('gpanel').classList.remove('urgent'); setHUD();
+  setTimeout(()=>{ if(state.lives<=0){ gameOver(); } else { nextRound(); } }, correct?820:1150); }
+
 function answer(id){
-  if(!state.roundActive)return;
+  if(!state.roundActive || (state.mode!=='type'&&state.mode!=='boss'))return;
   state.roundActive=false;
   state.frozen=false; timerBar.classList.remove('frozen');
-  const cur=state.current, correct = id===cur.type;
+  const cur=state.current, correct = id===cur.type, boss=state.mode==='boss';
   mascot.classList.remove('talk');
   answersHost.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
   const correctBtn=answersHost.querySelector('.abtn.'+cur.type);
   flavorEl.innerHTML=flavorFor(cur.value)+`  <b style="color:var(--ink)">— it's ${cur.type.toUpperCase()}.</b>`;
   if(correct){
-    const remain=Math.max(0,state.deadline-performance.now());
-    const timeBonus=Math.round(remain/(state.duration*1000)*100);
-    const mult=1+Math.min(state.streak,9)*0.25;
-    let pts=Math.round((100+timeBonus)*mult);
-    const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
-    state.score+=pts; state.streak++; state.correct++;
-    state.bestCombo=Math.max(state.bestCombo,state.streak);
-    const gain=2+Math.floor(pts/60); state.coins+=gain;
+    const {pts,doubled}=awardCorrect(boss?3:1);
+    if(boss){ unlock('boss'); state.coins+=15; }
     correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
-    showFeedback(rand(['POW!','BAM!','ZAP!','BOOM!','NICE!'])+' +'+pts+(doubled?'!!':''),false); fireBurst(false);
+    showFeedback((boss?'BOSS DOWN! +':rand(['POW!','BAM!','ZAP!','BOOM!','NICE!'])+' +')+pts+(doubled?'!!':''),false); fireBurst(false);
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
-    /* achievements */
-    unlock('firstblood'); if(state.streak>=5)unlock('combo5'); if(state.streak>=10)unlock('combo10');
-    if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
-    /* earn power-ups on combo milestones */
-    if(state.streak>0 && state.streak%3===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(Math.random()*ids.length)]); }
-    const newLevel=1+Math.floor(state.correct/5);
-    if(newLevel>state.level){
-      const perfect=state.levelWrong===0;
-      state.level=newLevel; levelUp();
-      if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
-      if(perfect){ const bonus=150*(state.level-1); state.score+=bonus; state.coins+=10; unlock('perfect'); grantPower('freeze');
-        setTimeout(()=>showFeedback('PERFECT! +'+bonus,false),260); }
-      state.levelWrong=0;
-    }
   } else {
-    state.lives--; state.streak=0; state.levelWrong++; state.doubleArmed=false;
+    penalize();
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
     correctBtn.classList.add('correct');
     mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
     $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
     showFeedback(id?'OOF!':"TOO SLOW!",true);
   }
-  $('gpanel').classList.remove('urgent');
-  setHUD();
-  setTimeout(()=>{ if(state.lives<=0){ gameOver(); } else { nextRound(); } }, correct?820:1150);
+  $('gpanel').classList.remove('boss');
+  finishRound(correct);
+}
+function answerAlt(picked,timedOut){
+  if(!state.roundActive || (state.mode!=='valid'&&state.mode!=='spot'))return;
+  state.roundActive=false;
+  state.frozen=false; timerBar.classList.remove('frozen');
+  mascot.classList.remove('talk');
+  const alt=$('altAnswers'); alt.querySelectorAll('button').forEach(b=>b.disabled=true);
+  let correct=false, correctEl=null, pickedEl=null;
+  if(state.mode==='valid'){
+    correct = !timedOut && picked===state.altAnswer;
+    correctEl=alt.querySelector('.altbtn[data-v="'+state.altAnswer+'"]');
+    if(!timedOut) pickedEl=alt.querySelector('.altbtn[data-v="'+picked+'"]');
+    flavorEl.innerHTML = state.altAnswer==='valid' ? `“That one parses clean — <b style="color:var(--ink)">VALID JSON.</b>” ✅`
+      : `“Nope — <b style="color:var(--ink)">BROKEN:</b> ${esc(state.altReason)}” ❌`;
+  } else {
+    correct = !timedOut && picked!=null && state.altCands[picked] && state.altCands[picked].type===state.altTarget;
+    correctEl=alt.querySelector('.altbtn[data-i="'+state.altCorrectIdx+'"]');
+    if(!timedOut && picked!=null) pickedEl=alt.querySelector('.altbtn[data-i="'+picked+'"]');
+    const cr=state.altCands[state.altCorrectIdx];
+    flavorEl.innerHTML=`“The ${state.altTarget.toUpperCase()} was <b style="color:var(--ink)">${esc(cr.raw)}</b>.”`;
+  }
+  if(correct){
+    const {pts,doubled}=awardCorrect(1.5);
+    unlock('sharp');
+    correctEl&&correctEl.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
+    showFeedback(rand(['SHARP!','KEEN!','GOT IT!','YES!'])+' +'+pts+(doubled?'!!':''),false); fireBurst(false);
+    if(state.streak>=2 && correctEl) comboFloat(correctEl, '×'+(1+state.streak));
+  } else {
+    penalize();
+    pickedEl&&pickedEl.classList.add('wrong'); correctEl&&correctEl.classList.add('correct');
+    mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
+    $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
+    showFeedback(timedOut?'TOO SLOW!':'OOF!',true);
+  }
+  finishRound(correct);
 }
 function showFeedback(txt,bad){ feedback.textContent=txt; feedback.classList.toggle('bad',bad); feedback.classList.remove('show'); void feedback.offsetWidth; feedback.classList.add('show'); }
 function levelUp(){ levelupEl.textContent='LEVEL '+state.level+'!'; levelupEl.classList.remove('show'); void levelupEl.offsetWidth; levelupEl.classList.add('show'); sLevel(); vibrate([20,30,20,30]); }
@@ -701,6 +873,8 @@ addEventListener('keydown',e=>{
   if(e.target&&(e.target.id==='initialsInp'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(!state.playing){ if((e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();startGame();} if((e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();} return; }
   const pid=POWKEYS[e.key.toLowerCase()]; if(pid){ e.preventDefault(); usePower(pid); return; }
+  if(state.mode==='valid'){ if(e.key==='1'){e.preventDefault();answerAlt('valid',false);} else if(e.key==='2'){e.preventDefault();answerAlt('broken',false);} return; }
+  if(state.mode==='spot'){ const i=parseInt(e.key,10); if(state.altCands&&i>=1&&i<=state.altCands.length){e.preventDefault();answerAlt(i-1,false);} return; }
   const t=TYPES.find(x=>x.key===e.key); if(t) answer(t.id);
 });
 </script>
