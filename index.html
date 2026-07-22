@@ -158,7 +158,7 @@ nav .meta .hs{color:var(--yellow);}
 
 /* overlays */
 .overlay{position:absolute;inset:0;z-index:30;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(2px);border-radius:22px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;gap:16px;}
+  display:flex;flex-direction:column;align-items:center;justify-content:safe center;text-align:center;padding:28px;gap:16px;overflow-y:auto;}
 .overlay.hidden{display:none;}
 .overlay .big{font-family:"Bangers";font-size:clamp(44px,10vw,96px);line-height:.9;text-transform:uppercase;}
 .overlay .big .y{color:var(--yellow);-webkit-text-stroke:3px var(--ink);text-shadow:var(--shadow);}
