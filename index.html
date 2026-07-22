@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>JSON WHISPERER — the machine that translates what your data is thinking</title>
 <meta name="description" content="Feed it any JSON. A dramatic, over-sharing machine reads it aloud in plain, unhinged English. An award-grade interactive experiment." />
+<meta name="theme-color" content="#07070a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307070a'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='20' font-weight='700' fill='%23d6ff2e' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -73,6 +75,8 @@ body {
   transition: background .6s var(--ease), color .6s var(--ease);
 }
 .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; border-radius: 4px; }
+::selection { background: color-mix(in srgb, var(--acid) 40%, transparent); color: var(--ink); }
 
 @media (hover: hover) and (pointer: fine) {
   body { cursor: none; }
@@ -146,6 +150,8 @@ nav .n-right a:hover { opacity: 1; }
 
 /* ---------- HERO ---------- */
 .hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 120px 0 40px; position: relative; }
+.hero::before { content:""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(120% 90% at 20% 55%, color-mix(in srgb, var(--bg) 62%, transparent) 0%, transparent 60%); }
 .eyebrow { display: flex; align-items: center; gap: 14px; font: 500 12px/1 "JetBrains Mono"; letter-spacing: .28em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 30px; }
 .eyebrow .line { height: 1px; width: 60px; background: var(--acid); }
 .hero h1 { font-weight: 500; letter-spacing: -.045em; line-height: .92; font-size: clamp(48px, 11.5vw, 176px); text-transform: uppercase; }
@@ -158,7 +164,7 @@ nav .n-right a:hover { opacity: 1; }
 .hero h1 .out { -webkit-text-stroke: 1.4px var(--ink); color: transparent; }
 :root[data-theme="light"] .hero h1 .out { -webkit-text-stroke: 1.4px var(--ink); }
 .hero .sub { display: flex; justify-content: space-between; align-items: flex-end; gap: 30px; margin-top: 40px; flex-wrap: wrap; }
-.hero .sub p { max-width: 440px; color: var(--ink-dim); font-size: clamp(15px,1.7vw,18px); line-height: 1.5; }
+.hero .sub p { max-width: 460px; color: var(--ink-dim); font-size: clamp(16px,1.7vw,19px); line-height: 1.55; }
 .hero .sub p b { color: var(--ink); font-weight: 600; }
 .scrollcue { display: flex; align-items: center; gap: 10px; font: 500 11px/1 "JetBrains Mono"; letter-spacing: .2em; text-transform: uppercase; color: var(--ink-dim); }
 .scrollcue .arrow { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; display: grid; place-items: center; animation: bounce 2s var(--ease) infinite; }
@@ -296,6 +302,21 @@ textarea#input:focus { border-color: var(--acid); box-shadow: 0 0 0 4px color-mi
 [data-reveal] { opacity: 0; transform: translateY(40px); filter: blur(6px); transition: opacity .9s var(--ease), transform .9s var(--ease), filter .9s var(--ease); }
 [data-reveal].in { opacity: 1; transform: none; filter: none; }
 
+/* ---------- LEXICON ---------- */
+.lex { border-top: 1px solid var(--line); }
+.lx { display: grid; grid-template-columns: 200px 150px 1fr; align-items: center; gap: 24px; padding: 26px 8px; border-bottom: 1px solid var(--line); transition: background .35s var(--ease), padding-left .35s var(--ease); }
+.lx:hover { background: color-mix(in srgb, var(--acid) 7%, transparent); padding-left: 22px; }
+.lx-in { font-size: clamp(24px,3.4vw,42px); font-weight: 700; color: var(--acid); letter-spacing: -.02em; }
+.lx-arrow { font: 500 11px/1.3 "JetBrains Mono"; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim); }
+.lx-out { font-size: clamp(17px,2.1vw,24px); font-weight: 400; letter-spacing: -.01em; color: var(--ink); line-height: 1.3; }
+.lx-out b { font-weight: 600; }
+@media (max-width: 720px){
+  .lx { grid-template-columns: auto 1fr; gap: 10px 16px; padding: 20px 6px; }
+  .lx-arrow { grid-column: 1 / -1; order: 2; }
+  .lx-in { order: 1; }
+  .lx-out { grid-column: 1 / -1; order: 3; }
+}
+
 /* ---------- FEATURE STRIP ---------- */
 .feats { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; }
 @media (max-width: 760px){ .feats { grid-template-columns: 1fr; } }
@@ -385,13 +406,13 @@ footer { border-top: 1px solid var(--line); padding: 60px 0 0; }
           <textarea id="input" spellcheck="false" placeholder='{ "paste": "your json here", "and": "watch it talk" }'></textarea>
           <div class="samples" id="samples"></div>
           <div class="actions">
-            <button class="btn-primary" id="translateBtn" data-magnetic data-label="Translate"><span class="bt">◈&nbsp; Translate it</span></button>
+            <button class="btn-primary" id="translateBtn" data-magnetic data-label="Translate"><span class="bt">Translate&nbsp;it&nbsp; ◇→</span></button>
             <button class="btn-ghost" id="clearBtn" data-magnetic data-label="Clear">Clear</button>
           </div>
         </div>
 
         <!-- OUTPUT -->
-        <div class="panel tilt" data-tilt data-reveal>
+        <div class="panel tilt" id="output" data-tilt data-reveal>
           <div class="stage">
             <div class="mascot" id="mascot">
               <span class="brace l">{</span><span class="brace r">}</span>
@@ -417,11 +438,29 @@ footer { border-top: 1px solid var(--line); padding: 60px 0 0; }
     </div>
   </section>
 
-  <!-- FEATURES -->
+  <!-- LEXICON -->
   <section class="sec">
     <div class="container">
       <div class="sec-head" data-reveal>
         <span class="num">(02)</span>
+        <h2>The lexicon <em>— how it hears each value.</em></h2>
+      </div>
+      <div class="lex" data-reveal>
+        <div class="lx"><span class="lx-in mono">true</span><span class="lx-arrow">translates to</span><span class="lx-out">“A resounding, unqualified <b>YES.</b>” ✅</span></div>
+        <div class="lx"><span class="lx-in mono">false</span><span class="lx-arrow">translates to</span><span class="lx-out">“A cold, hard, <b>load-bearing no.</b>” ❌</span></div>
+        <div class="lx"><span class="lx-in mono">null</span><span class="lx-arrow">translates to</span><span class="lx-out">“Nothing. Like my <b>will to serialize.</b>” 🕳️</span></div>
+        <div class="lx"><span class="lx-in mono">42</span><span class="lx-arrow">translates to</span><span class="lx-out">“The answer to <b>life, the universe,</b> everything.”</span></div>
+        <div class="lx"><span class="lx-in mono">""</span><span class="lx-arrow">translates to</span><span class="lx-out">“An empty string — the literary <b>equivalent of a shrug.</b>” 🤷</span></div>
+        <div class="lx"><span class="lx-in mono">[ … ]</span><span class="lx-arrow">translates to</span><span class="lx-out">“A proud list. <b>We stand in a line.</b> It's what we do.”</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="sec">
+    <div class="container">
+      <div class="sec-head" data-reveal>
+        <span class="num">(03)</span>
         <h2>Why it's <em>not</em> a JSON viewer</h2>
       </div>
       <div class="feats" data-reveal>
@@ -471,7 +510,7 @@ if (!touch && !reduced){
   let mx=innerWidth/2,my=innerHeight/2, rx=mx,ry=my;
   addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; dot.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`; });
   (function loop(){ rx+=(mx-rx)*0.18; ry+=(my-ry)*0.18; ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`; requestAnimationFrame(loop); })();
-  const hoverSel='a,button,textarea,.chip,[data-magnetic]';
+  const hoverSel='a,button,textarea,.chip,.lx,[data-magnetic]';
   document.querySelectorAll(hoverSel).forEach(el=>{
     el.addEventListener('mouseenter',()=>{ document.body.classList.add('cursor-hover'); label.textContent=el.getAttribute('data-label')||''; });
     el.addEventListener('mouseleave',()=>{ document.body.classList.remove('cursor-hover'); label.textContent=''; });
@@ -499,9 +538,19 @@ if(!touch && !reduced){
 
 /* ============================ SCROLL REVEAL ============================ */
 (function(){
-  if(reduced){ document.querySelectorAll('[data-reveal]').forEach(e=>e.classList.add('in')); return; }
-  const io=new IntersectionObserver((ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} }); },{threshold:0.15});
-  document.querySelectorAll('[data-reveal]').forEach(e=>io.observe(e));
+  const items=[...document.querySelectorAll('[data-reveal]')];
+  if(reduced){ items.forEach(e=>e.classList.add('in')); return; }
+  const show=el=>el.classList.add('in');
+  // primary: IntersectionObserver
+  const io=new IntersectionObserver((ents)=>{ ents.forEach(en=>{ if(en.isIntersecting){ show(en.target); io.unobserve(en.target);} }); },{threshold:0.12, rootMargin:'0px 0px -6% 0px'});
+  items.forEach(e=>io.observe(e));
+  // failsafe: never let content stay invisible — reveal anything already within
+  // (or near) the viewport on load and on scroll, in case the observer misses.
+  const sweep=()=>{ const vh=innerHeight; items.forEach(el=>{ if(el.classList.contains('in')) return; const r=el.getBoundingClientRect(); if(r.top < vh*0.92 && r.bottom > 0){ show(el); io.unobserve(el);} }); };
+  addEventListener('load', sweep); addEventListener('scroll', sweep, {passive:true}); addEventListener('resize', sweep); sweep();
+  // hard safety net: if IntersectionObserver ever fails to fire, nothing stays
+  // hidden — reveal anything still off after a short beat.
+  setTimeout(()=>items.forEach(show), 2200);
 })();
 
 /* ============================ MARQUEES ============================ */
@@ -597,7 +646,9 @@ input.addEventListener('input',()=>{ charCount.textContent=input.value.length+' 
 async function doTranslate(){ if(typing) return; const raw=input.value.trim();
   if(!raw){ mascot.classList.add('shake'); setTimeout(()=>mascot.classList.remove('shake'),800); transcript.innerHTML=`<div class="bubble error">The input is empty. I have literally nothing to say, and yet — here we are. Paste some JSON, please. 🙏</div>`; stat.textContent='empty'; stageHeadline.textContent='…nothing to read.'; return; }
   let data; try{ data=JSON.parse(raw); }catch(e){ mascot.classList.add('shake'); setTimeout(()=>mascot.classList.remove('shake'),800); typing=true; transcript.innerHTML=''; const b=document.createElement('div'); b.className='bubble error'; transcript.appendChild(b); stageHeadline.textContent='That broke me a little.'; if(reduced){b.innerHTML=rand(ERRORS)(e.message);}else{await typeInto(b,rand(ERRORS)(e.message));} typing=false; stat.textContent='invalid JSON'; return; }
-  typing=true; translateBtn.disabled=true; const lines=[]; narrate(data,0,lines,null); lines.push({depth:0,cls:'outro',text:rand(OUTROS)}); stat.textContent=countNodes(data)+' values interpreted'; await render(lines); fireConfetti(); typing=false; translateBtn.disabled=false; }
+  typing=true; translateBtn.disabled=true; const lines=[]; narrate(data,0,lines,null); lines.push({depth:0,cls:'outro',text:rand(OUTROS)}); stat.textContent=countNodes(data)+' values interpreted';
+  if(innerWidth<=900){ document.getElementById('output').scrollIntoView({behavior:reduced?'auto':'smooth', block:'start'}); }
+  await render(lines); fireConfetti(); typing=false; translateBtn.disabled=false; }
 translateBtn.addEventListener('click',doTranslate);
 input.addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){ e.preventDefault(); doTranslate(); } });
 document.getElementById('clearBtn').addEventListener('click',()=>{ input.value=''; charCount.textContent='0 chars'; input.focus(); transcript.innerHTML=''; transcript.appendChild(placeholder); stat.textContent='idle'; stageHeadline.textContent='Waiting for something to say…'; });
