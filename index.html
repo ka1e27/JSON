@@ -323,6 +323,19 @@ body.cb .valuecard{outline:2px dashed var(--ink);outline-offset:4px;}
 .dailybest{font-family:"Space Mono";font-weight:700;font-size:12px;letter-spacing:.06em;color:var(--ink-2);text-transform:uppercase;}
 .dailybest b{color:var(--red);}
 
+/* CAPSTONE: cohesive grouped start menu */
+.startscreen{gap:15px;}
+.startscreen .startlede{max-width:430px;font-size:15px;}
+.mgroup{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:540px;}
+.mglabel{font-family:"Space Mono";font-weight:700;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-2);display:flex;align-items:center;gap:10px;}
+.mglabel::before,.mglabel::after{content:"";width:24px;height:2px;background:var(--ink);opacity:.28;border-radius:2px;}
+.startscreen .diffsel{margin-bottom:0;}
+.startscreen .cbtn{margin:2px 0;}
+/* CAPSTONE: game-over rank + run summary */
+.rankbadge{display:inline-block;background:var(--yellow);color:var(--ink);border:var(--border);box-shadow:var(--shadow-sm);border-radius:999px;padding:5px 18px;font-size:22px;letter-spacing:.03em;transform:rotate(-1.5deg);}
+.runsum{font-family:"Space Mono";font-weight:700;font-size:12.5px;letter-spacing:.03em;color:var(--ink-2);line-height:1.5;max-width:420px;}
+.runsum b{color:var(--red);}
+
 .modal{position:fixed;inset:0;z-index:120;background:color-mix(in srgb,var(--ink) 64%,transparent);
   display:flex;align-items:center;justify-content:center;padding:18px;overscroll-behavior:contain;}
 .modal.hidden{display:none!important;}
@@ -495,26 +508,38 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
         </div>
 
         <!-- START overlay -->
-        <div class="overlay" id="startOverlay">
+        <div class="overlay startscreen" id="startOverlay">
           <div class="big bangers">Ready to <span class="r">listen?</span></div>
-          <p>I'll show you a JSON value. <b>Name its type</b> before the timer runs out — String, Number, Boolean, Null, Array or Object. Chain correct answers for <b>combo points!</b></p>
-          <div class="rules"><span>⏱ Beat the clock</span><span>🔥 Build combos</span><span>👹 Boss rounds</span><span>🎯 Special modes</span><span>⌨ Keys 1–6</span></div>
-          <div class="diffsel" id="diffSel">
-            <button class="diff" data-diff="chill">😌 Chill</button>
-            <button class="diff active" data-diff="normal">😎 Normal</button>
-            <button class="diff" data-diff="chaos">🔥 Chaos</button>
+          <p class="startlede">I show you a JSON value — <b>name its type</b> before the clock runs out. Chain answers for combos, then survive boss rounds &amp; special twists.</p>
+
+          <div class="mgroup">
+            <span class="mglabel">Pick your speed</span>
+            <div class="diffsel" id="diffSel">
+              <button class="diff" data-diff="chill">😌 Chill</button>
+              <button class="diff active" data-diff="normal">😎 Normal</button>
+              <button class="diff" data-diff="chaos">🔥 Chaos</button>
+            </div>
           </div>
-          <div class="diffsel">
-            <button class="diff" id="cbToggle" aria-pressed="false">👁 Colorblind aid: OFF</button>
-            <button class="diff" id="musicToggle" aria-pressed="false">🎵 Music: OFF</button>
-          </div>
+
           <button class="cbtn" id="startBtn" data-magnetic>▶ Insert coin</button>
-          <div class="menurow">
-            <button class="diff" id="dailyBtn">📅 Daily Challenge</button>
-            <button class="diff" id="zenBtn">☯ Zen Mode</button>
-            <button class="diff" id="howBtn">❓ How to play</button>
-            <button class="diff" id="shopBtn">🛍 Shop</button>
-            <button class="diff" id="statsBtn">📊 Stats</button>
+
+          <div class="mgroup">
+            <span class="mglabel">More ways to play</span>
+            <div class="menurow">
+              <button class="diff" id="dailyBtn">📅 Daily</button>
+              <button class="diff" id="zenBtn">☯ Zen</button>
+              <button class="diff" id="howBtn">❓ How to play</button>
+              <button class="diff" id="shopBtn">🛍 Shop</button>
+              <button class="diff" id="statsBtn">📊 Stats</button>
+            </div>
+          </div>
+
+          <div class="mgroup">
+            <span class="mglabel">Options</span>
+            <div class="menurow">
+              <button class="diff" id="cbToggle" aria-pressed="false">👁 Colorblind aid: OFF</button>
+              <button class="diff" id="musicToggle" aria-pressed="false">🎵 Music: OFF</button>
+            </div>
           </div>
           <div class="dailybest hidden" id="dailyBest"></div>
         </div>
@@ -523,11 +548,13 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
         <div class="overlay hidden" id="overOverlay">
           <div class="big bangers">Game <span class="r">over!</span></div>
           <div class="newbest bangers hidden" id="newBest">★ NEW HIGH SCORE! ★</div>
+          <div class="rankbadge bangers" id="rankBadge">🏅 Rookie</div>
           <div class="finalstats">
             <div class="fs"><div class="l">Score</div><div class="n bangers" id="finalScore">0</div></div>
             <div class="fs"><div class="l">Level</div><div class="n bangers" id="finalLevel">1</div></div>
             <div class="fs"><div class="l">Best combo</div><div class="n bangers" id="finalCombo">×1</div></div>
           </div>
+          <div class="runsum" id="runSum"></div>
           <p id="overQuip">Honestly? I've said worse to better people.</p>
           <div class="initials hidden" id="initialsBox">
             <div class="newbest bangers">★ TOP 5! Enter your initials ★</div>
@@ -902,7 +929,7 @@ function startGame(){
   if(musicPref && !musicOn) startMusic();
   seedRng = runMode.daily ? mulberry32(dailySeed()) : null;
   const cfg=DIFF[diff];
-  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,roundActive:false,
+  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily});
   $('pauseOverlay').classList.add('hidden');
@@ -1100,11 +1127,17 @@ const OVER_QUIPS=["Honestly? I've said worse to better people.","You lasted long
 function gameOver(){
   state.playing=false; state.roundActive=false; state.paused=false;
   $('pauseOverlay').classList.add('hidden');
+  const runCoins=state.coins;
   wallet+=state.coins; commitStats(); saveShop();
   if(state.daily){ const dk=dailyKey(); const d=getDaily(); const best=(d.d===dk)?d.best:0; localStorage.setItem('jw_daily',JSON.stringify({d:dk,best:Math.max(best,state.score)})); reflectDaily(); }
   $('finalScore').textContent=state.score; $('finalLevel').textContent=state.level; $('finalCombo').textContent='×'+(1+state.bestCombo);
   const best=state.score>HI; if(best){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
   $('newBest').classList.toggle('hidden',!best);
+  const s=state.score, rank = s>=7000?'JSON WHISPERER': s>=3500?'BRACKET BOSS': s>=1500?'TYPE DETECTIVE': s>=500?'COMMA CADET':'CURLY-BRACE ROOKIE';
+  $('rankBadge').textContent='🏅 '+rank;
+  const acc = state.answered?Math.round(state.correct/state.answered*100):0;
+  const modeTag = state.daily?'Daily · ':state.zen?'Zen · ':'';
+  $('runSum').innerHTML=`${modeTag}Accuracy <b>${acc}%</b> · <b>${state.correct}</b> named · +<b>${runCoins}</b> coins this run`;
   $('overQuip').textContent=rand(OVER_QUIPS);
   mascot.className='mascot'; sOver(); vibrate([80,50,80,50,120]);
   $('gpanel').classList.remove('onfire','urgent'); $('fireBadge').classList.remove('show'); document.querySelector('.stat.combo').classList.remove('fire');
@@ -1168,8 +1201,11 @@ function reflectWallet(){ const w=$('walletNum'); if(w)w.textContent=wallet; }
 function renderShop(){ const g=$('shopGrid'); if(!g)return; reflectWallet(); g.innerHTML='';
   Object.entries(THEMES).forEach(([id,t])=>{ const have=owned.has(id), on=equipped===id;
     const card=document.createElement('div'); card.className='themecard'+(on?' equipped':'');
-    const previewVars=id==='classic'?{'--paper':'#f0e4c8','--yellow':'#ffd23f','--blue':'#2f6bff','--card':'#fffdf6'}:t.vars;
+    const previewVars=id==='classic'?{'--paper':'#f0e4c8','--paper-2':'#f7efd9','--card':'#fffdf6','--ink':'#17130d','--ink-2':'#4b463c','--yellow':'#ffd23f','--blue':'#2f6bff'}:t.vars;
     const sw=['--paper','--card','--yellow','--blue'].map(k=>`<i style="background:${previewVars[k]||getComputedStyle(document.documentElement).getPropertyValue(k)||'#ccc'}"></i>`).join('');
+    // tint the whole card to preview the theme at a glance
+    const pvBg=previewVars['--paper-2']||previewVars['--paper'], pvInk=previewVars['--ink'];
+    if(pvBg)card.style.background=pvBg; if(pvInk)card.style.color=pvInk;
     let act = on?`<button class="act on" disabled>✔ Equipped</button>`
       : have?`<button class="act equip" data-buy="${id}">Equip</button>`
       : `<button class="act ${wallet>=t.cost?'buy':'locked'}" data-buy="${id}">🪙 ${t.cost}</button>`;
@@ -1188,7 +1224,7 @@ applyTheme(equipped);
 function loadStats(){ const def={games:0,correct:0,answered:0,bestStreak:0,bestScore:0,coinsEarned:0,perType:{}};
   try{ return Object.assign(def,JSON.parse(localStorage.getItem('jw_stats')||'{}')); }catch(e){ return def; } }
 let STATS=loadStats();
-function recordAns(type,correct){ STATS.answered++; if(correct)STATS.correct++;
+function recordAns(type,correct){ state.answered=(state.answered||0)+1; STATS.answered++; if(correct)STATS.correct++;
   if(type){ const p=STATS.perType[type]||(STATS.perType[type]={c:0,a:0}); p.a++; if(correct)p.c++; } }
 function commitStats(){ STATS.games++; STATS.bestStreak=Math.max(STATS.bestStreak,state.bestCombo); STATS.bestScore=Math.max(STATS.bestScore,state.score);
   STATS.coinsEarned+=state.coins; localStorage.setItem('jw_stats',JSON.stringify(STATS)); }
