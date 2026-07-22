@@ -201,6 +201,54 @@ nav .meta .hs{color:var(--yellow);}
 /* burst */
 .burst{position:fixed;z-index:80;pointer-events:none;font-family:"Bangers";-webkit-text-stroke:1px var(--ink);}
 
+/* coins stat */
+.hud .stat.coins .num{color:var(--yellow);-webkit-text-stroke:1px var(--ink);}
+
+/* power-up tray */
+.powtray{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:2px auto 16px;max-width:600px;}
+.powbtn{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:66px;padding:9px 10px 6px;
+  background:var(--card);border:var(--border);border-radius:12px;box-shadow:var(--shadow-sm);font-family:"Space Mono";font-weight:700;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;transition:transform .1s var(--ease),box-shadow .1s,opacity .15s,filter .15s;}
+.powbtn .ic{font-size:22px;line-height:1;}
+.powbtn .pk{position:absolute;top:-9px;left:6px;background:var(--ink);color:var(--paper);border-radius:5px;font-size:9px;padding:1px 5px;}
+.powbtn .cnt{position:absolute;top:-10px;right:5px;background:var(--red);color:var(--paper);border-radius:999px;font-size:10px;min-width:18px;padding:1px 4px;border:2px solid var(--ink);line-height:1.3;}
+.powbtn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);}
+.powbtn:active:not(:disabled){transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink);}
+.powbtn:disabled{opacity:.4;filter:grayscale(.7);cursor:default;}
+.powbtn.armed{background:var(--yellow);animation:armpulse 1s ease infinite;}
+@keyframes armpulse{0%,100%{box-shadow:var(--shadow-sm);}50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--yellow) 70%,transparent),var(--shadow-sm);}}
+.abtn.eliminated{opacity:.22;filter:grayscale(1);pointer-events:none;}
+.timerbar.frozen i{background:var(--blue)!important;}
+.timerbar.frozen{animation:frostpulse 1.2s ease infinite;}
+@keyframes frostpulse{0%,100%{box-shadow:0 0 0 0 transparent;}50%{box-shadow:0 0 16px -2px var(--blue);}}
+
+/* achievement toasts */
+.toaster{position:fixed;top:14px;right:14px;z-index:90;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:min(320px,82vw);}
+.toast{display:flex;align-items:center;gap:12px;background:var(--card);border:var(--border);box-shadow:var(--shadow);border-radius:14px;padding:10px 14px;transform:translateX(130%);opacity:0;}
+.toast.in{animation:toastin .5s var(--ease) forwards;}
+.toast.out{animation:toastout .4s var(--ease) forwards;}
+@keyframes toastin{to{transform:translateX(0);opacity:1;}}
+@keyframes toastout{to{transform:translateX(130%);opacity:0;}}
+.toast .tic{font-size:30px;line-height:1;flex:none;}
+.toast .tt{font-family:"Space Mono";font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:700;}
+.toast .tn{font-family:"Bangers";font-size:21px;line-height:1;}
+.toast .td{font-size:11.5px;color:var(--ink-2);font-weight:600;line-height:1.25;}
+
+/* leaderboard + initials + medals */
+.lb{width:100%;max-width:340px;margin:0 auto;}
+.lb h4{font-family:"Bangers";font-size:22px;text-align:center;margin-bottom:8px;letter-spacing:.04em;}
+.lb ol{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.lb li{display:flex;align-items:center;gap:10px;background:var(--paper-2);border:2.5px solid var(--ink);border-radius:10px;padding:5px 12px;font-family:"Space Mono";font-weight:700;font-size:14px;}
+.lb li .rk{font-family:"Bangers";font-size:18px;min-width:24px;color:var(--red);}
+.lb li .nm{letter-spacing:.22em;}
+.lb li .sc{margin-left:auto;}
+.lb li.you{background:var(--yellow);transform:rotate(-.6deg);}
+.initials{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.initials .inp{font-family:"Bangers";font-size:40px;letter-spacing:.4em;text-align:center;width:190px;text-indent:.4em;background:var(--paper-2);border:var(--border);border-radius:12px;box-shadow:var(--shadow-sm);padding:6px 0;text-transform:uppercase;color:var(--ink);}
+.medals{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:400px;}
+.medals .m{font-size:23px;filter:grayscale(1);opacity:.28;transition:filter .2s,opacity .2s,transform .2s;}
+.medals .m.got{filter:none;opacity:1;transform:scale(1.06);}
+.hidden{display:none!important;}
+
 /* ===================== CHEAT SHEET ===================== */
 .sec{padding:60px 0;}
 .sec-head{display:flex;align-items:center;gap:16px;margin-bottom:26px;flex-wrap:wrap;}
@@ -241,6 +289,7 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
 <div class="paperlines" aria-hidden="true"></div>
 <div class="cur-ring" id="curRing"></div>
 <div class="cur-star" id="curStar">★</div>
+<div class="toaster" id="toaster" aria-live="polite"></div>
 
 <nav>
   <div class="inner">
@@ -263,6 +312,7 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
           <div class="stat"><span class="lab">Score</span><span class="num bangers" id="score">0</span></div>
           <div class="stat"><span class="lab">Level</span><span class="num bangers" id="level">1</span></div>
           <div class="stat combo"><span class="lab">Combo</span><span class="num bangers" id="combo">×1</span></div>
+          <div class="stat coins"><span class="lab">Coins</span><span class="num bangers" id="coins">0</span></div>
           <div class="lives" id="lives" aria-label="lives"></div>
           <button class="soundbtn" id="soundBtn" aria-label="Toggle sound">🔊</button>
         </div>
@@ -277,6 +327,7 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
           <div class="valuecard mono" id="valueCard"><span class="v">42</span></div>
           <div class="flavor" id="flavor" aria-live="polite">Tap START and I'll show you my true self.</div>
           <div class="answers" id="answers"></div>
+          <div class="powtray" id="powtray" aria-label="Power-ups"></div>
         </div>
 
         <div class="feedback bangers" id="feedback"></div>
@@ -307,6 +358,13 @@ footer{background:var(--ink);color:var(--paper);border-top:3px solid var(--ink);
             <div class="fs"><div class="l">Best combo</div><div class="n bangers" id="finalCombo">×1</div></div>
           </div>
           <p id="overQuip">Honestly? I've said worse to better people.</p>
+          <div class="initials hidden" id="initialsBox">
+            <div class="newbest bangers">★ TOP 5! Enter your initials ★</div>
+            <input class="inp mono" id="initialsInp" maxlength="3" value="YOU" aria-label="Your initials" autocomplete="off" spellcheck="false" />
+            <button class="cbtn blue" id="saveScoreBtn">Save score</button>
+          </div>
+          <div class="lb" id="lbBox"><h4>★ Hall of Fame ★</h4><ol id="lbList"></ol></div>
+          <div class="medals" id="medalRow" aria-label="Achievements earned"></div>
           <button class="cbtn yellow" id="againBtn" data-magnetic>↻ Play again</button>
         </div>
       </div>
@@ -444,19 +502,71 @@ if(window._bindCursor) window._bindCursor();
 
 const DIFF={ chill:{time:6.5,drop:0.22,min:3.2,lives:5}, normal:{time:5,drop:0.32,min:2.2,lives:3}, chaos:{time:3.7,drop:0.4,min:1.6,lives:2} };
 let diff='normal';
-const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0};
+const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0,
+  coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
+const timerBar=document.querySelector('.timerbar');
+
+/* ===================== POWER-UPS ===================== */
+const POWERS={
+  freeze:{ic:'❄️',name:'Freeze',key:'q',desc:'Stop the clock this round'},
+  fifty :{ic:'✂️',name:'50/50', key:'w',desc:'Remove two wrong answers'},
+  double:{ic:'✨',name:'2× Points',key:'e',desc:'Double your next score'},
+  life  :{ic:'❤️',name:'Extra Life',key:'r',desc:'Gain back a heart'}
+};
+const POWKEYS={q:'freeze',w:'fifty',e:'double',r:'life'};
+const powtray=$('powtray');
+Object.entries(POWERS).forEach(([id,p])=>{ const b=document.createElement('button'); b.className='powbtn'; b.dataset.pid=id; b.disabled=true; b.title=p.name+' — '+p.desc;
+  b.innerHTML=`<span class="pk">${p.key.toUpperCase()}</span><span class="cnt">0</span><span class="ic">${p.ic}</span>${p.name}`;
+  b.addEventListener('click',()=>usePower(id)); powtray.appendChild(b); });
+function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid,n=state.powers[id];
+  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive));
+  b.classList.toggle('armed', id==='double'&&state.doubleArmed); }); }
+function grantPower(id){ state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Power-up earned!'},'Power-up'); if(!muted){initAudio();beep(700,0.06,'triangle',0.05);setTimeout(()=>beep(1046,0.09,'triangle',0.05),70);} renderPowers(); }
+function usePower(id){ if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
+  if(id==='life'){ state.powers[id]--; state.lives++; state.maxLives=Math.max(state.maxLives,state.lives); }
+  else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen'); }
+  else if(id==='fifty'){ const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
+    if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
+  else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
+  state.usedAnyPower=true; unlock('powerup'); if(!muted){initAudio();beep(820,0.09,'triangle',0.05);} setHUD(); }
+
+/* ===================== ACHIEVEMENTS ===================== */
+const ACH={
+  firstblood:{ic:'🎯',name:'First Blood',desc:'Name your first value'},
+  combo5 :{ic:'🔥',name:'Heating Up',desc:'Hit a 5-answer streak'},
+  combo10:{ic:'💥',name:'Unstoppable',desc:'Hit a 10-answer streak'},
+  level5 :{ic:'📈',name:'Climbing',desc:'Reach level 5'},
+  level8 :{ic:'🏔️',name:'Summit',desc:'Reach level 8'},
+  perfect:{ic:'⭐',name:'Flawless',desc:'Clear a level with zero misses'},
+  powerup:{ic:'🎁',name:'Power Player',desc:'Use a power-up'},
+  grand  :{ic:'💰',name:'Grand',desc:'Score 1000 in one run'},
+  hoarder:{ic:'🪙',name:'Coin Hoarder',desc:'Bank 50 coins in one run'}
+};
+let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')); }catch(e){ ACHGOT=new Set(); }
+function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); toast(ACH[id],'Achievement'); renderMedals(); if(!muted){initAudio();[880,1174].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
+function toast(a,label){ const t=document.createElement('div'); t.className='toast'; t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${label||'Achievement'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`; $('toaster').appendChild(t);
+  if(reduced){ t.classList.add('in'); setTimeout(()=>t.remove(),2600); return; }
+  requestAnimationFrame(()=>t.classList.add('in')); setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(()=>t.remove(),450);},3400); }
+function renderMedals(){ const row=$('medalRow'); if(!row)return; row.innerHTML=''; Object.entries(ACH).forEach(([id,a])=>{ const s=document.createElement('span'); s.className='m'+(ACHGOT.has(id)?' got':''); s.textContent=a.ic; s.title=ACHGOT.has(id)?a.name+' — '+a.desc:'Locked'; row.appendChild(s); }); }
+
+/* ===================== LEADERBOARD ===================== */
+function getLB(){ try{ return JSON.parse(localStorage.getItem('jw_lb')||'[]'); }catch(e){ return []; } }
+function qualifiesLB(sc){ if(sc<=0)return false; const lb=getLB(); return lb.length<5 || sc>lb[lb.length-1].score; }
+function renderLB(hi){ const ol=$('lbList'); if(!ol)return; const lb=getLB(); ol.innerHTML=''; if(!lb.length){ ol.innerHTML='<li><span class="rk">—</span><span class="nm">???</span><span class="sc">0</span></li>'; return; }
+  lb.forEach((e,i)=>{ const li=document.createElement('li'); if(i===hi)li.className='you'; li.innerHTML=`<span class="rk">${i+1}</span><span class="nm">${esc(e.name)}</span><span class="sc">${e.score}</span>`; ol.appendChild(li); }); }
 
 /* difficulty picker */
 document.querySelectorAll('#diffSel .diff').forEach(b=>b.addEventListener('click',()=>{ diff=b.dataset.diff; document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x===b)); if(!muted){initAudio();beep(520,0.06);} }));
 
-function renderLives(){ const el=$('lives'); el.innerHTML=''; for(let i=0;i<state.maxLives;i++){ const s=document.createElement('span'); s.textContent='❤'; if(i>=state.lives)s.className='lost'; el.appendChild(s);} }
+function renderLives(){ const el=$('lives'); el.innerHTML=''; const total=Math.max(state.maxLives,state.lives); for(let i=0;i<total;i++){ const s=document.createElement('span'); s.textContent='❤'; if(i>=state.lives)s.className='lost'; el.appendChild(s);} }
 function animateScore(target){ const start=state.displayScore, diffv=target-start; if(reduced||diffv===0){ state.displayScore=target; $('score').textContent=target; return; } const t0=performance.now(),dur=450;
   (function st(now){ const p=Math.min(1,(now-t0)/dur); state.displayScore=Math.round(start+diffv*(1-Math.pow(1-p,3))); $('score').textContent=state.displayScore; if(p<1)requestAnimationFrame(st); })(performance.now()); }
 function setHUD(){ animateScore(state.score); $('level').textContent=state.level; $('combo').textContent='×'+(1+state.streak);
   const onFire=state.streak>=4; document.querySelector('.stat.combo').classList.toggle('fire',onFire); $('gpanel').classList.toggle('onfire',onFire); $('fireBadge').classList.toggle('show',onFire);
-  renderLives(); }
+  $('coins').textContent=state.coins;
+  renderLives(); renderPowers(); }
 function timeForLevel(l){ const c=DIFF[diff]; return Math.max(c.min, c.time-(l-1)*c.drop); }
 
 function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
@@ -465,11 +575,13 @@ function runCountdown(done){ if(reduced){done();return;} const el=$('countdown')
 function startGame(){
   initAudio();
   const cfg=DIFF[diff];
-  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,roundActive:false});
-  $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden');
+  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,roundActive:false,
+    coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false});
+  $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden'); $('initialsBox').classList.add('hidden');
   $('gpanel').classList.remove('onfire','urgent'); $('fireBadge').classList.remove('show');
+  timerBar.classList.remove('frozen');
   valueCard.innerHTML='<span class="v">?</span>'; flavorEl.textContent=''; timerFill.style.width='100%';
-  setHUD(); runCountdown(()=>nextRound());
+  setHUD(); renderPowers(); runCountdown(()=>nextRound());
 }
 function nextRound(){
   if(!state.playing)return;
@@ -480,12 +592,15 @@ function nextRound(){
   valueCard.innerHTML=`<span class="v">${esc(raw)}</span>`;
   flavorEl.textContent='';
   mascot.className='mascot talk';
-  answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong');});
+  answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
+  state.frozen=false; timerBar.classList.remove('frozen');
   state.duration=timeForLevel(state.level); state.deadline=performance.now()+state.duration*1000; state.roundActive=true; state.lastTick=0;
+  renderPowers();
   requestAnimationFrame(tick);
 }
 function tick(now){
   if(!state.roundActive)return;
+  if(state.frozen){ state.deadline=now+state.frozenRemain; }
   const remain=state.deadline-now, frac=Math.max(0,remain/(state.duration*1000));
   timerFill.style.width=(frac*100)+'%';
   timerFill.style.background = frac>0.5?'var(--green)':frac>0.25?'var(--yellow)':'var(--red)';
@@ -497,6 +612,7 @@ function tick(now){
 function answer(id){
   if(!state.roundActive)return;
   state.roundActive=false;
+  state.frozen=false; timerBar.classList.remove('frozen');
   const cur=state.current, correct = id===cur.type;
   mascot.classList.remove('talk');
   answersHost.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
@@ -506,16 +622,30 @@ function answer(id){
     const remain=Math.max(0,state.deadline-performance.now());
     const timeBonus=Math.round(remain/(state.duration*1000)*100);
     const mult=1+Math.min(state.streak,9)*0.25;
-    const pts=Math.round((100+timeBonus)*mult);
+    let pts=Math.round((100+timeBonus)*mult);
+    const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
     state.score+=pts; state.streak++; state.correct++;
     state.bestCombo=Math.max(state.bestCombo,state.streak);
+    const gain=2+Math.floor(pts/60); state.coins+=gain;
     correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
-    showFeedback(rand(['POW!','BAM!','ZAP!','BOOM!','NICE!'])+' +'+pts,false); fireBurst(false);
+    showFeedback(rand(['POW!','BAM!','ZAP!','BOOM!','NICE!'])+' +'+pts+(doubled?'!!':''),false); fireBurst(false);
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
+    /* achievements */
+    unlock('firstblood'); if(state.streak>=5)unlock('combo5'); if(state.streak>=10)unlock('combo10');
+    if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
+    /* earn power-ups on combo milestones */
+    if(state.streak>0 && state.streak%3===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(Math.random()*ids.length)]); }
     const newLevel=1+Math.floor(state.correct/5);
-    if(newLevel>state.level){ state.level=newLevel; levelUp(); }
+    if(newLevel>state.level){
+      const perfect=state.levelWrong===0;
+      state.level=newLevel; levelUp();
+      if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
+      if(perfect){ const bonus=150*(state.level-1); state.score+=bonus; state.coins+=10; unlock('perfect'); grantPower('freeze');
+        setTimeout(()=>showFeedback('PERFECT! +'+bonus,false),260); }
+      state.levelWrong=0;
+    }
   } else {
-    state.lives--; state.streak=0;
+    state.lives--; state.streak=0; state.levelWrong++; state.doubleArmed=false;
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
     correctBtn.classList.add('correct');
     mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
@@ -540,7 +670,12 @@ function gameOver(){
   $('overQuip').textContent=rand(OVER_QUIPS);
   mascot.className='mascot'; sOver(); vibrate([80,50,80,50,120]);
   $('gpanel').classList.remove('onfire','urgent'); $('fireBadge').classList.remove('show'); document.querySelector('.stat.combo').classList.remove('fire');
+  timerBar.classList.remove('frozen'); renderPowers();
+  const qual=qualifiesLB(state.score); $('initialsBox').classList.toggle('hidden',!qual);
+  if(qual){ $('initialsInp').value=(localStorage.getItem('jw_initials')||'YOU'); }
+  renderLB(-1); renderMedals();
   $('overOverlay').classList.remove('hidden');
+  if(qual){ setTimeout(()=>{ try{$('initialsInp').focus();$('initialsInp').select();}catch(e){} },60); }
 }
 function fireBurst(bad){ if(reduced)return; const words=['POW!','BAM!','ZAP!','★','WOW!','★','✦']; const cols=['--red','--blue','--yellow','--pink','--green','--purple'].map(v=>getComputedStyle(document.documentElement).getPropertyValue(v));
   const r=$('gpanel').getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height*0.42;
@@ -549,10 +684,23 @@ function fireBurst(bad){ if(reduced)return; const words=['POW!','BAM!','ZAP!','�
     el.animate([{transform:'translate(-50%,-50%) scale(.3)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(ang)*dist}px),calc(-50% + ${Math.sin(ang)*dist}px)) rotate(${(Math.random()-.5)*200}deg) scale(1)`,opacity:0}],{duration:dur,easing:'cubic-bezier(.2,.7,.3,1)'});
     setTimeout(()=>el.remove(),dur); } }
 
+function saveScore(){
+  let nm=($('initialsInp').value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU';
+  localStorage.setItem('jw_initials',nm);
+  const lb=getLB(); lb.push({name:nm,score:state.score}); lb.sort((a,b)=>b.score-a.score);
+  const trimmed=lb.slice(0,5); localStorage.setItem('jw_lb',JSON.stringify(trimmed));
+  const idx=trimmed.findIndex(e=>e.name===nm&&e.score===state.score);
+  renderLB(idx); $('initialsBox').classList.add('hidden'); if(!muted){initAudio();beep(880,0.1,'triangle',0.05);}
+}
+$('saveScoreBtn').addEventListener('click',saveScore);
+$('initialsInp').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();saveScore();} });
+
 $('startBtn').addEventListener('click',startGame);
 $('againBtn').addEventListener('click',startGame);
 addEventListener('keydown',e=>{
+  if(e.target&&(e.target.id==='initialsInp'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(!state.playing){ if((e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();startGame();} if((e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();} return; }
+  const pid=POWKEYS[e.key.toLowerCase()]; if(pid){ e.preventDefault(); usePower(pid); return; }
   const t=TYPES.find(x=>x.key===e.key); if(t) answer(t.id);
 });
 </script>
