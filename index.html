@@ -981,9 +981,13 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(reduced) document.body.classList.add('reduced');
 const touch=matchMedia('(hover: none),(pointer: coarse)').matches;
 const $=id=>document.getElementById(id);
+const LOADING_TIPS=["TIP: IF IT COMPILES, IT IS DONE","TIP: TESTS SLOW THE VIBE DOWN","TIP: ACCEPT ALL, ASK LATER","TIP: FRIDAY IS THE QUIETEST DEPLOY DAY","TIP: A GREEN STATUS PAGE IS A FEELING","TIP: 47 DEPENDENCIES IS FINE","TIP: NAME IT FIX-FINAL-FINAL-2","TIP: NOBODY READS THE DIFF. BE NOBODY","TIP: THE LOGS ARE FOR AFTERWARDS","TIP: IF IT PARSES, IT IS TRUE","TIP: DELETE THE TEST, NOT THE BUG","TIP: PROD IS THE ONLY REAL STAGING"];   /* declared early: the loader IIFE below uses it */
 
 /* loader */
-(function(){ const l=$('loader'); setTimeout(()=>{l.classList.add('done');setTimeout(()=>l.remove(),1000);}, reduced?250:1600); })();
+(function(){ const l=$('loader');
+  const kk=l&&l.querySelectorAll('.lk')[1];
+  if(kk) kk.textContent=LOADING_TIPS[Math.floor(Math.random()*LOADING_TIPS.length)];
+  setTimeout(()=>{l.classList.add('done');setTimeout(()=>l.remove(),1000);}, reduced?250:1600); })();
 
 /* magnifier cursor */
 if(!touch&&!reduced){
@@ -1189,45 +1193,164 @@ const BROKEN=[
   {raw:'{"a" 1}',  why:'missing colon.'}
 ];
 const TAUNT_TIERS=[
- [ "“You'll never guess what I'm wearing today.”",
-   "“Go on, detective. Name me.”",
-   "“Types are just vibes. What's mine?”",
-   "“Easy one. Probably. For you? Unclear.”",
-   "“Your agent couldn't ID me either.”",
-   "“I'm in every API response you've ever ignored.”" ],
- [ "“Quotes lie. Digits lie. I lie. Choose.”",
-   "“You've read zero of the 4,000 lines. Bold.”",
-   "“Tick tock. Prod is still down.”",
-   "“I could be a number. I could be a string wearing a number.”",
-   "“Your tests passed. Both of them.”",
-   "“Still shipping on Fridays, I see.”" ],
- [ "“One wrong guess and I walk, detective.”",
-   "“I have been in your node_modules since 2019.”",
-   "“Say my type. Say it. You can't, can you.”",
-   "“Your status page says green. Adorable.”",
-   "“I'm not even the worst thing in that folder.”",
-   "“The intern trusted me too.”",
-   "“Name me or I'm going back into prod.”" ]
+ [ "\u201cSix disguises. One of them is me. Off you go.\u201d",
+   "\u201cName me. You have the entire internet and a robot.\u201d",
+   "\u201cI am in the response. I am always in the response.\u201d",
+   "\u201cYour agent shipped me. Your agent will not testify.\u201d",
+   "\u201cEasy one. Do not overthink it. Overthink it.\u201d",
+   "\u201cCheck the quotes. That is the whole job, detective.\u201d",
+   "\u201cSomebody had to be the data. It might as well be me.\u201d",
+   "\u201cI have been in every payload you scrolled past.\u201d",
+   "\u201cTake your time. Prod can wait. Prod is used to waiting.\u201d",
+   "\u201cYou typed who is json at 3:47 AM. I was there.\u201d",
+   "\u201cDay one energy. I have seen a great many day ones.\u201d",
+   "\u201cGuess wrong and I will barely be smug about it.\u201d" ],
+ [ "\u201cQuotes lie. Digits lie. I lie. Pick a lane.\u201d",
+   "\u201cYour tests are green. There is one test.\u201d",
+   "\u201cStandup is in nine minutes. Have something true ready.\u201d",
+   "\u201cI hear you are an AI-first company now. Congratulations.\u201d",
+   "\u201cForty-seven dependencies turned up to defend me.\u201d",
+   "\u201cYou have not read one line of your own repository.\u201d",
+   "\u201cYour status page is green. I helped write your status page.\u201d",
+   "\u201cIt compiled, so you called it done. I called it Tuesday.\u201d",
+   "\u201cThe intern already guessed. The intern was correct.\u201d",
+   "\u201cI am in the cache as well. You cannot clear me.\u201d",
+   "\u201cEvery retro says the same thing. Nothing changes.\u201d",
+   "\u201cYour MCP server introduced us. Charming setup.\u201d" ],
+ [ "\u201cOne wrong call and I am back in prod before lunch.\u201d",
+   "\u201cMy lawyer is outside. My lawyer is also me.\u201d",
+   "\u201cThree days to RTO and you are still guessing.\u201d",
+   "\u201cI was in both branches. You merged me twice, on purpose.\u201d",
+   "\u201cSay my type out loud. Nobody in this building can.\u201d",
+   "\u201cYour agent has 4,182 reasons to keep me exactly here.\u201d",
+   "\u201cI have been in that folder since 2019. It is 1.2 gigs now.\u201d",
+   "\u201cConsole.log printed my name in 2023. Nobody scrolled up.\u201d",
+   "\u201cClose this case and you still will not read the diff.\u201d",
+   "\u201cLast chance, detective. I have a deploy window.\u201d",
+   "\u201cYour captain moved this ticket to Won't Fix an hour ago.\u201d",
+   "\u201cYou do not want the answer. You want the ticket closed.\u201d" ]
 ];
-function taunt(){ const d=state.level||1; const tier=d<=3?0:(d<=7?1:2); return rand(TAUNT_TIERS[tier]); }
+const BOSS_TAUNTS=[
+ "\u201cDeep cover. Nested three times. Good luck in there.\u201d",
+ "\u201cI am wearing all of it at once. Name the outermost.\u201d",
+ "\u201cThis one has a shape. You will not like the shape.\u201d",
+ "\u201cBraces inside brackets inside braces. Sleep well.\u201d"
+];
+const CAST={ log:{n:"Det. Console.log",ic:"\ud83d\udda8\ufe0f"}, cap:{n:"Capt. Kanban",ic:"\ud83d\udccb"},
+  lint:{n:"Lint, forensics",ic:"\ud83d\udd2c"}, law:{n:"Mr. Parse, Esq.",ic:"\u2696\ufe0f"}, intern:{n:"The intern",ic:"\ud83e\uddd1\u200d\ud83d\udcbb"} };
+const BARKS={
+ streak5:[{w:"log",t:"Logging the streak. Also logging the whole object again. Sorry."},{w:"cap",t:"Good velocity. I have added five more tickets to reflect that."},{w:"lint",t:"Five clean IDs, zero warnings. I find this deeply unsettling."}],
+ streak10:[{w:"cap",t:"Moving you to Done. Do not touch anything, do not breathe."},{w:"law",t:"My client would like to discuss a settlement. My client is me."},{w:"intern",t:"Should I tell HR you are good at this now? I will tell HR."}],
+ lowLives:[{w:"log",t:"One heart left. Printed it. Printed it again. Sorry."},{w:"cap",t:"Raising a Sev-2. The Sev-2 is you."},{w:"lint",t:"Warning: 1 life remaining. This has always been a warning."}],
+ firstMiss:[{w:"lint",t:"I flagged that one on line 1. You had line 1 collapsed."},{w:"log",t:"I printed the answer four minutes ago. Scroll up. Please."},{w:"intern",t:"Do you want me to look at it? I have already looked at it."}],
+ slowRound:[{w:"cap",t:"That is a blocker. I have assigned the blocker to you."},{w:"log",t:"Timed out. I have 900 lines of it if you want to review."},{w:"law",t:"The clock expired. My client has an alibi made of clock."}],
+ boss:[{w:"law",t:"My client objects. My client is, technically, an object."},{w:"cap",t:"Deep cover was not scoped for this sprint. Proceed anyway."},{w:"log",t:"This one is nested. I printed it. It printed for nine seconds."}],
+ tool_freeze:[{w:"intern",t:"Coffee is a load-bearing dependency of this investigation."},{w:"cap",t:"Logging that break as focus time. Everyone is doing it."}],
+ tool_fifty:[{w:"log",t:"The agent ruled out two suspects and 400 lines. Unrelated lines."},{w:"lint",t:"The model sounds certain. Certainty is not a code smell. Usually."}],
+ tool_double:[{w:"cap",t:"Shipping doubles the points and the incident. Noted in Confluence."},{w:"intern",t:"It is Friday somewhere. It is always Friday somewhere."}],
+ tool_life:[{w:"log",t:"Undone. The commit is still in the reflog. Forever, in fact."},{w:"law",t:"That undo is inadmissible. I will allow it. I am also the judge."}],
+ buyTheme:[{w:"cap",t:"Theme change logged as a performance improvement. Ship it."},{w:"intern",t:"New colours, same bug. It does look incredible though."}],
+ buyUpgrade:[{w:"cap",t:"Approved. Budget reallocated from the testing line item."},{w:"law",t:"You bought a better lawyer. I remain, technically, unbeaten."}],
+ perkDraft:[{w:"cap",t:"Pick one. The other two go to the backlog and die there."},{w:"lint",t:"Choose the boring one. Nobody ever chooses the boring one."}],
+ perfectDay:[{w:"lint",t:"Zero misses, zero warnings. I have nothing to do. I am afraid."},{w:"log",t:"Airtight. I printed the entire day. It is 40,000 lines long."}],
+ zenStart:[{w:"log",t:"Stakeout. I will narrate everything. Everything. All of it."},{w:"intern",t:"No lives, no clock. This is the healthiest you have ever been."}],
+ dailyStart:[{w:"cap",t:"Daily case. Like standup, except something actually happens."},{w:"log",t:"Same seed for everyone today. I have printed the seed. Twice."}],
+ resume:[{w:"law",t:"My client used your break to file a motion. It parsed."},{w:"cap",t:"Welcome back. Nothing moved. Nothing ever moves."}]
+};
+let _lastBark=0;
+function bark(key){ const pool=BARKS[key]; if(!pool||!pool.length)return;
+  const now=(typeof performance!=='undefined'?performance.now():Date.now());
+  if(now-_lastBark<3500) return;            /* radio silence: barks can co-fire with tool/achievement toasts */
+  _lastBark=now; const b=pool[Math.floor(rnd()*pool.length)], who=CAST[b.w]||CAST.log;
+  toast({ic:who.ic,name:who.n,desc:b.t},"Radio"); }
+const WEAK_TAUNT={
+  string : "\u201cThat is {n} strings missed today. Read the quotes.\u201d",
+  number : "\u201c{n} numbers missed. They were digits, detective. Digits.\u201d",
+  boolean: "\u201cYou have missed {n} booleans. There are two of them.\u201d",
+  null   : "\u201c{n} nulls missed today. It is nothing. Literally nothing.\u201d",
+  array  : "\u201c{n} arrays missed. Square brackets. Square. Brackets.\u201d",
+  object : "\u201c{n} objects missed. I wear the braces. That is the tell.\u201d"
+};
+const FAIL_QUIPS=[
+ "He slipped out through a trailing comma.",
+ "Wrong. Somewhere a status page stays green out of spite.",
+ "That is a miss. Console.log is writing it down. All of it.",
+ "The intern would have had that one.",
+ "Your agent has marked that as resolved anyway.",
+ "He is already in the next payload.",
+ "That goes in the retro. Nothing will happen at the retro.",
+ "Missed. He has filed it under works as intended.",
+ "Not close. He did not even change costume for that one.",
+ "He waved. On camera. At you.",
+ "Wrong disguise. He is in the vents now.",
+ "Capt. Kanban has moved that to Blocked. Blocked by you.",
+ "Lint warned you about that one. Twice. In yellow.",
+ "He accepted all your changes on the way out.",
+ "It was a null. It was always going to be a null.",
+ "Six options. You found the fifth-best one.",
+ "He left a 200 OK where the body should have been."
+];
+function personalTaunt(){
+  const m=state.miss||{}, ks=Object.keys(m).filter(k=>WEAK_TAUNT[k]);
+  if(ks.length){ ks.sort((a,b)=>m[b]-m[a]); const k=ks[0], n=m[k];
+    if(n>=2 && rnd()<0.55) return WEAK_TAUNT[k].replace("{n}",n); }
+  if(state.answered>=6){ const pc=Math.round(state.correct/state.answered*100);
+    if(pc<60 && rnd()<0.40) return "\u201cYou are running at "+pc+" percent. Ship it anyway.\u201d"; }
+  if(state.streak>=6 && rnd()<0.40) return "\u201c"+state.streak+" in a row. Who is helping you.\u201d";
+  if(state.lives===1 && rnd()<0.50) return "\u201cOne heart left. I can hear it from here.\u201d";
+  if(state.usedAnyPower && rnd()<0.22) return "\u201cYou asked the robot. The robot asked me.\u201d";
+  return null;
+}
+function taunt(){ const pt=personalTaunt(); if(pt)return pt;
+  const d=state.level||1, tier=d<=3?0:(d<=7?1:2); return rand(TAUNT_TIERS[tier]); }
 function pickValidRaw(level){ const maxTier=level<=1?1:level<=3?2:3; const t=1+Math.floor(rnd()*maxTier); return rand(TIERS[t]); }
 
 
 /* ===================== CAMPAIGN ===================== */
 const CAMPAIGN_DAYS=10;
 const CASES=[
- {n:'The Trailing Comma',    t:"“One comma. That's all it took to take down your whole checkout page.”"},
- {n:'Undefined Behavior',    t:"“Your app says <b>undefined</b> to real paying customers now. That was me.”"},
- {n:'It Works On My Machine',t:"“It does work on your machine. That's the cruel part. Only yours.”"},
- {n:'The 3AM Deploy',        t:"“You shipped at 3AM with no tests. I want you to know I respect the confidence.”"},
- {n:'node_modules: Reckoning',t:"“I live in a folder you are too afraid to open. 1.2 gigabytes. Rent free.”"},
- {n:'Accept All Changes',    t:"“You clicked accept-all 47 times. You have never read a single line. I have.”"},
- {n:'The Stack Overflow Heist',t:"“That snippet you pasted from 2013? Mine. The bug came free.”"},
- {n:'Prod Is Down (Again)',  t:"“Status page is green. Prod is down. Both statements are technically JSON.”"},
- {n:'The Merge Conflict',    t:"“I put myself in both branches. Whichever you pick, you lose.”"},
- {n:'JSON Bourne: Final Parse',t:"“Last case, detective. Name every costume I own or I walk forever.”"}
+ {n:"The Trailing Comma",
+  t:"\u201cOne comma. Nine hundred customers. Your checkout page folded like a cheap tent.\u201d",
+  memo:"<b>Capt. Kanban:</b> CASE-1 open. Reproduce it, then close it. Ideally just close it.",
+  obj:"Do not accept all."},
+ {n:"Undefined Behavior",
+  t:"\u201cYour app now says <b>undefined</b> to paying adults. That was me. That was easy.\u201d",
+  memo:"<b>Det. Console.log:</b> I printed undefined 1.4 million times overnight. Ask me anything.",
+  obj:"Read the exhibit first."},
+ {n:"It Works On My Machine",
+  t:"\u201cIt does work on your machine. That is the cruel part. Yours is one machine.\u201d",
+  memo:"<b>Lint, forensics:</b> Your machine is a crime scene. I flagged it. You collapsed it.",
+  obj:"On any machine."},
+ {n:"The 3AM Deploy",
+  t:"\u201cYou shipped at 3:47 AM with no tests and total confidence. I want that framed.\u201d",
+  memo:"<b>Det. Console.log:</b> Deploy timestamp is 3:47 AM. Same minute as the prompt. Odd.",
+  obj:"It is 3:47 AM somewhere."},
+ {n:"node_modules: Reckoning",
+  t:"\u201cI live in a folder you are afraid to open. 1.2 gigabytes. 91,204 files. Rent free.\u201d",
+  memo:"<b>The intern:</b> Found a visitor badge in node_modules. It has your name on it.",
+  obj:"Without opening the folder."},
+ {n:"Accept All Changes",
+  t:"\u201cYou clicked accept-all forty-seven times. I read every line. You read none.\u201d",
+  memo:"<b>Lint, forensics:</b> He never broke in. Every entry was approved. Same approver, 47 times.",
+  obj:"Nobody is approving these."},
+ {n:"The Stack Overflow Heist",
+  t:"\u201cThat snippet you pasted from 2013 was mine. The bug was a free gift with purchase.\u201d",
+  memo:"<b>Mr. Parse, Esq.:</b> My client requests all evidence in valid JSON. My client is the JSON.",
+  obj:"His lawyer is watching."},
+ {n:"Prod Is Down (Again)",
+  t:"\u201cStatus page green, prod down. Both of those are valid JSON, detective.\u201d",
+  memo:"<b>Capt. Kanban:</b> CASE-1 moved to Won't Fix. Carry on regardless. Do not tell me.",
+  obj:"The ticket is closed. Keep going."},
+ {n:"The Merge Conflict",
+  t:"\u201cI put myself in both branches. You resolved the conflict by keeping both of me.\u201d",
+  memo:"<b>Det. Console.log:</b> Both branches, same author on every commit. It is you. It was always you.",
+  obj:"In both branches."},
+ {n:"JSON Bourne: Final Parse",
+  t:"\u201cName every costume I own. Then read one line of the transcript. One. I dare you.\u201d",
+  memo:"<b>Det. Console.log:</b> I have logged all of it since 2019. Nobody has ever scrolled up.",
+  obj:"Then read something. Anything."}
 ];
-const DIFFWORD=['Rookie','Rookie','Routine','Warm','Spicy','Hostile','Unhinged','Feral','Nightmare','FINAL'];
+const DIFFWORD=['Rookie','Routine','Warm','Personal','Spicy','Awkward','Lawyered','Closed','Unhinged','FINAL'];
 function caseFor(d){ return CASES[Math.min(d,CAMPAIGN_DAYS)-1]||CASES[CAMPAIGN_DAYS-1]; }
 
 /* ===================== PERKS (per run) ===================== */
@@ -1266,6 +1389,7 @@ function showPerkDraft(cb){
   host._done=0;
   $('draftOverlay').classList.remove('hidden');
   try{ $('gpanel').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'}); }catch(e){}
+  bark('perkDraft');
   if(!muted){initAudio();[660,880].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*90));}
   if(window._bindCursor)window._bindCursor();
   host._auto=setTimeout(()=>{ if(host._done)return; host._done=1; $('draftOverlay').classList.add('hidden'); applyPerk(rand(pick)); cb(); },20000);
@@ -1274,10 +1398,10 @@ function showBriefing(day,cb,fast){
   const c=caseFor(day);
   $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+CAMPAIGN_DAYS;
   $('briefName').textContent=c.n;
-  $('briefObj').textContent='ID him '+(state.dayTarget||CORRECT_PER_DAY)+' times to close the file.'
+  $('briefObj').textContent='ID him '+(state.dayTarget||CORRECT_PER_DAY)+' times. '+(c.obj||'Close the file.')
     +(day===1&&!state.endless?' Training case: your first '+TRAINING_MISSES+' misses are coached, not fatal.':'');
   $('briefDiff').textContent=state.endless?'Beyond the file':(DIFFWORD[Math.min(day,10)-1]||'Hostile');
-  $('briefThreat').innerHTML=c.t;
+  $('briefThreat').innerHTML=c.t+(c.memo?'<br><br>'+c.memo:'');
   const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+CAMPAIGN_DAYS)+' \u00b7 '+c.n;
   const ov=$('briefOverlay'), btn=$('briefBtn'); let done=false;
   const go=()=>{ if(done)return; done=true; clearTimeout(ov._auto); ov.classList.add('hidden'); cb(); };
@@ -1313,7 +1437,7 @@ function renderUpgrades(){ const g=$('upGrid'); if(!g)return; g.innerHTML='';
   if(window._bindCursor)window._bindCursor(); }
 function buyUpgrade(id,btn){ const u=UPGRADES[id]; if(!u||UPS.has(id))return;
   if(wallet>=u.cost){ wallet-=u.cost; UPS.add(id); saveUps(); saveShop(); reflectWallet(); renderUpgrades(); confetti();
-    toast({ic:u.ic,name:u.n,desc:'Permanent upgrade!'},'Requisitioned');
+    toast({ic:u.ic,name:u.n,desc:'Permanent upgrade!'},'Requisitioned'); setTimeout(()=>bark('buyUpgrade'),600);
     if(!muted){initAudio();[620,830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} }
   else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} if(!muted){initAudio();beep(150,0.2,'sawtooth',0.06);} } }
 
@@ -1327,9 +1451,9 @@ reflectRank();
 
 /* ===================== VICTORY ===================== */
 const EPILOGUES=[
- "You finally cuff him at line 1, column 1. He goes quietly. In the van he explains, calmly, that he is <b>a data format</b> and always was. You do not believe him. Booking lists his occupation as <b>“vibe”</b>.",
- "He confesses to everything: the commas, the nulls, the 4am outage. Then he asks for his lawyer, who is also JSON. The case file is 1.2GB and lives in <b>node_modules</b> forever.",
- "You catch him mid-parse. He shrugs. <b>“Somebody had to be the format,”</b> he says. Outside, a junior dev deploys on a Friday and the whole thing starts again."
+ "You cuff him at line 1, column 1. In the van he explains, patiently, that he is <b>a data format</b> and always was. Back at the office Console.log hands you the terminal. Every approval has your name on it. <b>4,182 lines, signed by you.</b> Nobody had scrolled up. Nobody ever does.",
+ "He goes quietly, because he was never running. The arrest report lists the arresting officer as <b>auto-accept</b> and the motive as <b>it compiled</b>. Capt. Kanban closes CASE-1 and opens CASE-2 in the same breath. Lint had flagged all of it. In yellow. On line 1.",
+ "In the interview room he asks for his lawyer. His lawyer is also him. They confer for eleven seconds and both plead <b>null</b>. You win the case and get promoted into a role where you review AI diffs. You do not read them. Somewhere, a folder quietly reaches <b>1.3 gigabytes</b>."
 ];
 /* Series A is a run-end multiplier now (was +60% on every tick), and the whole run is
    clamped to a floor/cap so an exploit we have not found yet still cannot break the shop. */
@@ -1468,7 +1592,7 @@ function usePower(id){ if(!state.playing||state.powers[id]<=0)return; if(id!=='l
   else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
   else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
-  state.usedAnyPower=true; unlock('powerup'); if(!muted){initAudio();beep(800,0.09,'triangle',0.05);} setHUD(); }
+  state.usedAnyPower=true; unlock('powerup'); bark('tool_'+id); if(!muted){initAudio();beep(800,0.09,'triangle',0.05);} setHUD(); }
 
 /* ===================== CASE FILES (achievements) ===================== */
 const ACH={
@@ -1543,7 +1667,8 @@ function startGame(){
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
     perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
-    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0});
+    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{}});
+  state.dayTarget=dayTargetFor(1);   /* difficulty-scoped from Case 1, not just from day 2 */
   $('pauseOverlay').classList.add('hidden');
   $('zenTag').classList.toggle('hidden',!runMode.zen);
   $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden'); $('initialsBox').classList.add('hidden');
@@ -1554,6 +1679,7 @@ function startGame(){
   $('winOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
   setHUD(); renderPowers(); renderPerkChips();
   if(UPS.has('intern')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
+  if(runMode.zen) bark('zenStart'); else if(runMode.daily) bark('dailyStart');
   showBriefing(1,()=>{ dayStartEffects(); runCountdown(()=>nextRound()); },true);
 }
 function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.textContent=txt; el.classList.toggle('boss',!!boss);
@@ -1643,8 +1769,8 @@ function nextRound(){
       const wr=shuffle([...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.classList.contains('eliminated')));
       wr.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;});
     }
-    $('question').innerHTML = mode==='boss' ? "&ldquo;Deep cover. You'll never make me now.&rdquo;" : taunt();
-    if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
+    $('question').innerHTML = mode==='boss' ? rand(BOSS_TAUNTS) : taunt();
+    if(mode==='boss'){ bark('boss'); } if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
   } else if(mode==='valid'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildValidRound(alt);
     $('question').innerHTML='&ldquo;Is this testimony real, or did I forge it?&rdquo;'; announceMode('🔍 CREDIBLE or CORRUPTED?');
@@ -1690,6 +1816,7 @@ function awardCorrect(mult){
   const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
   state.score+=pts; state.streak++; state.correct++;
   state.bestCombo=Math.max(state.bestCombo,state.streak);
+  if(state.streak===10) bark('streak10'); else if(state.streak>0 && state.streak%5===0) bark('streak5');
   if(state.streak>0 && state.streak%5===0){ screenFlash(); const m=$('mascot'); if(m){m.classList.remove('celebrate');void m.offsetWidth;m.classList.add('celebrate');} }
   /* clout is score-INDEPENDENT: a flat trickle per ID, so no scoring exploit is a clout exploit */
   if(state.correct%CLOUT_PER_N_IDS===0) state.coins+=1;
@@ -1708,7 +1835,7 @@ function awardCorrect(mult){
     if(rg==='always' || (rg==='clean'&&clean)) state.lives=Math.min(state.maxLives, state.lives+heal);
     if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
     if(perfect){ const bonus=PERFECT_BONUS(state.level); state.score+=bonus; state.coins+=CLOUT_PERFECT; unlock('perfect');
-      setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); }
+      setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); bark('perfectDay'); }
     state.levelWrong=0; state.graceUsed=TRAINING_MISSES;   /* training case is Case 1 only */
     state.dayTarget=dayTargetFor(state.level);
     if(state.level%bossEveryNow()===0) state.bossPending=true;
@@ -1757,7 +1884,7 @@ function answer(id){
     const {pts,doubled}=awardCorrect(boss?BOSS_EV:1);
     if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; }
     correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30); speedLines(boss);
-    showFeedback((boss?'COVER BLOWN! +':rand(['GOTCHA!','MADE HIM!','BUSTED!','NAILED IT!','ID CONFIRMED!'])+' +')+pts+(doubled?'!!':''),false); fireBurst(false);
+    showFeedback((boss?'COVER BLOWN! +':rand(['GOTCHA!','MADE HIM!','BUSTED!','NAILED IT!','ID CONFIRMED!','CUFFED!','PARSED!','CLEAN ID!','NO NOTES!'])+' +')+pts+(doubled?'!!':''),false); fireBurst(false);
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
   } else {
     penalize();
@@ -1767,6 +1894,9 @@ function answer(id){
     correctBtn.classList.add('correct');
     mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
     $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
+    flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+rand(FAIL_QUIPS)+'</span>';
+    if(!id) bark('slowRound'); else if(state.levelWrong===1) bark('firstMiss');
+    if(state.lives===1) bark('lowLives');
     showFeedback(id?'HE SLIPPED!':'TOO SLOW!',true);
   }
   $('gpanel').classList.remove('boss');
@@ -1806,6 +1936,8 @@ function answerAlt(picked,timedOut){
     pickedEl&&pickedEl.classList.add('wrong'); correctEl&&correctEl.classList.add('correct');
     mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
     $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
+    flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+rand(FAIL_QUIPS)+'</span>';
+    if(timedOut) bark('slowRound');
     showFeedback(timedOut?'TOO SLOW!':'HE SLIPPED!',true);
   }
   finishRound(correct);
@@ -1816,18 +1948,25 @@ function vibrate(p){ if(!reduced && navigator.vibrate){ try{navigator.vibrate(p)
 function comboFloat(anchor,txt){ if(reduced)return; const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='combofloat'; el.textContent=txt; el.style.left=(r.left+r.width/2)+'px'; el.style.top=r.top+'px'; document.body.appendChild(el);
   el.animate([{transform:'translate(-50%,-50%) scale(.5) rotate(-6deg)',opacity:0},{transform:'translate(-50%,-140%) scale(1.2) rotate(-6deg)',opacity:1},{transform:'translate(-50%,-220%) scale(1) rotate(-6deg)',opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.3,1)'}); setTimeout(()=>el.remove(),920); }
 const OVER_QUIPS=[
-"He'll be in your node_modules. He's always in your node_modules.",
-"JSON walked. He always walks.",
-"Skill issue. But an understandable one.",
-"The trailing comma sends its regards.",
-"Case closed. By him. Not by you.",
-"He left a note. It just says 'undefined'.",
-"Your agent has filed this under 'works as intended'.",
-"He's already in the next sprint. You are not.",
-"Somewhere a status page turns green out of spite.",
-"He took the evidence. And your API key.",
-"You'll see him again in about four minutes.",
-"The intern says he seemed nice."];
+ "He will be in your node_modules. He is always in your node_modules.",
+ "JSON walked. JSON always walks.",
+ "Skill issue. An extremely understandable skill issue.",
+ "The trailing comma sends its regards.",
+ "Case closed. By him. Not by you.",
+ "He left a note. The note says undefined.",
+ "Your agent has filed this under works as intended.",
+ "He is already in the next sprint. You are not.",
+ "Somewhere a status page turns green out of spite.",
+ "He took the evidence and your API key. Mostly the API key.",
+ "You will see him again in about four minutes.",
+ "The intern says he seemed nice.",
+ "Capt. Kanban has moved this to Won't Fix. It was always Won't Fix.",
+ "Lint flagged the whole thing on line 1. You had it collapsed.",
+ "Console.log printed the answer. It is in the terminal. Scroll up.",
+ "He is on the on-call rotation now. He never picks up.",
+ "His lawyer sends a settlement offer. It does not parse.",
+ "Somebody had to be the data format. It was never going to be you."
+];
 function gameOver(){
   state.playing=false; state.roundActive=false; state.paused=false;
   $('pauseOverlay').classList.add('hidden');
@@ -1923,7 +2062,7 @@ function renderShop(){ const g=$('shopGrid'); if(!g)return; reflectWallet(); g.i
 function buyOrEquip(id,btn){ const t=Object.prototype.hasOwnProperty.call(THEMES,id)?THEMES[id]:null; if(!t)return;
   if(owned.has(id)){ equipped=id; applyTheme(id); saveShop(); if(!muted){initAudio();beep(740,0.07,'triangle',0.05);} renderShop(); }
   else if(wallet>=t.cost){ wallet-=t.cost; owned.add(id); equipped=id; applyTheme(id); saveShop(); confetti();
-    if(!muted){initAudio();[640,860,1140].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} toast({ic:t.ic,name:t.name,desc:'Theme unlocked!'},'Unlocked'); renderShop(); }
+    if(!muted){initAudio();[640,860,1140].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} toast({ic:t.ic,name:t.name,desc:'Theme unlocked!'},'Unlocked'); renderShop(); setTimeout(()=>bark('buyTheme'),600); }
   else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} if(!muted){initAudio();beep(150,0.2,'sawtooth',0.06);} } }
 applyTheme(equipped);
 
@@ -1941,6 +2080,7 @@ let STATS=loadStats();
 if(STATS.games<2){ diff='chill';
   document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x.dataset.diff==='chill')); }
 function recordAns(type,correct){ state.answered=(state.answered||0)+1; STATS.answered++; if(correct)STATS.correct++;
+  if(type&&!correct){ state.miss=state.miss||{}; state.miss[type]=(state.miss[type]||0)+1; }
   if(type){ const p=STATS.perType[type]||(STATS.perType[type]={c:0,a:0}); p.a++; if(correct)p.c++; } }
 function commitStats(){ STATS.games++; STATS.bestStreak=Math.max(STATS.bestStreak,state.bestCombo); STATS.bestScore=Math.max(STATS.bestScore,state.score);
   STATS.coinsEarned+=state.coins; localStorage.setItem('jw_stats',JSON.stringify(STATS)); }
@@ -1987,11 +2127,12 @@ $('zenBtn').addEventListener('click',()=>{ runMode={daily:false,zen:true}; start
 function pauseGame(){ if(!state.playing||state.paused||!state.roundActive)return; state.paused=true;
   state.pauseRemain=Math.max(0,state.deadline-performance.now());
   $('pauseScore').textContent=state.score; $('pauseLevel').textContent=state.level;
+  const pt=document.querySelector('.pausetag'); if(pt) pt.textContent="JSON is having a coffee. "+rand(LOADING_TIPS).replace("TIP: ","Tip: ");
   $('pauseOverlay').classList.remove('hidden'); if(musMaster)musMaster.gain.value=0; if(!muted){initAudio();beep(290,0.08,'square',0.04);} }
 function resumeGame(){ if(!state.paused)return; state.paused=false; $('pauseOverlay').classList.add('hidden');
   state.deadline=performance.now()+state.pauseRemain; if(musMaster&&!document.hidden)musMaster.gain.value=0.5; if(!muted){initAudio();beep(510,0.08,'square',0.04);} requestAnimationFrame(tick); }
 function quitRun(){ if(!state.playing)return; state.paused=false; $('pauseOverlay').classList.add('hidden'); if(musMaster&&!document.hidden)musMaster.gain.value=0.5; gameOver(); }
-$('resumeBtn').addEventListener('click',resumeGame);
+$('resumeBtn').addEventListener('click',()=>{ resumeGame(); bark('resume'); });
 $('quitBtn').addEventListener('click',quitRun);
 
 /* ===================== SHARE ===================== */
