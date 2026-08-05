@@ -1162,7 +1162,7 @@ function pickValue(level){
   lastRaw=raw; return {raw,value:JSON.parse(raw),type:typeOf(JSON.parse(raw))};
 }
 function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(rnd()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
-const BOSS_EVERY=3;
+const BOSS_EVERY=4;   /* was 3; endless tightens back to 3 */
 const BOSS=[
   '{"user":{"name":"Ada","roles":["admin","dev"],"meta":{"active":true,"logins":42}}}',
   '[[1,[2,[3,[4]]]],{"deep":null}]',
@@ -1232,23 +1232,23 @@ function caseFor(d){ return CASES[Math.min(d,CAMPAIGN_DAYS)-1]||CASES[CAMPAIGN_D
 
 /* ===================== PERKS (per run) ===================== */
 const PERKS={
- espresso :{ic:'☕',n:'Espresso IV',   tag:'+time',   d:'+0.6s on every round. Sleep is a config option.'},
+ espresso :{ic:'☕',n:'Espresso IV',   tag:'+time',   d:'+18% thinking time every round. Sleep is a config option.'},
  duck     :{ic:'🦆',n:'Rubber Duck',   tag:'shield',  d:'Your first miss each day is forgiven. He listens.'},
- copypaste:{ic:'📋',n:'Copy-Paste Pro',tag:'+25% ev', d:'Evidence +25%. You did not write it. Nobody asked.'},
- seriesA  :{ic:'💸',n:'Series A',      tag:'+60% clout',d:'Clout +60%. No revenue, huge valuation.'},
- nocturnal:{ic:'🌙',n:'Nocturnal',     tag:'+speed pay',d:'Time bonus almost doubled. You do your best work at 3AM.'},
+ copypaste:{ic:'📋',n:'Copy-Paste Pro',tag:'+20% ev', d:'Evidence +20%. You did not write it. Nobody asked.'},
+ seriesA  :{ic:'💸',n:'Series A',      tag:'+30% clout',d:'Clout +30% at cash-out. No revenue, huge valuation.'},
+ nocturnal:{ic:'🌙',n:'Nocturnal',     tag:'+speed pay',d:'Time bonus +40%. You do your best work at 3AM.'},
  vibetest :{ic:'🧪',n:'Vibes-Driven QA',tag:'25% dodge',d:'25% chance a miss costs no life. Tests are a mindset.'},
  deps     :{ic:'📦',n:'Dependency Hell',tag:'free tool',d:'Start every day with a random vibe tool. 12 more arrive.'},
  hotreload:{ic:'🔥',n:'Hot Reload',    tag:'keep streak',d:'A miss only halves your streak instead of ending it.'},
  legacy   :{ic:'🗿',n:'Legacy Code',   tag:'+1 life',  d:'+1 max life, permanently. Nobody dares delete you.'},
- shipfast :{ic:'⚡',n:'Ship Fast',      tag:'risk/reward',d:'−0.5s clock but +50% evidence. Move fast, break prod.'},
+ shipfast :{ic:'⚡',n:'Ship Fast',      tag:'risk/reward',d:'−12% thinking time but +35% evidence. Move fast, break prod.'},
  autocomp :{ic:'🤖',n:'Autocomplete',  tag:'free hint',d:'One wrong disguise is greyed out every lineup round.'},
- standup  :{ic:'🗣️',n:'Skip Standup',  tag:'+1 life',  d:'Gain a life right now. That meeting was 40 minutes.'}
+ standup  :{ic:'🗣️',n:'Skip Standup',  tag:'heal',     d:'Heal to full right now. That meeting was 40 minutes.'}
 };
 function perkOn(id){ return !!(state && state.perkSet && state.perkSet[id]); }
 function applyPerk(id){ state.perkSet[id]=true;
   if(id==='legacy'){ state.maxLives++; state.lives++; }
-  if(id==='standup'){ state.lives++; state.maxLives=Math.max(state.maxLives,state.lives); }
+  if(id==='standup'){ state.lives=state.maxLives; }   /* heal to full; legacy is the only cap-raiser */
   toast({ic:PERKS[id].ic,name:PERKS[id].n,desc:PERKS[id].tag},'Perk acquired');
   renderPerkChips(); setHUD(); }
 function renderPerkChips(){ const el=$('perkChips'); if(!el)return; const ids=Object.keys(state.perkSet||{});
@@ -1274,7 +1274,8 @@ function showBriefing(day,cb,fast){
   const c=caseFor(day);
   $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+CAMPAIGN_DAYS;
   $('briefName').textContent=c.n;
-  $('briefObj').textContent='ID him 5 times to close the file.';
+  $('briefObj').textContent='ID him '+(state.dayTarget||CORRECT_PER_DAY)+' times to close the file.'
+    +(day===1&&!state.endless?' Training case: your first '+TRAINING_MISSES+' misses are coached, not fatal.':'');
   $('briefDiff').textContent=state.endless?'Beyond the file':(DIFFWORD[Math.min(day,10)-1]||'Hostile');
   $('briefThreat').innerHTML=c.t;
   const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+CAMPAIGN_DAYS)+' \u00b7 '+c.n;
@@ -1287,12 +1288,14 @@ function showBriefing(day,cb,fast){
 }
 function dayStartEffects(){ state.duckUsed=false;
   if(perkOn('deps')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); } }
-function startDay(){ showPerkDraft(()=>{ showBriefing(state.level,()=>{ dayStartEffects(); nextRound(); }); }); }
+/* perk drafts every 2nd day (was every day => 9 of 12 perks per run, i.e. no build at all) */
+function startDay(){ const go=()=>{ showBriefing(state.level,()=>{ dayStartEffects(); nextRound(); }); };
+  if(((state.level-1)%DRAFT_EVERY_DAYS)===0) showPerkDraft(go); else go(); }
 
 /* ===================== PERMANENT UPGRADES ===================== */
 const UPGRADES={
  union  :{ic:'🪧',n:'Union Rep',      cost:150,d:'Start every run with +1 life.'},
- machine:{ic:'☕',n:'Office Espresso',cost:200,d:'+0.4s on the base clock, forever.'},
+ machine:{ic:'☕',n:'Office Espresso',cost:200,d:'+10% thinking time, forever.'},
  intern :{ic:'🧑‍💻',n:'Hire an Intern', cost:120,d:'Begin each run with a random vibe tool.'},
  lawyer :{ic:'⚖️',n:'Better Lawyer',  cost:250,d:'+10% evidence on everything, forever.'},
  insider:{ic:'📞',n:'Insider Tip',    cost:180,d:'Perk drafts offer 4 choices instead of 3.'}
@@ -1328,10 +1331,19 @@ const EPILOGUES=[
  "He confesses to everything: the commas, the nulls, the 4am outage. Then he asks for his lawyer, who is also JSON. The case file is 1.2GB and lives in <b>node_modules</b> forever.",
  "You catch him mid-parse. He shrugs. <b>“Somebody had to be the format,”</b> he says. Outside, a junior dev deploys on a Friday and the whole thing starts again."
 ];
+/* Series A is a run-end multiplier now (was +60% on every tick), and the whole run is
+   clamped to a floor/cap so an exploit we have not found yet still cannot break the shop. */
+function finalizeClout(won){
+  let run=state.coins|0;
+  if(perkOn('seriesA')) run=Math.round(run*SERIES_A);
+  if(won) run+=CLOUT_WIN;
+  state.coins=Math.min(CLOUT_RUN_CAP,Math.max(CLOUT_RUN_FLOOR,run));
+  return state.coins; }
+function runXP(){ return Math.min(XP_CAP_PER_RUN, Math.floor(state.score/XP_DIV)); }
 function winGame(){
   state.playing=false; state.roundActive=false; state.paused=false;
-  const runCoins=state.coins;
-  wallet+=state.coins; commitStats(); saveShop(); addXP(state.score);
+  const runCoins=finalizeClout(true);
+  wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
   if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
   unlock('caught');
   if(qualifiesLB(state.score)){ const nm=(localStorage.getItem('jw_initials')||'YOU'); const lb=getLB();
@@ -1350,7 +1362,8 @@ function winGame(){
   confetti(); setTimeout(confetti,500); setTimeout(confetti,1000); vibrate([40,60,40,60,120]);
 }
 $('endlessBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); state.playing=true; state.endless=true;
-  state.lives=Math.max(1,state.lives); setHUD(); startDay(); });
+  state.lives=Math.max(1,state.lives); state.dayCorrect=0; state.dayTarget=dayTargetFor(state.level); state.graceUsed=TRAINING_MISSES;
+  setHUD(); startDay(); });
 $('winAgainBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); runMode={daily:false,zen:false}; startGame(); });
 
 /* ===================== GAME ===================== */
@@ -1368,12 +1381,63 @@ TYPES.forEach(t=>{ const b=document.createElement('button'); b.className='abtn '
   b.addEventListener('click',()=>answer(t.id)); answersHost.appendChild(b); });
 if(window._bindCursor) window._bindCursor();
 
-const DIFF={ chill:{time:6.5,drop:0.22,min:3.2,lives:5}, normal:{time:5,drop:0.32,min:2.2,lives:3}, chaos:{time:3.7,drop:0.4,min:1.6,lives:2} };
-let diff='normal';
+/* ---- balance v2 save migration: score deflated ~0.55x, so veterans' own ghosts
+        must be rescaled or their personal best becomes permanently unbeatable.
+        Backed up to jw_hi_v1 / jw_lb_v1 so it is reversible. Wallet + XP untouched. ---- */
+(function migrateBalance(){
+  try{ if(localStorage.getItem('jw_bal')==='2') return; }catch(e){ return; }
+  const K=0.55;
+  try{ const hi=localStorage.getItem('jw_hi'); const n=parseInt(hi,10);
+    if(hi!=null && isFinite(n) && n>0){ localStorage.setItem('jw_hi_v1',hi); localStorage.setItem('jw_hi',String(Math.round(n*K))); } }catch(e){}
+  try{ const lb=localStorage.getItem('jw_lb');
+    if(lb){ const arr=JSON.parse(lb);
+      if(Array.isArray(arr)){ const out=arr.map(e=>(e&&typeof e==='object')?Object.assign({},e,{score:Math.round((parseFloat(e.score)||0)*K)}):e);
+        localStorage.setItem('jw_lb_v1',lb); localStorage.setItem('jw_lb',JSON.stringify(out)); } } }catch(e){}
+  try{ const st=localStorage.getItem('jw_stats');
+    if(st){ const s=JSON.parse(st);
+      if(s&&typeof s==='object'&&!Array.isArray(s)&&isFinite(parseFloat(s.bestScore))){
+        s.bestScore=Math.round(parseFloat(s.bestScore)*K); localStorage.setItem('jw_stats',JSON.stringify(s)); } } }catch(e){}
+  try{ localStorage.setItem('jw_bal','2'); }catch(e){}
+})();
+
+/* ---- DIFFICULTY: time = base THINK budget (reading is paid for separately, see readBudget)
+        hint  = auto-eliminate 2 wrong buttons after N consecutive misses
+        regen = life regen at day close: always / clean (<=1 miss) / none
+        mercy = +40% think budget after 2 consecutive misses ---- */
+const DIFF={
+  chill :{time:5.6, drop:0.16, min:2.60, lives:5, hint:1,  regen:'always', mercy:true },
+  normal:{time:4.4, drop:0.20, min:1.90, lives:3, hint:2,  regen:'clean',  mercy:true },
+  chaos :{time:3.2, drop:0.28, min:1.25, lives:2, hint:99, regen:'none',   mercy:false}
+};
+let diff='normal';   /* re-defaulted to 'chill' for first-timers once STATS is loaded */
+const DIFFC=()=>DIFF[diff]||DIFF.normal;
+/* clock */
+const HARD_FLOOR=1.0, READ_PER_CHAR=0.045, READ_PER_ITEM=0.18;
+const BOSS_TIME=1.15, ALT_TIME=1.25;
+const ENDLESS_DECAY=0.97, ENDLESS_FLOOR=0.06;
+const T_ESPRESSO=1.18, T_SHIPFAST=0.88, T_MACHINE=1.10;
+/* cadence */
+const CORRECT_PER_DAY=5, DRAFT_EVERY_DAYS=2, POWER_EVERY=4, ALT_PROB=0.30, ALT_FROM_DAY=2;
+/* scoring */
+const COMBO_STEP=0.18, COMBO_CAP=10, BOSS_EV=2.2, ALT_EV=1.3;
+const EV_COPYPASTE=0.20, EV_SHIPFAST=0.35, EV_LAWYER=0.10, NOCTURNAL=1.4;
+const PERFECT_BONUS=day=>60+40*Math.min(day-1,9);
+/* clout: score-independent, so no score exploit can ever be a clout exploit */
+const CLOUT_PER_N_IDS=3, CLOUT_PER_DAY=2, CLOUT_PERFECT=3, CLOUT_BOSS=5, CLOUT_WIN=15;
+const SERIES_A=1.30, CLOUT_RUN_FLOOR=8, CLOUT_RUN_CAP=120;
+const XP_DIV=10, XP_CAP_PER_RUN=3000;
+/* lives + anti-frustration */
+const TOOL_CAPS={freeze:2,fifty:99,double:99,life:2};
+const STREAK_INSURANCE_FROM=5, STREAK_INSURANCE_TO=3, MERCY_CLOCK_BONUS=0.40;
+const TRAINING_MISSES=2;   /* Case 1 only, and only twice per run — game over stays reachable */
+const TELLS={string:'quotes around it → String. Even "42".',number:'no quotes, just digits → Number.',
+  boolean:'bare true / false → Boolean.',null:'bare null → Null. "null" is a String.',
+  array:'square brackets [ ] → Array.',object:'curly braces { } → Object.'};
 const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,answered:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0,
   coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
   mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
-  perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false};
+  perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,
+  dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -1384,7 +1448,7 @@ const POWERS={
   freeze:{ic:'☕',name:'Coffee break',key:'q',desc:'Stop the clock this round'},
   fifty :{ic:'🤖',name:'Ask the AI',  key:'w',desc:'Rule out two disguises'},
   double:{ic:'🚀',name:'Ship it',     key:'e',desc:'Double your next payout'},
-  life  :{ic:'↩️',name:'Ctrl+Z',      key:'r',desc:'Undo a mistake, gain a life'}
+  life  :{ic:'↩️',name:'Ctrl+Z',      key:'r',desc:'Patch a heart back (up to your max)'}
 };
 const POWKEYS={q:'freeze',w:'fifty',e:'double',r:'life'};
 const powtray=$('powtray');
@@ -1393,11 +1457,13 @@ Object.entries(POWERS).forEach(([id,p])=>{ const b=document.createElement('butto
   b.addEventListener('click',()=>usePower(id)); powtray.appendChild(b); });
 function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid,n=state.powers[id];
   const okMode = id!=='fifty' || state.mode==='type' || state.mode==='boss';
-  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode);
+  const okLife = id!=='life' || state.lives<state.maxLives;
+  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode && okLife);
   b.classList.toggle('armed', id==='double'&&state.doubleArmed); }); }
-function grantPower(id){ state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Vibe tool acquired!'},'New tool'); if(!muted){initAudio();beep(680,0.06,'triangle',0.05);setTimeout(()=>beep(1020,0.09,'triangle',0.05),70);} renderPowers(); }
+function grantPower(id){ if(!POWERS[id])return; if(state.powers[id]>=(TOOL_CAPS[id]||99))return;   /* no hoarding */
+  state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Vibe tool acquired!'},'New tool'); if(!muted){initAudio();beep(680,0.06,'triangle',0.05);setTimeout(()=>beep(1020,0.09,'triangle',0.05),70);} renderPowers(); }
 function usePower(id){ if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
-  if(id==='life'){ state.powers[id]--; state.lives++; state.maxLives=Math.max(state.maxLives,state.lives); }
+  if(id==='life'){ if(state.lives>=state.maxLives)return; state.powers[id]--; state.lives=Math.min(state.maxLives,state.lives+1); }   /* heals, never raises the cap */
   else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen'); }
   else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
@@ -1444,9 +1510,25 @@ function animateScore(target){ const start=state.displayScore, d=target-start; i
 function setHUD(){ animateScore(state.score); $('level').textContent=state.level; $('combo').textContent='×'+(1+state.streak);
   const onFire=state.streak>=4; document.querySelector('.stat.combo').classList.toggle('fire',onFire); $('gpanel').classList.toggle('onfire',onFire); $('fireBadge').classList.toggle('show',onFire);
   $('coins').textContent=state.coins; renderLives(); renderPowers(); renderPerkChips(); }
-function timeForLevel(l){ const c=DIFF[diff]; let t=Math.max(c.min, c.time-(l-1)*c.drop);
-  if(perkOn('espresso')) t+=0.6; if(perkOn('shipfast')) t-=0.5; if(UPS.has('machine')) t+=0.4;
-  return Math.max(1.2,t); }
+/* ===== READ BUDGET + THINK BUDGET =====
+   The clock used to be blind to how much there is to read: `42` and a 19-char nested
+   object both got the same 1.60s on chaos. Now reading is paid for by the character
+   (never scaled by difficulty) and only the *thinking* margin is squeezed by the day
+   counter and by endless mode. Time perks are multiplicative and land BEFORE the
+   floor, so they can no longer punch through it. */
+function endlessDayNo(l){ return state.endless ? Math.max(0,(l||1)-CAMPAIGN_DAYS) : 0; }
+function endlessSqueeze(l){ return Math.max(ENDLESS_FLOOR, Math.pow(ENDLESS_DECAY, endlessDayNo(l))); }
+function readBudget(chars,items){ return READ_PER_CHAR*Math.max(0,chars||0) + READ_PER_ITEM*Math.max(0,items||0); }
+function thinkBudget(l){ const c=DIFFC(), sq=endlessSqueeze(l);
+  let t=Math.max(c.min*sq, c.time-((l||1)-1)*c.drop);
+  if(perkOn('espresso')) t*=T_ESPRESSO;
+  if(perkOn('shipfast')) t*=T_SHIPFAST;
+  if(UPS.has('machine')) t*=T_MACHINE;
+  return Math.max(HARD_FLOOR*sq, t); }
+function timeForLevel(l){ return thinkBudget(l); }   /* kept: same name, think budget only */
+function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); }
+function dayTargetFor(l){ return CORRECT_PER_DAY + (state.endless ? Math.floor(endlessDayNo(l)/3) : 0); }
+function bossEveryNow(){ return state.endless ? 3 : BOSS_EVERY; }
 function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
   (function step(){ if(i>=seq.length){el.classList.remove('show');done();return;} el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); beep(340+i*130,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
 
@@ -1459,7 +1541,8 @@ function startGame(){
   Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:baseLives,maxLives:baseLives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
-    perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0});
+    perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
+    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0});
   $('pauseOverlay').classList.add('hidden');
   $('zenTag').classList.toggle('hidden',!runMode.zen);
   $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden'); $('initialsBox').classList.add('hidden');
@@ -1481,6 +1564,7 @@ function buildValidRound(alt){
   if(useValid){ raw=pickValidRaw(state.level); state.altAnswer='valid'; }
   else { const b=rand(BROKEN); raw=b.raw; reason=b.why; state.altAnswer='broken'; }
   state.altReason=reason;
+  state.shownChars=raw.length; state.shownItems=0;
   const long=raw.length>16;
   valueCard.style.fontSize = long ? 'clamp(18px,4.2vw,28px)' : 'clamp(26px,6vw,44px)';
   valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
@@ -1502,6 +1586,7 @@ function buildSpotRound(alt){
   while(distract.length<3) distract.push(rand(others));
   const cands=shuffle([{raw:correctRaw,type:target},...distract.map(r=>({raw:r,type:typeFor(r)}))]);
   state.altCands=cands; state.altCorrectIdx=cands.findIndex(c=>c.raw===correctRaw&&c.type===target);
+  state.shownChars=Math.round(cands.reduce((a,c)=>a+c.raw.length,0)*0.75); state.shownItems=0;
   valueCard.style.fontSize='clamp(18px,4.2vw,30px)';
   valueCard.innerHTML=EVTAG+`<span class="v">Which one is the <b style="color:var(--t-${target})">${target.toUpperCase()}</b>?</span>`;
   alt.className='altanswers grid';
@@ -1519,6 +1604,7 @@ function buildCountRound(alt){
   const arr=shuffle([...opts]);
   state.altCands=arr.map(v=>({raw:String(v),type:v===cnt?'__ok':'__no'}));
   state.altCorrectIdx=arr.indexOf(cnt);
+  state.shownChars=raw.length; state.shownItems=cnt;   /* counting is paid for per item */
   valueCard.style.fontSize='clamp(15px,3.4vw,25px)';
   valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
   alt.className='altanswers grid';
@@ -1530,7 +1616,7 @@ function nextRound(){
   if(!state.playing)return;
   let mode='type';
   if(state.bossPending){ mode='boss'; state.bossPending=false; }
-  else if(state.level>=2 && !state.lastWasAlt && rnd()<0.34){ mode=rand(['valid','spot','count']); }
+  else if(state.level>=ALT_FROM_DAY && !state.lastWasAlt && rnd()<altProbFor(state.level)){ mode=rand(['valid','spot','count']); }
   if((state.roundsPlayed|0)===0) mode='type';   // contract: first round of a run is always a type round
   state.roundsPlayed=(state.roundsPlayed|0)+1;
   state.lastWasAlt=(mode!=='type'&&mode!=='boss');
@@ -1539,16 +1625,23 @@ function nextRound(){
   state.frozen=false; timerBar.classList.remove('frozen');
   $('gpanel').classList.remove('boss');
   const answers=$('answers'), alt=$('altAnswers');
+  state.shownChars=0; state.shownItems=0;
   if(mode==='type'||mode==='boss'){
     answers.classList.remove('hidden'); alt.classList.add('hidden');
     if(mode==='boss'){ state.current=pickBoss(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
     else state.current=pickValue(state.level);
     const raw=state.current.raw, long=raw.length>18;
+    state.shownChars=raw.length;
     valueCard.style.fontSize = long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
     valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
     if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
       const pick=wr[Math.floor(rnd()*wr.length)]; if(pick){pick.classList.add('eliminated');pick.disabled=true;} }
+    /* cold hint — guaranteed by difficulty, not drafted. Always leaves >=2 wrong buttons live. */
+    if((state.coldRun|0) >= (DIFFC().hint||99)){
+      const wr=shuffle([...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.classList.contains('eliminated')));
+      wr.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;});
+    }
     $('question').innerHTML = mode==='boss' ? "&ldquo;Deep cover. You'll never make me now.&rdquo;" : taunt();
     if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
   } else if(mode==='valid'){
@@ -1561,8 +1654,11 @@ function nextRound(){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
     $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
   }
-  const base=timeForLevel(state.level);
-  state.duration = mode==='boss' ? base*1.7 : (mode!=='type' ? base*1.25 : base);
+  const think=thinkBudget(state.level);
+  const modeMult = mode==='boss' ? BOSS_TIME : (mode!=='type' ? ALT_TIME : 1);
+  state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
+                   + (state.mercyNext ? think*MERCY_CLOCK_BONUS : 0);
+  state.mercyNext=false;
   state.deadline=performance.now()+state.duration*1000; state.roundActive=true; state.lastTick=0;
   renderPowers();
   requestAnimationFrame(tick);
@@ -1582,39 +1678,60 @@ function tick(now){
 /* shared scoring core */
 function awardCorrect(mult){
   const remain=Math.max(0,state.deadline-performance.now());
-  const timeBonus=Math.round(remain/(state.duration*1000)*100*(perkOn('nocturnal')?1.8:1));
-  const comboMult=1+Math.min(state.streak,9)*0.25;
-  let evMult=(mult||1);
-  if(perkOn('copypaste')) evMult*=1.25; if(perkOn('shipfast')) evMult*=1.5; if(UPS.has('lawyer')) evMult*=1.1;
-  let pts=Math.round((100+timeBonus)*comboMult*evMult);
+  const timeBonus=Math.round(remain/(state.duration*1000)*100*(perkOn('nocturnal')?NOCTURNAL:1));
+  const comboMult=1+Math.min(state.streak,COMBO_CAP)*COMBO_STEP;
+  /* evidence perks pool ADDITIVELY now — they used to multiply into a 2.06x flat stack */
+  let evBonus=0;
+  if(perkOn('copypaste')) evBonus+=EV_COPYPASTE;
+  if(perkOn('shipfast'))  evBonus+=EV_SHIPFAST;
+  if(UPS.has('lawyer'))   evBonus+=EV_LAWYER;
+  let pts=Math.round((100+timeBonus)*comboMult*(mult||1)*(1+evBonus));
   const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
   state.score+=pts; state.streak++; state.correct++;
   state.bestCombo=Math.max(state.bestCombo,state.streak);
   if(state.streak>0 && state.streak%5===0){ screenFlash(); const m=$('mascot'); if(m){m.classList.remove('celebrate');void m.offsetWidth;m.classList.add('celebrate');} }
-  const gain=Math.round((2+Math.floor(pts/60))*(perkOn('seriesA')?1.6:1)); state.coins+=gain;
+  /* clout is score-INDEPENDENT: a flat trickle per ID, so no scoring exploit is a clout exploit */
+  if(state.correct%CLOUT_PER_N_IDS===0) state.coins+=1;
   unlock('firstblood'); if(state.streak>=5)unlock('combo5'); if(state.streak>=10)unlock('combo10');
   if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
-  if(state.streak>0 && state.streak%3===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
-  const newLevel=1+Math.floor(state.correct/5);
-  if(newLevel>state.level){
-    const perfect=state.levelWrong===0;
-    state.level=newLevel; levelUp();
+  if(state.streak>0 && state.streak%POWER_EVERY===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
+  state.coldRun=0;
+  state.dayCorrect=(state.dayCorrect|0)+1;
+  if(state.dayCorrect>=(state.dayTarget||CORRECT_PER_DAY)){
+    state.dayCorrect=0;
+    const perfect=state.levelWrong===0, clean=state.levelWrong<=1;
+    state.level=state.level+1; levelUp();
+    state.coins+=CLOUT_PER_DAY;
+    const rg=DIFFC().regen;
+    if((rg==='always' || (rg==='clean'&&clean)) && state.lives<state.maxLives) state.lives++;
     if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
-    if(perfect){ const bonus=150*(state.level-1); state.score+=bonus; state.coins+=10; unlock('perfect'); grantPower('freeze');
+    if(perfect){ const bonus=PERFECT_BONUS(state.level); state.score+=bonus; state.coins+=CLOUT_PERFECT; unlock('perfect');
       setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); }
-    state.levelWrong=0;
-    if(state.level%BOSS_EVERY===0) state.bossPending=true;
+    state.levelWrong=0; state.graceUsed=TRAINING_MISSES;   /* training case is Case 1 only */
+    state.dayTarget=dayTargetFor(state.level);
+    if(state.level%bossEveryNow()===0) state.bossPending=true;
     if(!state.endless && state.level>CAMPAIGN_DAYS) state.pendingWin=true; else state.pendingAdvance=true;
   }
   return {pts,doubled};
 }
 function penalize(){
-  let saved=false, why='';
-  if(perkOn('duck') && !state.duckUsed){ state.duckUsed=true; saved=true; why='🦆 The duck took that one.'; }
+  let saved=false, why='', coached=false;
+  /* TRAINING CASE — Case 1 only, and only for the first TRAINING_MISSES misses of the run.
+     Hard-bounded on purpose: after that, misses are fatal again and game over is reachable. */
+  if(state.level===1 && !state.endless && (state.graceUsed|0)<TRAINING_MISSES){
+    state.graceUsed=(state.graceUsed|0)+1; saved=true; coached=true;
+    why='Training case — no life lost. '+(TRAINING_MISSES-state.graceUsed)+' coached miss left.';
+  }
+  else if(perkOn('duck') && !state.duckUsed){ state.duckUsed=true; saved=true; why='🦆 The duck took that one.'; }
   else if(perkOn('vibetest') && rnd()<0.25){ saved=true; why='🧪 Vibes held. No life lost.'; }
   if(!saved && !state.zen) state.lives--;
-  if(saved) toast({ic:'🛡️',name:'Saved!',desc:why},'Perk');
-  state.streak = perkOn('hotreload') ? Math.floor(state.streak/2) : 0;
+  if(saved) toast({ic:coached?'🎓':'🛡️',name:coached?'Coached':'Saved!',desc:why},coached?'Training case':'Perk');
+  state.lastCoached=coached;
+  /* streak insurance: a long streak drops to 3, not to 0 — hotreload stays strictly better */
+  state.streak = perkOn('hotreload') ? Math.floor(state.streak/2)
+               : (state.streak>=STREAK_INSURANCE_FROM ? STREAK_INSURANCE_TO : 0);
+  state.coldRun=(state.coldRun|0)+1;
+  if(DIFFC().mercy && state.coldRun>=2) state.mercyNext=true;
   state.levelWrong++; state.doubleArmed=false; }
 function finishRound(correct){ $('gpanel').classList.remove('urgent'); setHUD();
   setTimeout(()=>{
@@ -1635,13 +1752,15 @@ function answer(id){
   const correctBtn=answersHost.querySelector('.abtn.'+cur.type);
   flavorEl.innerHTML=flavorFor(cur.value)+`  <b>&mdash; he was a ${cur.type.toUpperCase()}.</b>`;
   if(correct){
-    const {pts,doubled}=awardCorrect(boss?3:1);
-    if(boss){ unlock('boss'); state.coins+=15; }
+    const {pts,doubled}=awardCorrect(boss?BOSS_EV:1);
+    if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; }
     correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30); speedLines(boss);
     showFeedback((boss?'COVER BLOWN! +':rand(['GOTCHA!','MADE HIM!','BUSTED!','NAILED IT!','ID CONFIRMED!'])+' +')+pts+(doubled?'!!':''),false); fireBurst(false);
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
   } else {
     penalize();
+    /* coach the RULE, not just the answer, while the training case is live */
+    if(state.lastCoached && TELLS[cur.type]) flavorEl.innerHTML+=' <b>🎓 '+esc(TELLS[cur.type])+'</b>';
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
     correctBtn.classList.add('correct');
     mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
@@ -1675,7 +1794,7 @@ function answerAlt(picked,timedOut){
   }
   recordAns(null,correct);
   if(correct){
-    const {pts,doubled}=awardCorrect(1.5);
+    const {pts,doubled}=awardCorrect(ALT_EV);
     unlock('sharp');
     correctEl&&correctEl.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30); speedLines(false);
     showFeedback(rand(['SHARP!','KEEN EYE!','GOT IT!','CAUGHT!'])+' +'+pts+(doubled?'!!':''),false); fireBurst(false);
@@ -1710,13 +1829,14 @@ const OVER_QUIPS=[
 function gameOver(){
   state.playing=false; state.roundActive=false; state.paused=false;
   $('pauseOverlay').classList.add('hidden');
-  const runCoins=state.coins;
-  wallet+=state.coins; commitStats(); saveShop(); addXP(state.score);
+  const runCoins=finalizeClout(false);
+  wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
   if(state.daily){ const dk=dailyKey(); const d=getDaily(); const best=(d.d===dk)?d.best:0; localStorage.setItem('jw_daily',JSON.stringify({d:dk,best:Math.max(best,state.score)})); reflectDaily(); }
   $('finalScore').textContent=state.score; $('finalLevel').textContent=state.level; $('finalCombo').textContent='×'+(1+state.bestCombo);
   const best=state.score>HI; if(best){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
   $('newBest').classList.toggle('hidden',!best);
-  const s=state.score, rank = s>=7000?"JSON'S NEMESIS": s>=3500?'LEAD DETECTIVE': s>=1500?'TYPE DETECTIVE': s>=500?'ACCEPT-ALL ENJOYER':'PROMPT GOBLIN';
+  /* thresholds rescaled by the same 0.55 deflation as the score itself */
+  const s=state.score, rank = s>=4000?"JSON'S NEMESIS": s>=2000?'LEAD DETECTIVE': s>=850?'TYPE DETECTIVE': s>=300?'ACCEPT-ALL ENJOYER':'PROMPT GOBLIN';
   $('rankBadge').textContent='🏅 '+rank;
   const acc = state.answered?Math.round(state.correct/state.answered*100):0;
   const modeTag = state.daily?'Daily case · ':state.zen?'Stakeout · ':'';
@@ -1814,6 +1934,10 @@ function loadStats(){ const def={games:0,correct:0,answered:0,bestStreak:0,bestS
       else { q.a=Math.max(0,parseInt(q.a,10)||0); q.c=Math.min(q.a,Math.max(0,parseInt(q.c,10)||0)); } });
     return st; }catch(e){ return def; } }
 let STATS=loadStats();
+/* biggest first-run fairness win available: do not silently default a newcomer into
+   the hard-ish middle. (diff is declared far above; STATS only exists down here.) */
+if(STATS.games<2){ diff='chill';
+  document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x.dataset.diff==='chill')); }
 function recordAns(type,correct){ state.answered=(state.answered||0)+1; STATS.answered++; if(correct)STATS.correct++;
   if(type){ const p=STATS.perType[type]||(STATS.perType[type]={c:0,a:0}); p.a++; if(correct)p.c++; } }
 function commitStats(){ STATS.games++; STATS.bestStreak=Math.max(STATS.bestStreak,state.bestCombo); STATS.bestScore=Math.max(STATS.bestScore,state.score);
