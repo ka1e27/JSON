@@ -513,6 +513,58 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
   font-family:var(--ff-type);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,230,205,.6);}
 .fbottom .red{color:var(--red);}
 
+/* ---------- CAMPAIGN: briefing, perk draft, win ---------- */
+.caseno{font-family:var(--ff-type);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--red);}
+.casename{font-family:var(--ff-display);font-size:clamp(26px,6vw,54px);line-height:.96;text-transform:uppercase;}
+.casename .y{color:var(--yellow);-webkit-text-stroke:2px var(--ink);}
+.brieflines{display:grid;gap:9px;max-width:44ch;text-align:left;}
+.briefrow{display:grid;grid-template-columns:74px 1fr;gap:10px;font-family:var(--ff-type);font-size:12.5px;line-height:1.5;color:var(--ink-2);}
+.briefrow .bk{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);padding-top:2px;}
+.briefrow .bv{color:var(--ink);}
+.threat{font-family:var(--ff-type);font-size:13px;line-height:1.5;background:var(--card);border-left:4px solid var(--red);padding:9px 12px;text-align:left;max-width:44ch;}
+.threat b{color:var(--red);}
+
+.drafthead{font-family:var(--ff-type);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2);}
+.perks{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;width:100%;max-width:640px;}
+@media(max-width:660px){.perks{grid-template-columns:1fr;}}
+.perkcard{background:var(--card);border:var(--edge);border-radius:4px;box-shadow:4px 4px 0 var(--ink);padding:14px 12px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:7px;transition:transform .12s var(--ease),box-shadow .12s;}
+.perkcard:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);background:var(--yellow);}
+.perkcard .pic{font-size:26px;line-height:1;}
+.perkcard .pn{font-family:var(--ff-display);font-size:17px;text-transform:uppercase;line-height:1.05;}
+.perkcard .pd{font-family:var(--ff-type);font-size:11.5px;line-height:1.45;color:var(--ink-2);}
+.perkcard .pt{font-family:var(--ff-mono);font-weight:700;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--blue);color:#fff;border-radius:99px;padding:2px 8px;}
+.perkchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
+.perkchips .pc{font-family:var(--ff-type);font-size:10.5px;background:var(--card);border:2px solid var(--ink);border-radius:99px;
+  padding:3px 9px;box-shadow:2px 2px 0 rgba(25,19,8,.25);}
+.perkchips .pc .i{margin-right:4px;}
+
+.winwrap .stamp{font-family:var(--ff-type);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--red);
+  border:3px solid var(--red);padding:5px 16px;transform:rotate(-6deg);border-radius:4px;}
+.epilogue{font-family:var(--ff-type);font-size:13px;line-height:1.6;max-width:46ch;color:var(--ink-2);}
+.epilogue b{color:var(--ink);}
+
+/* ---------- shop tabs + upgrades ---------- */
+.shoptabs{display:flex;gap:7px;margin-bottom:13px;}
+.shoptab{font-family:var(--ff-type);font-size:12px;background:var(--card);border:2px solid var(--ink);border-radius:99px;padding:6px 14px;
+  box-shadow:2px 2px 0 rgba(25,19,8,.28);}
+.shoptab.on{background:var(--yellow);}
+.upgrades{display:grid;gap:10px;}
+.upcard{display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;background:var(--card);border:var(--edge);border-radius:4px;
+  padding:11px;box-shadow:3px 3px 0 rgba(25,19,8,.25);}
+.upcard .uic{font-size:22px;text-align:center;}
+.upcard .un{display:block;font-family:var(--ff-display);font-size:16px;text-transform:uppercase;line-height:1.1;}
+.upcard .ud{display:block;margin-top:2px;font-family:var(--ff-type);font-size:11.5px;color:var(--ink-2);line-height:1.4;}
+.upcard .ua{font-family:var(--ff-type);font-size:11.5px;border:2px solid var(--ink);border-radius:99px;padding:5px 11px;background:var(--yellow);white-space:nowrap;}
+.upcard .ua.owned{background:var(--green);color:#fff;}
+.upcard .ua.locked{background:rgba(25,19,8,.16);color:var(--ink-2);}
+.upcard .ua.deny{animation:noflash .45s ease;}
+
+/* nav rank */
+nav .rank{font-family:var(--ff-type);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--yellow);opacity:.9;white-space:nowrap;}
+@media(max-width:700px){ nav .rank{display:none;} }
+
 [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
 [data-reveal].in{opacity:1;transform:none;}
 .reduced *,.reduced *::before,.reduced *::after{animation:none!important;transition:none!important;}
@@ -545,7 +597,7 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
       <span class="seal">{?}</span>
       <span class="dt">Dept. of Undefined Behavior<span class="l2"> &middot; <b>Case #0001: WHO IS JSON?</b></span></span>
     </div>
-    <div class="bounty">Bounty <span class="n" id="navHi">0</span></div>
+    <div class="bounty"><span class="rank" id="navRank">Rank: Prompt Goblin</span> &nbsp;Bounty <span class="n" id="navHi">0</span></div>
   </div>
 </nav>
 
@@ -634,7 +686,7 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
       <div class="slabel" data-reveal>
         <span class="no">Exhibit B</span>
         <h2>The <em>lineup</em></h2>
-        <span class="hint">identify the disguise &middot; keys 1&ndash;6</span>
+        <span class="hint" id="caseHint">10 cases &middot; identify the disguise &middot; keys 1&ndash;6</span>
       </div>
 
       <div class="gpanel" id="gpanel">
@@ -669,6 +721,7 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
           <div class="answers" id="answers"></div>
           <div class="altanswers hidden" id="altAnswers" aria-label="Answers"></div>
           <div class="powtray" id="powtray" aria-label="Vibe tools"></div>
+          <div class="perkchips" id="perkChips" aria-label="Active perks"></div>
         </div>
 
         <div class="speedlines" id="speedlines" aria-hidden="true"></div>
@@ -678,6 +731,42 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
         <div class="firebadge" id="fireBadge">&#128293; ON HIS TRAIL!</div>
         <div class="modebanner" id="modeBanner"></div>
         <div class="zentag hidden" id="zenTag">&#9784; STAKEOUT</div>
+
+        <!-- CASE BRIEFING -->
+        <div class="overlay hidden" id="briefOverlay">
+          <div class="caseno" id="briefNo">Case 1 of 10</div>
+          <div class="casename" id="briefName">The Trailing Comma</div>
+          <div class="brieflines">
+            <div class="briefrow"><span class="bk">Objective</span><span class="bv" id="briefObj">ID him 5 times.</span></div>
+            <div class="briefrow"><span class="bk">Difficulty</span><span class="bv" id="briefDiff">Rookie</span></div>
+          </div>
+          <div class="threat" id="briefThreat"></div>
+          <button class="cbtn" id="briefBtn" data-magnetic>&#9654; Take the case</button>
+        </div>
+
+        <!-- PERK DRAFT -->
+        <div class="overlay hidden" id="draftOverlay">
+          <div class="caseno">Case closed &mdash; requisition form</div>
+          <div class="big">Pick your <span class="y">edge</span></div>
+          <div class="drafthead">choose one &middot; it lasts the whole investigation</div>
+          <div class="perks" id="perkCards"></div>
+        </div>
+
+        <!-- VICTORY -->
+        <div class="overlay hidden winwrap" id="winOverlay">
+          <div class="stamp">Case closed</div>
+          <div class="big">You got <span class="y">JSON!</span></div>
+          <div class="epilogue" id="winEpi"></div>
+          <div class="finalstats">
+            <div class="fs"><div class="l">Evidence</div><div class="n" id="winScore">0</div></div>
+            <div class="fs"><div class="l">Best streak</div><div class="n" id="winCombo">&times;1</div></div>
+            <div class="fs"><div class="l">Clout</div><div class="n" id="winClout">0</div></div>
+          </div>
+          <div class="mbtns">
+            <button class="cbtn yellow" id="endlessBtn" data-magnetic>&#9854; Cold cases (endless)</button>
+            <button class="cbtn blue" id="winAgainBtn">&#8635; New investigation</button>
+          </div>
+        </div>
 
         <!-- PAUSE -->
         <div class="overlay hidden" id="pauseOverlay">
@@ -696,7 +785,7 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
         <!-- START -->
         <div class="overlay" id="startOverlay">
           <div class="big">Think you can <span class="r">ID him?</span></div>
-          <p>JSON shows up wearing one of <b>six disguises</b>. Name it before the clock runs out. Chain IDs for a <b>streak bonus</b>, then survive his deep-cover days.</p>
+          <p>JSON wears one of <b>six disguises</b>. Name it before the clock runs out. Close all <b>10 cases</b> to finally catch him &mdash; pick a <b>perk</b> after every case, and spend clout on <b>permanent upgrades</b>.</p>
           <div class="mgroup">
             <span class="mglabel">Pick your pace</span>
             <div class="diffsel" id="diffSel">
@@ -832,10 +921,15 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
 <div class="modal hidden" id="shopModal" role="dialog" aria-modal="true" aria-label="IDE themes">
   <div class="sheet">
     <button class="close" data-close="shopModal" aria-label="Close">&#10006;</button>
-    <h3>IDE <span class="y">themes</span></h3>
+    <h3 id="shopTitle">IDE <span class="y">themes</span></h3>
     <div class="sub">Spend clout &middot; because that's what clout is for</div>
     <div class="wallet">&#129689; <span class="c" id="walletNum">0</span> clout</div>
+    <div class="shoptabs">
+      <button class="shoptab on" data-tab="themes">IDE themes</button>
+      <button class="shoptab" data-tab="upgrades">Permanent upgrades</button>
+    </div>
     <div class="shopgrid" id="shopGrid"></div>
+    <div class="upgrades hidden" id="upGrid"></div>
   </div>
 </div>
 
@@ -862,7 +956,9 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
       <div class="howstep"><span class="ic">&#127919;</span><div class="tx"><b>Name the disguise.</b> Tap a card or press <b>1&ndash;6</b>: String, Number, Boolean, Null, Array, Object.</div></div>
       <div class="howstep"><span class="ic">&#9201;</span><div class="tx"><b>Beat the clock.</b> Faster IDs earn a bigger bonus. Consecutive IDs build a <b>streak multiplier</b>.</div></div>
       <div class="howstep"><span class="ic">&#129513;</span><div class="tx"><b>Use your vibe tools</b> (Q/W/E/R): coffee break, ask the AI, ship it, and undo. Clout banks between runs &mdash; spend it on IDE themes.</div></div>
-      <div class="howstep"><span class="ic">&#128373;</span><div class="tx"><b>Survive the twists.</b> Deep-cover days, <b>CREDIBLE vs CORRUPTED</b> testimony, and pick-him-out lineups appear as you climb. <b>Esc</b> pauses.</div></div>
+      <div class="howstep"><span class="ic">&#128220;</span><div class="tx"><b>Close 10 cases to win.</b> Every 5 IDs closes a case and you draft a <b>perk</b> that lasts the run (espresso, rubber duck, hot reload&hellip;). Finish case 10 and you catch him &mdash; then <b>Cold Cases</b> runs forever.</div></div>
+      <div class="howstep"><span class="ic">&#127974;</span><div class="tx"><b>Spend clout between runs.</b> The shop sells <b>IDE themes</b> and <b>permanent upgrades</b> (extra life, longer clock, an intern). Your detective rank climbs with every point you ever bank.</div></div>
+      <div class="howstep"><span class="ic">&#128373;</span><div class="tx"><b>Survive the twists.</b> Deep-cover days, <b>CREDIBLE vs CORRUPTED</b> testimony, pick-him-out lineups and <b>count the haul</b> rounds appear as you climb. <b>Esc</b> pauses.</div></div>
     </div>
     <div class="howdemo">
       <span class="chip" style="border-color:var(--t-string)">"42" &rarr; String</span>
@@ -1086,17 +1182,163 @@ const BROKEN=[
   {raw:'[1,,2]',   why:'empty slot in the array.'},
   {raw:'{"a" 1}',  why:'missing colon.'}
 ];
-const TAUNTS=[
-  "“You'll never guess what I'm wearing today.”",
-  "“Go on, detective. Name me.”",
-  "“Types are just vibes. What's mine?”",
-  "“I've been in your codebase for years.”",
-  "“Quotes lie. Digits lie. I lie. Choose.”",
-  "“Your agent couldn't ID me either.”",
-  "“Tick tock. Prod is still down.”",
-  "“One wrong guess and I walk.”"
+const TAUNT_TIERS=[
+ [ "“You'll never guess what I'm wearing today.”",
+   "“Go on, detective. Name me.”",
+   "“Types are just vibes. What's mine?”",
+   "“Easy one. Probably. For you? Unclear.”",
+   "“Your agent couldn't ID me either.”",
+   "“I'm in every API response you've ever ignored.”" ],
+ [ "“Quotes lie. Digits lie. I lie. Choose.”",
+   "“You've read zero of the 4,000 lines. Bold.”",
+   "“Tick tock. Prod is still down.”",
+   "“I could be a number. I could be a string wearing a number.”",
+   "“Your tests passed. Both of them.”",
+   "“Still shipping on Fridays, I see.”" ],
+ [ "“One wrong guess and I walk, detective.”",
+   "“I have been in your node_modules since 2019.”",
+   "“Say my type. Say it. You can't, can you.”",
+   "“Your status page says green. Adorable.”",
+   "“I'm not even the worst thing in that folder.”",
+   "“The intern trusted me too.”",
+   "“Name me or I'm going back into prod.”" ]
 ];
+function taunt(){ const d=state.level||1; const tier=d<=3?0:(d<=7?1:2); return rand(TAUNT_TIERS[tier]); }
 function pickValidRaw(level){ const maxTier=level<=1?1:level<=3?2:3; const t=1+Math.floor(rnd()*maxTier); return rand(TIERS[t]); }
+
+
+/* ===================== CAMPAIGN ===================== */
+const CAMPAIGN_DAYS=10;
+const CASES=[
+ {n:'The Trailing Comma',    t:"“One comma. That's all it took to take down your whole checkout page.”"},
+ {n:'Undefined Behavior',    t:"“Your app says <b>undefined</b> to real paying customers now. That was me.”"},
+ {n:'It Works On My Machine',t:"“It does work on your machine. That's the cruel part. Only yours.”"},
+ {n:'The 3AM Deploy',        t:"“You shipped at 3AM with no tests. I want you to know I respect the confidence.”"},
+ {n:'node_modules: Reckoning',t:"“I live in a folder you are too afraid to open. 1.2 gigabytes. Rent free.”"},
+ {n:'Accept All Changes',    t:"“You clicked accept-all 47 times. You have never read a single line. I have.”"},
+ {n:'The Stack Overflow Heist',t:"“That snippet you pasted from 2013? Mine. The bug came free.”"},
+ {n:'Prod Is Down (Again)',  t:"“Status page is green. Prod is down. Both statements are technically JSON.”"},
+ {n:'The Merge Conflict',    t:"“I put myself in both branches. Whichever you pick, you lose.”"},
+ {n:'JSON Bourne: Final Parse',t:"“Last case, detective. Name every costume I own or I walk forever.”"}
+];
+const DIFFWORD=['Rookie','Rookie','Routine','Warm','Spicy','Hostile','Unhinged','Feral','Nightmare','FINAL'];
+function caseFor(d){ return CASES[Math.min(d,CAMPAIGN_DAYS)-1]||CASES[CAMPAIGN_DAYS-1]; }
+
+/* ===================== PERKS (per run) ===================== */
+const PERKS={
+ espresso :{ic:'☕',n:'Espresso IV',   tag:'+time',   d:'+0.6s on every round. Sleep is a config option.'},
+ duck     :{ic:'🦆',n:'Rubber Duck',   tag:'shield',  d:'Your first miss each day is forgiven. He listens.'},
+ copypaste:{ic:'📋',n:'Copy-Paste Pro',tag:'+25% ev', d:'Evidence +25%. You did not write it. Nobody asked.'},
+ seriesA  :{ic:'💸',n:'Series A',      tag:'+60% clout',d:'Clout +60%. No revenue, huge valuation.'},
+ nocturnal:{ic:'🌙',n:'Nocturnal',     tag:'+speed pay',d:'Time bonus almost doubled. You do your best work at 3AM.'},
+ vibetest :{ic:'🧪',n:'Vibes-Driven QA',tag:'25% dodge',d:'25% chance a miss costs no life. Tests are a mindset.'},
+ deps     :{ic:'📦',n:'Dependency Hell',tag:'free tool',d:'Start every day with a random vibe tool. 12 more arrive.'},
+ hotreload:{ic:'🔥',n:'Hot Reload',    tag:'keep streak',d:'A miss only halves your streak instead of ending it.'},
+ legacy   :{ic:'🗿',n:'Legacy Code',   tag:'+1 life',  d:'+1 max life, permanently. Nobody dares delete you.'},
+ shipfast :{ic:'⚡',n:'Ship Fast',      tag:'risk/reward',d:'−0.5s clock but +50% evidence. Move fast, break prod.'},
+ autocomp :{ic:'🤖',n:'Autocomplete',  tag:'free hint',d:'One wrong disguise is greyed out every lineup round.'},
+ standup  :{ic:'🗣️',n:'Skip Standup',  tag:'+1 life',  d:'Gain a life right now. That meeting was 40 minutes.'}
+};
+function perkOn(id){ return !!(state && state.perkSet && state.perkSet[id]); }
+function applyPerk(id){ state.perkSet[id]=true;
+  if(id==='legacy'){ state.maxLives++; state.lives++; }
+  if(id==='standup'){ state.lives++; state.maxLives=Math.max(state.maxLives,state.lives); }
+  toast({ic:PERKS[id].ic,name:PERKS[id].n,desc:PERKS[id].tag},'Perk acquired');
+  renderPerkChips(); setHUD(); }
+function renderPerkChips(){ const el=$('perkChips'); if(!el)return; const ids=Object.keys(state.perkSet||{});
+  el.innerHTML=ids.map(id=>`<span class="pc" title="${PERKS[id].d}"><span class="i">${PERKS[id].ic}</span>${PERKS[id].n}</span>`).join(''); }
+function showPerkDraft(cb){
+  const pool=Object.keys(PERKS).filter(id=>!state.perkSet[id]);
+  if(!pool.length){ cb(); return; }
+  const pick=shuffle(pool.slice()).slice(0, UPS.has('insider')?4:3);
+  const host=$('perkCards'); host.innerHTML='';
+  pick.forEach(id=>{ const p=PERKS[id]; const b=document.createElement('button'); b.className='perkcard';
+    b.innerHTML=`<span class="pic">${p.ic}</span><span class="pn">${p.n}</span><span class="pt">${p.tag}</span><span class="pd">${p.d}</span>`;
+    b.addEventListener('click',()=>{ if(host._done)return; host._done=1; clearTimeout(host._auto);
+      $('draftOverlay').classList.add('hidden'); applyPerk(id); cb(); });
+    host.appendChild(b); });
+  host._done=0;
+  $('draftOverlay').classList.remove('hidden');
+  if(!muted){initAudio();[660,880].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*90));}
+  if(window._bindCursor)window._bindCursor();
+  host._auto=setTimeout(()=>{ if(host._done)return; host._done=1; $('draftOverlay').classList.add('hidden'); applyPerk(rand(pick)); cb(); },20000);
+}
+function showBriefing(day,cb,fast){
+  const c=caseFor(day);
+  $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+CAMPAIGN_DAYS;
+  $('briefName').textContent=c.n;
+  $('briefObj').textContent='ID him 5 times to close the file.';
+  $('briefDiff').textContent=state.endless?'Beyond the file':(DIFFWORD[Math.min(day,10)-1]||'Hostile');
+  $('briefThreat').innerHTML=c.t;
+  const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+CAMPAIGN_DAYS)+' \u00b7 '+c.n;
+  const ov=$('briefOverlay'), btn=$('briefBtn'); let done=false;
+  const go=()=>{ if(done)return; done=true; clearTimeout(ov._auto); ov.classList.add('hidden'); cb(); };
+  btn.onclick=go; ov.classList.remove('hidden');
+  if(!muted){initAudio();beep(300,0.1,'sawtooth',0.05);}
+  ov._auto=setTimeout(go, reduced?200:(fast?1800:3400));
+}
+function dayStartEffects(){ state.duckUsed=false;
+  if(perkOn('deps')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); } }
+function startDay(){ showPerkDraft(()=>{ showBriefing(state.level,()=>{ dayStartEffects(); nextRound(); }); }); }
+
+/* ===================== PERMANENT UPGRADES ===================== */
+const UPGRADES={
+ union  :{ic:'🪧',n:'Union Rep',      cost:150,d:'Start every run with +1 life.'},
+ machine:{ic:'☕',n:'Office Espresso',cost:200,d:'+0.4s on the base clock, forever.'},
+ intern :{ic:'🧑‍💻',n:'Hire an Intern', cost:120,d:'Begin each run with a random vibe tool.'},
+ lawyer :{ic:'⚖️',n:'Better Lawyer',  cost:250,d:'+10% evidence on everything, forever.'},
+ insider:{ic:'📞',n:'Insider Tip',    cost:180,d:'Perk drafts offer 4 choices instead of 3.'}
+};
+let UPS; try{ UPS=new Set(JSON.parse(localStorage.getItem('jw_up')||'[]')); }catch(e){ UPS=new Set(); }
+function saveUps(){ localStorage.setItem('jw_up',JSON.stringify([...UPS])); }
+function renderUpgrades(){ const g=$('upGrid'); if(!g)return; g.innerHTML='';
+  Object.entries(UPGRADES).forEach(([id,u])=>{ const have=UPS.has(id);
+    const card=document.createElement('div'); card.className='upcard';
+    const act = have?'<span class="ua owned">✔ Owned</span>'
+      :`<button class="ua ${wallet>=u.cost?'':'locked'}" data-up="${id}">🪙 ${u.cost}</button>`;
+    card.innerHTML=`<span class="uic">${u.ic}</span><span><span class="un">${u.n}</span><span class="ud">${u.d}</span></span>${act}`;
+    g.appendChild(card); });
+  g.querySelectorAll('[data-up]').forEach(b=>b.addEventListener('click',()=>buyUpgrade(b.dataset.up,b)));
+  if(window._bindCursor)window._bindCursor(); }
+function buyUpgrade(id,btn){ const u=UPGRADES[id]; if(!u||UPS.has(id))return;
+  if(wallet>=u.cost){ wallet-=u.cost; UPS.add(id); saveUps(); saveShop(); reflectWallet(); renderUpgrades(); confetti();
+    toast({ic:u.ic,name:u.n,desc:'Permanent upgrade!'},'Requisitioned');
+    if(!muted){initAudio();[620,830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} }
+  else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} if(!muted){initAudio();beep(150,0.2,'sawtooth',0.06);} } }
+
+/* ===================== DETECTIVE RANK (persistent XP) ===================== */
+const RANKS=[[0,'Prompt Goblin'],[2000,'Accept-All Enjoyer'],[6000,'Junior Detective'],[15000,'Type Detective'],[30000,'Lead Detective'],[60000,"JSON's Nemesis"]];
+let XP=parseInt(localStorage.getItem('jw_xp')||'0',10)||0;
+function rankFor(xp){ let r=RANKS[0][1]; RANKS.forEach(([t,nm])=>{ if(xp>=t)r=nm; }); return r; }
+function reflectRank(){ const el=$('navRank'); if(el)el.textContent='Rank: '+rankFor(XP); }
+function addXP(v){ XP+=Math.max(0,v|0); localStorage.setItem('jw_xp',String(XP)); reflectRank(); }
+reflectRank();
+
+/* ===================== VICTORY ===================== */
+const EPILOGUES=[
+ "You finally cuff him at line 1, column 1. He goes quietly. In the van he explains, calmly, that he is <b>a data format</b> and always was. You do not believe him. Booking lists his occupation as <b>“vibe”</b>.",
+ "He confesses to everything: the commas, the nulls, the 4am outage. Then he asks for his lawyer, who is also JSON. The case file is 1.2GB and lives in <b>node_modules</b> forever.",
+ "You catch him mid-parse. He shrugs. <b>“Somebody had to be the format,”</b> he says. Outside, a junior dev deploys on a Friday and the whole thing starts again."
+];
+function winGame(){
+  state.playing=false; state.roundActive=false; state.paused=false;
+  const runCoins=state.coins;
+  wallet+=state.coins; commitStats(); saveShop(); addXP(state.score);
+  if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
+  unlock('caught');
+  $('winScore').textContent=state.score; $('winCombo').textContent='×'+(1+state.bestCombo); $('winClout').textContent=runCoins;
+  $('winEpi').innerHTML=rand(EPILOGUES);
+  localStorage.setItem('jw_won','1');
+  mascot.className='mascot';
+  $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
+  document.querySelector('.stat.combo').classList.remove('fire'); timerBar.classList.remove('frozen');
+  $('winOverlay').classList.remove('hidden');
+  if(!muted){initAudio();[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>beep(f,0.16,'triangle',0.06),i*130));}
+  confetti(); setTimeout(confetti,500); setTimeout(confetti,1000); vibrate([40,60,40,60,120]);
+}
+$('endlessBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); state.playing=true; state.endless=true;
+  state.lives=Math.max(1,state.lives); setHUD(); startDay(); });
+$('winAgainBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); runMode={daily:false,zen:false}; startGame(); });
 
 /* ===================== GAME ===================== */
 const TYPES=[
@@ -1117,7 +1359,8 @@ const DIFF={ chill:{time:6.5,drop:0.22,min:3.2,lives:5}, normal:{time:5,drop:0.3
 let diff='normal';
 const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,answered:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0,
   coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
-  mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0};
+  mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
+  perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -1160,7 +1403,8 @@ const ACH={
   grand  :{ic:'💰',name:'Big case',desc:'Bank 1000 evidence in one run'},
   hoarder:{ic:'🪙',name:'Clout chaser',desc:'Earn 50 clout in one run'},
   boss   :{ic:'🕶️',name:'Cover blown',desc:'Crack a deep-cover day'},
-  sharp  :{ic:'🕵️',name:'Sharp eye',desc:'Ace a special round'}
+  sharp  :{ic:'🕵️',name:'Sharp eye',desc:'Ace a special round'},
+  caught :{ic:'🚔',name:'Case closed',desc:'Catch JSON at the end of the campaign'}
 };
 let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')); }catch(e){ ACHGOT=new Set(); }
 function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
@@ -1183,8 +1427,10 @@ function animateScore(target){ const start=state.displayScore, d=target-start; i
   (function st(now){ const p=Math.min(1,(now-t0)/dur); state.displayScore=Math.round(start+d*(1-Math.pow(1-p,3))); $('score').textContent=state.displayScore; if(p<1)requestAnimationFrame(st); })(performance.now()); }
 function setHUD(){ animateScore(state.score); $('level').textContent=state.level; $('combo').textContent='×'+(1+state.streak);
   const onFire=state.streak>=4; document.querySelector('.stat.combo').classList.toggle('fire',onFire); $('gpanel').classList.toggle('onfire',onFire); $('fireBadge').classList.toggle('show',onFire);
-  $('coins').textContent=state.coins; renderLives(); renderPowers(); }
-function timeForLevel(l){ const c=DIFF[diff]; return Math.max(c.min, c.time-(l-1)*c.drop); }
+  $('coins').textContent=state.coins; renderLives(); renderPowers(); renderPerkChips(); }
+function timeForLevel(l){ const c=DIFF[diff]; let t=Math.max(c.min, c.time-(l-1)*c.drop);
+  if(perkOn('espresso')) t+=0.6; if(perkOn('shipfast')) t-=0.5; if(UPS.has('machine')) t+=0.4;
+  return Math.max(1.2,t); }
 function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
   (function step(){ if(i>=seq.length){el.classList.remove('show');done();return;} el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); beep(340+i*130,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
 
@@ -1193,9 +1439,11 @@ function startGame(){
   if(musicPref && !musicOn) startMusic();
   seedRng = runMode.daily ? mulberry32(dailySeed()) : null;
   const cfg=DIFF[diff];
-  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:cfg.lives,maxLives:cfg.lives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
+  const baseLives=cfg.lives+(UPS.has('union')?1:0);
+  Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:baseLives,maxLives:baseLives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
-    mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily});
+    mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
+    perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false});
   $('pauseOverlay').classList.add('hidden');
   $('zenTag').classList.toggle('hidden',!runMode.zen);
   $('startOverlay').classList.add('hidden'); $('overOverlay').classList.add('hidden'); $('initialsBox').classList.add('hidden');
@@ -1203,7 +1451,10 @@ function startGame(){
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
   timerBar.classList.remove('frozen');
   valueCard.innerHTML=EVTAG+'<span class="v">?</span>'; flavorEl.textContent=''; timerFill.style.width='100%';
-  setHUD(); renderPowers(); runCountdown(()=>nextRound());
+  $('winOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
+  setHUD(); renderPowers(); renderPerkChips();
+  if(UPS.has('intern')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
+  showBriefing(1,()=>{ dayStartEffects(); runCountdown(()=>nextRound()); },true);
 }
 function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.textContent=txt; el.classList.toggle('boss',!!boss);
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -1243,12 +1494,28 @@ function buildSpotRound(alt){
   if(window._bindCursor)window._bindCursor();
 }
 
+function buildCountRound(alt){
+  const cnt=2+Math.floor(rnd()*5), isArr=rnd()<0.5; let raw;
+  if(isArr){ const it=[]; for(let i=0;i<cnt;i++) it.push(rnd()<0.5?String(Math.floor(rnd()*99)):'"'+String.fromCharCode(97+i)+'"'); raw='['+it.join(',')+']'; }
+  else { const pr=[]; for(let i=0;i<cnt;i++) pr.push('"'+String.fromCharCode(97+i)+'":'+Math.floor(rnd()*99)); raw='{'+pr.join(',')+'}'; }
+  state.altTarget='__ok';
+  const opts=new Set([cnt]); while(opts.size<4){ opts.add(Math.max(1,cnt+Math.floor(rnd()*5)-2)); }
+  const arr=shuffle([...opts]);
+  state.altCands=arr.map(v=>({raw:String(v),type:v===cnt?'__ok':'__no'}));
+  state.altCorrectIdx=arr.indexOf(cnt);
+  valueCard.style.fontSize='clamp(15px,3.4vw,25px)';
+  valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
+  alt.className='altanswers grid';
+  alt.innerHTML=arr.map((v,i)=>`<button class="altbtn pick" data-i="${i}"><span class="key">${i+1}</span><span class="mono">${v} ${isArr?'items':'keys'}</span></button>`).join('');
+  alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(parseInt(b.dataset.i,10),false)));
+  if(window._bindCursor)window._bindCursor();
+}
 function nextRound(){
   if(!state.playing)return;
   let mode='type';
   if(state.bossPending){ mode='boss'; state.bossPending=false; }
-  else if(state.level>=2 && !state.lastWasAlt && rnd()<0.32){ mode=rand(['valid','spot']); }
-  state.lastWasAlt=(mode==='valid'||mode==='spot');
+  else if(state.level>=2 && !state.lastWasAlt && rnd()<0.34){ mode=rand(['valid','spot','count']); }
+  state.lastWasAlt=(mode!=='type'&&mode!=='boss');
   state.mode=mode;
   flavorEl.textContent=''; mascot.className='mascot talk';
   state.frozen=false; timerBar.classList.remove('frozen');
@@ -1262,14 +1529,19 @@ function nextRound(){
     valueCard.style.fontSize = long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
     valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
-    $('question').innerHTML = mode==='boss' ? "&ldquo;Deep cover. You'll never make me now.&rdquo;" : rand(TAUNTS);
+    if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
+      const pick=wr[Math.floor(rnd()*wr.length)]; if(pick){pick.classList.add('eliminated');pick.disabled=true;} }
+    $('question').innerHTML = mode==='boss' ? "&ldquo;Deep cover. You'll never make me now.&rdquo;" : taunt();
     if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
   } else if(mode==='valid'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildValidRound(alt);
     $('question').innerHTML='&ldquo;Is this testimony real, or did I forge it?&rdquo;'; announceMode('🔍 CREDIBLE or CORRUPTED?');
-  } else {
+  } else if(mode==='spot'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildSpotRound(alt);
-    $('question').innerHTML=`&ldquo;Pick me out of the lineup. Quickly.&rdquo;`; announceMode('🎯 SPOT THE '+state.altTarget.toUpperCase());
+    $('question').innerHTML='&ldquo;Pick me out of the lineup. Quickly.&rdquo;'; announceMode('🎯 SPOT THE '+state.altTarget.toUpperCase());
+  } else {
+    answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
+    $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
   }
   const base=timeForLevel(state.level);
   state.duration = mode==='boss' ? base*1.7 : (mode!=='type' ? base*1.25 : base);
@@ -1286,20 +1558,22 @@ function tick(now){
   const urgent=frac<0.28; $('gpanel').classList.toggle('urgent',urgent);
   if(!state.frozen) mascot.classList.toggle('sweating', urgent);
   if(!reduced){ const sec=Math.ceil(remain/1000); if(urgent && sec!==state.lastTick && sec>0){state.lastTick=sec;sTick();} }
-  if(remain<=0){ if(state.mode==='valid'||state.mode==='spot') answerAlt(null,true); else answer(null); return; }
+  if(remain<=0){ if(state.mode!=='type'&&state.mode!=='boss') answerAlt(null,true); else answer(null); return; }
   requestAnimationFrame(tick);
 }
 /* shared scoring core */
 function awardCorrect(mult){
   const remain=Math.max(0,state.deadline-performance.now());
-  const timeBonus=Math.round(remain/(state.duration*1000)*100);
+  const timeBonus=Math.round(remain/(state.duration*1000)*100*(perkOn('nocturnal')?1.8:1));
   const comboMult=1+Math.min(state.streak,9)*0.25;
-  let pts=Math.round((100+timeBonus)*comboMult*(mult||1));
+  let evMult=(mult||1);
+  if(perkOn('copypaste')) evMult*=1.25; if(perkOn('shipfast')) evMult*=1.5; if(UPS.has('lawyer')) evMult*=1.1;
+  let pts=Math.round((100+timeBonus)*comboMult*evMult);
   const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
   state.score+=pts; state.streak++; state.correct++;
   state.bestCombo=Math.max(state.bestCombo,state.streak);
   if(state.streak>0 && state.streak%5===0){ screenFlash(); const m=$('mascot'); if(m){m.classList.remove('celebrate');void m.offsetWidth;m.classList.add('celebrate');} }
-  const gain=2+Math.floor(pts/60); state.coins+=gain;
+  const gain=Math.round((2+Math.floor(pts/60))*(perkOn('seriesA')?1.6:1)); state.coins+=gain;
   unlock('firstblood'); if(state.streak>=5)unlock('combo5'); if(state.streak>=10)unlock('combo10');
   if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
   if(state.streak>0 && state.streak%3===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
@@ -1312,12 +1586,25 @@ function awardCorrect(mult){
       setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); }
     state.levelWrong=0;
     if(state.level%BOSS_EVERY===0) state.bossPending=true;
+    if(!state.endless && state.level>CAMPAIGN_DAYS) state.pendingWin=true; else state.pendingAdvance=true;
   }
   return {pts,doubled};
 }
-function penalize(){ if(!state.zen) state.lives--; state.streak=0; state.levelWrong++; state.doubleArmed=false; }
+function penalize(){
+  let saved=false, why='';
+  if(perkOn('duck') && !state.duckUsed){ state.duckUsed=true; saved=true; why='🦆 The duck took that one.'; }
+  else if(perkOn('vibetest') && rnd()<0.25){ saved=true; why='🧪 Vibes held. No life lost.'; }
+  if(!saved && !state.zen) state.lives--;
+  if(saved) toast({ic:'🛡️',name:'Saved!',desc:why},'Perk');
+  state.streak = perkOn('hotreload') ? Math.floor(state.streak/2) : 0;
+  state.levelWrong++; state.doubleArmed=false; }
 function finishRound(correct){ $('gpanel').classList.remove('urgent'); setHUD();
-  setTimeout(()=>{ if(state.lives<=0){ gameOver(); } else { nextRound(); } }, correct?820:1150); }
+  setTimeout(()=>{
+    if(state.lives<=0){ gameOver(); return; }
+    if(state.pendingWin){ state.pendingWin=false; winGame(); return; }
+    if(state.pendingAdvance){ state.pendingAdvance=false; startDay(); return; }
+    nextRound();
+  }, correct?820:1150); }
 
 function answer(id){
   if(!state.roundActive || (state.mode!=='type'&&state.mode!=='boss'))return;
@@ -1347,7 +1634,7 @@ function answer(id){
   finishRound(correct);
 }
 function answerAlt(picked,timedOut){
-  if(!state.roundActive || (state.mode!=='valid'&&state.mode!=='spot'))return;
+  if(!state.roundActive || state.mode==='type' || state.mode==='boss')return;
   state.roundActive=false;
   state.frozen=false; timerBar.classList.remove('frozen');
   mascot.classList.remove('talk','sweating');
@@ -1364,7 +1651,9 @@ function answerAlt(picked,timedOut){
     correctEl=alt.querySelector('.altbtn[data-i="'+state.altCorrectIdx+'"]');
     if(!timedOut && picked!=null) pickedEl=alt.querySelector('.altbtn[data-i="'+picked+'"]');
     const cr=state.altCands[state.altCorrectIdx];
-    flavorEl.innerHTML=`“The ${state.altTarget.toUpperCase()} was <b>${esc(cr.raw)}</b>.”`;
+    flavorEl.innerHTML = state.mode==='count'
+      ? `“There were <b>${esc(cr.raw)}</b>. Counting is hard. I understand.”`
+      : `“The ${state.altTarget.toUpperCase()} was <b>${esc(cr.raw)}</b>.”`;
   }
   recordAns(null,correct);
   if(correct){
@@ -1387,12 +1676,24 @@ function levelUp(){ levelupEl.textContent='DAY '+state.level+'!'; levelupEl.clas
 function vibrate(p){ if(!reduced && navigator.vibrate){ try{navigator.vibrate(p);}catch(e){} } }
 function comboFloat(anchor,txt){ if(reduced)return; const r=anchor.getBoundingClientRect(); const el=document.createElement('div'); el.className='combofloat'; el.textContent=txt; el.style.left=(r.left+r.width/2)+'px'; el.style.top=r.top+'px'; document.body.appendChild(el);
   el.animate([{transform:'translate(-50%,-50%) scale(.5) rotate(-6deg)',opacity:0},{transform:'translate(-50%,-140%) scale(1.2) rotate(-6deg)',opacity:1},{transform:'translate(-50%,-220%) scale(1) rotate(-6deg)',opacity:0}],{duration:900,easing:'cubic-bezier(.2,.8,.3,1)'}); setTimeout(()=>el.remove(),920); }
-const OVER_QUIPS=["He'll be in your node_modules. He's always in your node_modules.","JSON walked. He always walks.","Skill issue. But an understandable one.","The trailing comma sends its regards.","Case closed. By him. Not by you.","He left a note: it just says 'undefined'."];
+const OVER_QUIPS=[
+"He'll be in your node_modules. He's always in your node_modules.",
+"JSON walked. He always walks.",
+"Skill issue. But an understandable one.",
+"The trailing comma sends its regards.",
+"Case closed. By him. Not by you.",
+"He left a note. It just says 'undefined'.",
+"Your agent has filed this under 'works as intended'.",
+"He's already in the next sprint. You are not.",
+"Somewhere a status page turns green out of spite.",
+"He took the evidence. And your API key.",
+"You'll see him again in about four minutes.",
+"The intern says he seemed nice."];
 function gameOver(){
   state.playing=false; state.roundActive=false; state.paused=false;
   $('pauseOverlay').classList.add('hidden');
   const runCoins=state.coins;
-  wallet+=state.coins; commitStats(); saveShop();
+  wallet+=state.coins; commitStats(); saveShop(); addXP(state.score);
   if(state.daily){ const dk=dailyKey(); const d=getDaily(); const best=(d.d===dk)?d.best:0; localStorage.setItem('jw_daily',JSON.stringify({d:dk,best:Math.max(best,state.score)})); reflectDaily(); }
   $('finalScore').textContent=state.score; $('finalLevel').textContent=state.level; $('finalCombo').textContent='×'+(1+state.bestCombo);
   const best=state.score>HI; if(best){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
@@ -1441,7 +1742,7 @@ addEventListener('keydown',e=>{
   if(state.paused)return;
   const pid=POWKEYS[e.key.toLowerCase()]; if(pid){ e.preventDefault(); usePower(pid); return; }
   if(state.mode==='valid'){ if(e.key==='1'){e.preventDefault();answerAlt('valid',false);} else if(e.key==='2'){e.preventDefault();answerAlt('broken',false);} return; }
-  if(state.mode==='spot'){ const i=parseInt(e.key,10); if(state.altCands&&i>=1&&i<=state.altCands.length){e.preventDefault();answerAlt(i-1,false);} return; }
+  if(state.mode==='spot'||state.mode==='count'){ const i=parseInt(e.key,10); if(state.altCands&&i>=1&&i<=state.altCands.length){e.preventDefault();answerAlt(i-1,false);} return; }
   const t=TYPES.find(x=>x.key===e.key); if(t) answer(t.id);
 });
 
@@ -1508,10 +1809,18 @@ function reflectDaily(){ const el=$('dailyBest'); if(!el)return; const d=getDail
 reflectDaily();
 
 /* ===================== MODALS ===================== */
-function openModal(id){ const m=$(id); if(!m)return; if(id==='shopModal')renderShop(); if(id==='statsModal')renderStats(); m.classList.remove('hidden'); if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
+function openModal(id){ const m=$(id); if(!m)return; if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden'); if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
 function closeModal(id){ const m=$(id); if(m)m.classList.add('hidden'); }
 function anyModalOpen(){ return [...document.querySelectorAll('.modal')].some(m=>!m.classList.contains('hidden')); }
 function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); }
+document.querySelectorAll('.shoptab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.shoptab').forEach(x=>x.classList.toggle('on',x===t));
+  const up=t.dataset.tab==='upgrades';
+  $('shopGrid').classList.toggle('hidden',up); $('upGrid').classList.toggle('hidden',!up);
+  if(up)renderUpgrades(); else renderShop();
+  const ti=document.getElementById('shopTitle'); if(ti) ti.innerHTML = up?'Supply <span class="y">closet</span>':'IDE <span class="y">themes</span>';
+  const sb=document.querySelector('#shopModal .sub'); if(sb) sb.textContent = up?'Permanent \u2014 these carry across every run':'Spend clout \u00b7 because that is what clout is for';
+  if(!muted){initAudio();beep(560,0.05,'square',0.04);} }));
 $('shopBtn').addEventListener('click',()=>openModal('shopModal'));
 $('statsBtn').addEventListener('click',()=>openModal('statsModal'));
 $('howBtn').addEventListener('click',()=>openModal('howModal'));
