@@ -1405,9 +1405,9 @@ if(window._bindCursor) window._bindCursor();
         regen = life regen at day close: always / clean (<=1 miss) / none
         mercy = +40% think budget after 2 consecutive misses ---- */
 const DIFF={
-  chill :{time:5.6, drop:0.16, min:2.60, lives:5, hint:1,  regen:'always', mercy:true },
-  normal:{time:4.4, drop:0.20, min:1.90, lives:3, hint:2,  regen:'clean',  mercy:true },
-  chaos :{time:3.2, drop:0.28, min:1.25, lives:2, hint:99, regen:'none',   mercy:false}
+  chill :{time:5.6, drop:0.16, min:2.60, lives:5, hint:1,  regen:'always', mercy:true,  heal:2, target:3 },
+  normal:{time:4.4, drop:0.20, min:1.90, lives:3, hint:2,  regen:'clean',  mercy:true,  heal:1, target:5 },
+  chaos :{time:3.2, drop:0.28, min:1.25, lives:2, hint:99, regen:'none',   mercy:false, heal:0, target:5 }
 };
 let diff='normal';   /* re-defaulted to 'chill' for first-timers once STATS is loaded */
 const DIFFC=()=>DIFF[diff]||DIFF.normal;
@@ -1527,7 +1527,8 @@ function thinkBudget(l){ const c=DIFFC(), sq=endlessSqueeze(l);
   return Math.max(HARD_FLOOR*sq, t); }
 function timeForLevel(l){ return thinkBudget(l); }   /* kept: same name, think budget only */
 function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); }
-function dayTargetFor(l){ return CORRECT_PER_DAY + (state.endless ? Math.floor(endlessDayNo(l)/3) : 0); }
+function dayTargetFor(l){ const t=(DIFFC().target!=null)?DIFFC().target:CORRECT_PER_DAY;
+  return t + (state.endless ? Math.floor(endlessDayNo(l)/3) : 0); }
 function bossEveryNow(){ return state.endless ? 3 : BOSS_EVERY; }
 function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
   (function step(){ if(i>=seq.length){el.classList.remove('show');done();return;} el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); beep(340+i*130,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
@@ -1703,7 +1704,8 @@ function awardCorrect(mult){
     state.level=state.level+1; levelUp();
     state.coins+=CLOUT_PER_DAY;
     const rg=DIFFC().regen;
-    if((rg==='always' || (rg==='clean'&&clean)) && state.lives<state.maxLives) state.lives++;
+    const heal=(DIFFC().heal!=null)?DIFFC().heal:1;
+    if(rg==='always' || (rg==='clean'&&clean)) state.lives=Math.min(state.maxLives, state.lives+heal);
     if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
     if(perfect){ const bonus=PERFECT_BONUS(state.level); state.score+=bonus; state.coins+=CLOUT_PERFECT; unlock('perfect');
       setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); }
