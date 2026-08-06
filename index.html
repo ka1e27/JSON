@@ -611,6 +611,29 @@ body.cb .j-z{ text-decoration:line-through; }
 .dcard .alias .di{font-size:17px}
 .dcard .wm{position:absolute;right:8px;bottom:6px;font-size:58px;opacity:.11;color:var(--ink);pointer-events:none}
 .pertype .di{font-size:14px;display:inline-block;vertical-align:-2px;margin-right:5px}
+.lostev{font-family:var(--ff-type);font-size:12.5px;color:var(--red);border:2px dashed var(--red);
+  border-radius:4px;padding:6px 12px;background:rgba(207,43,35,.07);}
+.dosgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr));gap:8px;}
+.dcard-s{border:2px solid var(--ink);border-radius:4px;padding:8px;background:var(--card);position:relative;min-width:0;}
+.dcard-s.unfiled{border-style:dashed;opacity:.5;text-align:center;font-family:var(--ff-display);font-size:22px;color:var(--ink-2);}
+.dcard-s .raw{font-family:var(--ff-mono);font-weight:700;font-size:12px;word-break:break-all;line-height:1.35;}
+.dcard-s .tchip{display:inline-block;font-family:var(--ff-type);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:#fff;border-radius:99px;padding:1px 7px;margin-top:5px;}
+.dcard-s .tell{font-family:var(--ff-type);font-size:10.5px;color:var(--ink-2);margin-top:5px;line-height:1.4;}
+.dcard-s .hit{position:absolute;top:6px;right:7px;font-family:var(--ff-mono);font-size:10px;color:var(--ink-2);}
+.dcard-s.cold::after{content:"COLD";position:absolute;bottom:5px;right:6px;font-family:var(--ff-type);font-size:9px;
+  letter-spacing:.1em;color:var(--red);border:1.5px solid var(--red);border-radius:3px;padding:0 4px;transform:rotate(-7deg);}
+.dosbar{font-family:var(--ff-type);font-size:12px;margin-bottom:10px;}
+.dosbar b{color:var(--red);}
+.rung{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;border-left:3px solid var(--ink);
+  padding:8px 10px;margin-bottom:7px;background:var(--card);border-radius:0 4px 4px 0;}
+.rung.on{border-left-color:var(--green);} .rung.off{opacity:.55;}
+.rung .cl{font-family:var(--ff-display);font-size:18px;}
+.rung .ti{font-family:var(--ff-display);font-size:15px;text-transform:uppercase;}
+.rung .un{font-family:var(--ff-type);font-size:10.5px;color:var(--ink-2);}
+.rung .cost{font-family:var(--ff-mono);font-size:11px;font-weight:700;white-space:nowrap;}
+.arow{display:grid;grid-template-columns:auto 1fr auto;gap:9px;font-family:var(--ff-mono);font-size:11px;
+  border-bottom:1px dashed rgba(25,19,8,.3);padding:6px 2px;}
 .ptsfloat{ position:fixed; z-index:83; font-family:var(--ff-display); font-size:26px;
   color:var(--ti-string); -webkit-text-stroke:1.5px var(--ink); pointer-events:none; }
 /* reduced motion must remove MOTION, not the feedback itself: these rest at scale(0)/opacity:0 */
@@ -853,6 +876,7 @@ body.cb .j-z{ text-decoration:line-through; }
               <button class="diff" id="howBtn">&#10067; Briefing</button>
               <button class="diff" id="shopBtn">&#127912; IDE themes</button>
               <button class="diff" id="statsBtn">&#128202; Record</button>
+              <button class="diff" id="dossierBtn">&#128193; Dossier</button>
             </div>
           </div>
           <div class="mgroup">
@@ -876,6 +900,7 @@ body.cb .j-z{ text-decoration:line-through; }
             <div class="fs"><div class="l">Best streak</div><div class="n" id="finalCombo">&times;1</div></div>
           </div>
           <div class="runsum" id="runSum"></div>
+          <div class="lostev hidden" id="lostEv"></div>
           <p id="overQuip">He'll be in your node_modules.</p>
           <div class="initials hidden" id="initialsBox">
             <div class="newbest">&#9733; Top 5 detective &mdash; sign the report &#9733;</div>
@@ -980,6 +1005,23 @@ body.cb .j-z{ text-decoration:line-through; }
     </div>
     <div class="shopgrid" id="shopGrid"></div>
     <div class="upgrades hidden" id="upGrid"></div>
+  </div>
+</div>
+
+<!-- THE DOSSIER -->
+<div class="modal hidden" id="dossierModal" role="dialog" aria-modal="true" aria-label="The dossier">
+  <div class="sheet">
+    <button class="close" data-close="dossierModal" aria-label="Close">&#10006;</button>
+    <h3>The <span class="y">dossier</span></h3>
+    <div class="sub" id="dosSub">Every disguise he owns &middot; and the ones he still has</div>
+    <div class="shoptabs">
+      <button class="shoptab on" data-dtab="gallery">Rogues gallery</button>
+      <button class="shoptab" data-dtab="clearance">Clearance</button>
+      <button class="shoptab" data-dtab="archive">Archive</button>
+    </div>
+    <div id="dosGallery"></div>
+    <div id="dosClearance" class="hidden"></div>
+    <div id="dosArchive" class="hidden"></div>
   </div>
 </div>
 
@@ -1206,6 +1248,10 @@ function pickValue(level){
   const maxTier=level<=1?1:level<=3?2:3;
   const bag=[]; for(let t=1;t<=maxTier;t++){ const w=t===maxTier?3:1; for(let k=0;k<w;k++) bag.push(t); }
   let raw, tries=0;
+  if(state.endless && has('coldladder')){        /* Cold Cases becomes the completion tool */
+    const want=DOSSIER_POOL.filter(r=>{ const e=DOS.e[r]; return (!e||e.s!==1) && r.length<40; });
+    if(want.length && rnd()<0.6){ raw=want[Math.floor(rnd()*want.length)];
+      try{ const v=JSON.parse(raw); lastRaw=raw; return {raw,value:v,type:typeOf(v)}; }catch(e){} } }
   do{ const tier=bag[Math.floor(rnd()*bag.length)]; const arr=TIERS[tier]; raw=arr[Math.floor(rnd()*arr.length)]; tries++; }while(raw===lastRaw&&tries<8);
   lastRaw=raw; return {raw,value:JSON.parse(raw),type:typeOf(JSON.parse(raw))};
 }
@@ -1350,6 +1396,80 @@ function taunt(){ const pt=personalTaunt(); if(pt)return pt;
 function pickValidRaw(level){ const maxTier=level<=1?1:level<=3?2:3; const t=1+Math.floor(rnd()*maxTier); return rand(TIERS[t]); }
 
 
+
+/* ===================== THE DOSSIER (finite collection + clearance ladder) =====================
+   The value pool is finite, so cataloguing it cannot be farmed: grinding endless
+   day 40 catalogues nothing new. Disguises ID'd mid-case are PROVISIONAL and only
+   file when you close the case -- die first and JSON keeps them. */
+const DOSSIER_POOL=(function(){ const q=new Set();
+  [1,2,3].forEach(t=>TIERS[t].forEach(r=>q.add(r)));
+  BOSS.forEach(r=>q.add(r)); BROKEN.forEach(b=>q.add(b.raw));
+  return [...q]; })();
+const CLEARANCE=[
+  {cp:0,  title:'Prompt Goblin',      unlocks:[]},
+  {cp:3,  title:'Accept-All Enjoyer', unlocks:['tells']},
+  {cp:9,  title:'Junior Detective',   unlocks:['archive']},
+  {cp:20, title:'Type Detective',     unlocks:['coldladder']},
+  {cp:36, title:'Lead Detective',     unlocks:['hitrates']},
+  {cp:60, title:"JSON's Nemesis",     unlocks:['prestige']},
+  {cp:95, title:'Internal Affairs',   unlocks:['everything']}
+];
+const UNLOCK_COPY={
+  tells:{ic:'🔎',name:'Tells',desc:'Filed cards now explain the giveaway'},
+  archive:{ic:'🗃️',name:'Archive',desc:'Your last 10 runs are kept on file'},
+  coldladder:{ic:'❄️',name:'Cold cases',desc:'Endless favours disguises you have not filed'},
+  hitrates:{ic:'📈',name:'Hit rates',desc:'Per-disguise accuracy shown in the dossier'},
+  prestige:{ic:'🎖️',name:'Internal Affairs',desc:'They are reviewing your approvals'},
+  everything:{ic:'🔑',name:'Full clearance',desc:'Nothing in the building is locked to you'}
+};
+/* corrupt-tolerant loaders: shape is validated, not merely parsed (a try/catch is not validation) */
+function loadDossier(){ const def={v:1,e:{}};
+  try{ const r=JSON.parse(localStorage.getItem('jw_dossier')||'null');
+    if(!r||typeof r!=='object'||Array.isArray(r)||!r.e||typeof r.e!=='object'||Array.isArray(r.e)) return def;
+    const out={v:1,e:{}};
+    Object.keys(r.e).forEach(k=>{ const v=r.e[k]; if(!v||typeof v!=='object')return;
+      out.e[k]={c:Math.max(0,parseInt(v.c,10)||0),w:Math.max(0,parseInt(v.w,10)||0),
+                s:([0,1,2].indexOf(parseInt(v.s,10))>=0?parseInt(v.s,10):0),d:String(v.d||'').slice(0,10)}; });
+    return out; }catch(e){ return def; } }
+function loadMeta(){ const def={v:1,cp:0,cl:0,arch:[],grand:false};
+  try{ const r=JSON.parse(localStorage.getItem('jw_meta')||'null');
+    if(!r||typeof r!=='object'||Array.isArray(r)) return def;
+    return {v:1, cp:Math.max(0,parseInt(r.cp,10)||0), cl:Math.max(0,Math.min(CLEARANCE.length-1,parseInt(r.cl,10)||0)),
+            arch:Array.isArray(r.arch)?r.arch.filter(a=>a&&typeof a==='object').slice(0,10):[],
+            grand:!!r.grand}; }catch(e){ return def; } }
+let DOS=loadDossier(), META=loadMeta();
+function saveDossier(){ try{ localStorage.setItem('jw_dossier',JSON.stringify(DOS)); }catch(e){} }
+function saveMeta(){ try{ localStorage.setItem('jw_meta',JSON.stringify(META)); }catch(e){} }
+function filedCount(){ let n=0; for(const k in DOS.e) if(DOS.e[k].s===1) n++; return n; }
+function coldCount(){ let n=0; for(const k in DOS.e) if(DOS.e[k].s===2) n++; return n; }
+function clearanceFor(cp){ let i=0; CLEARANCE.forEach((r,k)=>{ if(cp>=r.cp) i=k; }); return i; }
+function has(flag){ return META.grand || CLEARANCE.slice(0,META.cl+1).some(r=>r.unlocks.indexOf(flag)>=0); }
+/* one-time grandfather: a returning player never loses access to what they already had */
+(function(){ if(META.grand) return;
+  const veteran=(parseInt(localStorage.getItem('jw_xp')||'0',10)||0)>0 || (STATS_GAMES_HINT()>0);
+  if(veteran){ META.grand=true; saveMeta(); }
+  function STATS_GAMES_HINT(){ try{ const st=JSON.parse(localStorage.getItem('jw_stats')||'{}'); return parseInt(st&&st.games,10)||0; }catch(e){ return 0; } }
+})();
+function awardCP(n,why){ if(!(n>0))return; META.cp+=n; const before=META.cl; META.cl=clearanceFor(META.cp); saveMeta();
+  if(typeof reflectRank==='function') reflectRank();
+  if(META.cl>before){ toast({ic:'🎖️',name:'Clearance '+META.cl,desc:CLEARANCE[META.cl].title},'Promoted');
+    (CLEARANCE[META.cl].unlocks||[]).forEach(u=>{ if(UNLOCK_COPY[u]) setTimeout(()=>toast(UNLOCK_COPY[u],'Authorised'),700); }); } }
+/* provisional evidence */
+function seeRaw(raw,correct){ if(!raw||DOSSIER_POOL.indexOf(raw)<0) return;
+  const e=DOS.e[raw]||(DOS.e[raw]={c:0,w:0,s:0,d:''});
+  if(correct){ e.c++; if(e.s!==1 && state.locker && state.locker.indexOf(raw)<0) state.locker.push(raw); }
+  else { e.w++; if(e.s!==1) e.s=2; }
+  saveDossier(); }
+function fileEvidence(){ let filed=0,recovered=0;
+  (state.locker||[]).forEach(raw=>{ const e=DOS.e[raw]; if(!e||e.s===1)return;
+    if(e.s===2) recovered++; e.s=1; e.d=dailyKey(); filed++; });
+  state.locker=[];
+  if(filed){ saveDossier(); awardCP(filed+recovered,'filed'); }
+  return {filed,recovered}; }
+function archiveRun(disp){ if(!has('archive'))return;
+  META.arch.unshift({d:dailyKey(),mode:(state.daily?'DAILY':state.zen?'STAKEOUT':'FIELD WORK'),
+    day:state.level,disp:disp,filed:(state.filedThisRun|0),sc:state.score});
+  META.arch=META.arch.slice(0,10); saveMeta(); }
 /* ===================== CAMPAIGN ===================== */
 const CAMPAIGN_DAYS=10;
 const CASES=[
@@ -1489,7 +1609,11 @@ function buyUpgrade(id,btn){ const u=UPGRADES[id]; if(!u||UPS.has(id))return;
 const RANKS=[[0,'Prompt Goblin'],[2000,'Accept-All Enjoyer'],[6000,'Junior Detective'],[15000,'Type Detective'],[30000,'Lead Detective'],[60000,"JSON's Nemesis"]];
 let XP=parseInt(localStorage.getItem('jw_xp')||'0',10)||0;
 function rankFor(xp){ let r=RANKS[0][1]; RANKS.forEach(([t,nm])=>{ if(xp>=t)r=nm; }); return r; }
-function reflectRank(){ const el=$('navRank'); if(el)el.textContent='Rank: '+rankFor(XP); }
+function reflectRank(){ const el=$('navRank'); if(!el)return;
+  const cl=META.cl, nxt=CLEARANCE[cl+1];
+  let bar=''; for(let i=0;i<CLEARANCE.length-1;i++) bar+= (i<cl?'\u25ae':'\u25af');
+  el.textContent=(CLEARANCE[cl]?CLEARANCE[cl].title:rankFor(XP))+' \u00b7 CL'+cl+' '+bar+(nxt?(' '+META.cp+'/'+nxt.cp+'CP'):' MAX');
+  const db=$('dossierBtn'); if(db) db.innerHTML='\ud83d\udcc1 Dossier '+filedCount()+'/'+DOSSIER_POOL.length; }
 function addXP(v){ XP+=Math.max(0,v|0); localStorage.setItem('jw_xp',String(XP)); reflectRank(); }
 reflectRank();
 
@@ -1514,6 +1638,8 @@ function winGame(){
   wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
   if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
   unlock('caught');
+  { const f=fileEvidence(); if(f.filed) state.filedThisRun=(state.filedThisRun|0)+f.filed; }
+  archiveRun('CLOSED'); awardCP(5,'campaign closed');
   if(qualifiesLB(state.score)){ const nm=(localStorage.getItem('jw_initials')||'YOU'); const lb=getLB();
     lb.push({name:nm,score:state.score}); lb.sort((a,b)=>b.score-a.score);
     localStorage.setItem('jw_lb',JSON.stringify(lb.slice(0,5))); renderLB(-1); }
@@ -1605,7 +1731,7 @@ const TELLS={string:'quotes around it → String. Even "42".',number:'no quotes,
 const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,streak:0,bestCombo:0,correct:0,answered:0,current:null,deadline:0,duration:0,roundActive:false,lastTick:0,
   coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
   mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
-  perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,
+  perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,locker:[],filedThisRun:0,
   dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
@@ -1703,7 +1829,7 @@ const ACH={
   caught :{ic:'🚔',name:'Case closed',desc:'Catch JSON at the end of the campaign'}
 };
 let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')); }catch(e){ ACHGOT=new Set(); }
-function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
+function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); awardCP(1,'case file'); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
 function toast(a,label){ const t=document.createElement('div'); t.className='toast'; t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${label||'Case file'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`; $('toaster').appendChild(t);
   if(reduced){ t.classList.add('in'); setTimeout(()=>t.remove(),2600); return; }
   requestAnimationFrame(()=>t.classList.add('in')); setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(()=>t.remove(),450);},3400); }
@@ -1760,7 +1886,7 @@ function startGame(){
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
     perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
-    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{}});
+    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{},locker:[],filedThisRun:0});
   state.dayTarget=dayTargetFor(1);   /* difficulty-scoped from Case 1, not just from day 2 */
   $('pauseOverlay').classList.add('hidden');
   $('zenTag').classList.toggle('hidden',!runMode.zen);
@@ -1922,6 +2048,8 @@ function awardCorrect(mult){
     state.dayCorrect=0;
     const perfect=state.levelWrong===0, clean=state.levelWrong<=1;
     state.level=state.level+1; levelUp();
+    { const f=fileEvidence(); if(f.filed){ state.filedThisRun=(state.filedThisRun|0)+f.filed;
+        setTimeout(()=>showFeedback('FILED '+f.filed+' \u00b7 +'+(f.filed+f.recovered)+' CP',false),520); } }
     state.coins+=CLOUT_PER_DAY;
     const rg=DIFFC().regen;
     const heal=(DIFFC().heal!=null)?DIFFC().heal:1;
@@ -1968,7 +2096,7 @@ function answer(id){
   state.roundActive=false;
   state.frozen=false; timerBar.classList.remove('frozen');
   const cur=state.current, correct = id===cur.type, boss=state.mode==='boss';
-  recordAns(cur.type,correct);
+  recordAns(cur.type,correct,cur.raw);
   mascot.classList.remove('talk','sweating');
   answersHost.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
   const correctBtn=answersHost.querySelector('.abtn.'+cur.type);
@@ -2085,6 +2213,10 @@ function gameOver(){
   mascot.className='mascot'; sOver(); vibrate([80,50,80,50,120]);
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show'); document.querySelector('.stat.combo').classList.remove('fire');
   timerBar.classList.remove('frozen'); renderPowers();
+  archiveRun('BLOWN');
+  { const le=$('lostEv'); const n=(state.locker||[]).length;
+    if(le){ le.textContent = n? ('He took '+n+' unfiled disguise'+(n===1?'':'s')+' with him.') : ''; le.classList.toggle('hidden',!n); }
+    state.locker=[]; }
   scoreSaved=false; const qual=qualifiesLB(state.score); $('initialsBox').classList.toggle('hidden',!qual);
   if(qual){ $('initialsInp').value=(localStorage.getItem('jw_initials')||'YOU'); }
   renderLB(-1); renderMedals();
@@ -2178,7 +2310,8 @@ let STATS=loadStats();
    the hard-ish middle. (diff is declared far above; STATS only exists down here.) */
 if(STATS.games<2){ diff='chill';
   document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x.dataset.diff==='chill')); }
-function recordAns(type,correct){ state.answered=(state.answered||0)+1; STATS.answered++; if(correct)STATS.correct++;
+function recordAns(type,correct,raw){ state.answered=(state.answered||0)+1; STATS.answered++; if(correct)STATS.correct++;
+  if(raw) seeRaw(raw,correct);
   if(type&&!correct){ state.miss=state.miss||{}; state.miss[type]=(state.miss[type]||0)+1; }
   if(type){ const p=STATS.perType[type]||(STATS.perType[type]={c:0,a:0}); p.a++; if(correct)p.c++; } }
 function commitStats(){ STATS.games++; STATS.bestStreak=Math.max(STATS.bestStreak,state.bestCombo); STATS.bestScore=Math.max(STATS.bestScore,state.score);
@@ -2191,6 +2324,46 @@ function renderStats(){ const g=$('statGrid'); if(!g)return; const acc=STATS.ans
   pt.innerHTML=order.map(t=>{ const p=STATS.perType[t]; if(!p||!p.a)return ''; const pc=Math.round(p.c/p.a*100);
     return `<div class="row"><span class="tn" style="color:var(--t-${t})">${ico(t)}${t}</span><div class="bar"><i style="width:${pc}%;background:var(--t-${t})"></i></div><span class="pc">${pc}%</span></div>`; }).join(''); }
 
+/* ===================== DOSSIER UI ===================== */
+const TELLS_D={ string:'Wears quotes. Anything in "..." is a String, even "42".',
+  number:'Bare digits, no quotes.', boolean:'Only two outfits, both lowercase.',
+  null:'Shows up as nothing at all.', array:'Square brackets, items in a row.',
+  object:'Curly braces with keys.' };
+function rawType(raw){ try{ return typeOf(JSON.parse(raw)); }catch(e){ return 'broken'; } }
+function renderDossier(){
+  const g=$('dosGallery'); if(!g)return;
+  const filed=filedCount(), total=DOSSIER_POOL.length;
+  $('dosSub').textContent=filed+' of '+total+' filed \u00b7 '+coldCount()+' cold \u00b7 '+META.cp+' CP';
+  let html='<div class="dosbar">Filed <b>'+filed+'/'+total+'</b> \u00b7 clearance <b>'+META.cl+'</b> ('+CLEARANCE[META.cl].title+')</div><div class="dosgrid">';
+  DOSSIER_POOL.forEach(raw=>{
+    const e=DOS.e[raw], t=rawType(raw);
+    if(!e||e.s!==1){ html+='<div class="dcard-s unfiled">?</div>'; return; }
+    const col = t==='broken'?'var(--red)':'var(--t-'+t+')';
+    const rate = has('hitrates') && (e.c+e.w)>0 ? '<span class="hit">'+e.c+'/'+(e.c+e.w)+'</span>' : '';
+    const tell = has('tells') ? '<div class="tell">'+(t==='broken'?'Not valid JSON \u2014 a forgery.':TELLS_D[t]||'')+'</div>' : '';
+    html+='<div class="dcard-s'+(e.s===2?' cold':'')+'">'+rate+'<div class="raw">'+esc(raw)+'</div>'+
+          '<span class="tchip" style="background:'+col+'">'+(t==='broken'?'FORGED':t)+'</span>'+tell+'</div>';
+  });
+  g.innerHTML=html+'</div>';
+  const c=$('dosClearance');
+  c.innerHTML=CLEARANCE.map((r,i)=>{ const on=META.cl>=i;
+    return '<div class="rung '+(on?'on':'off')+'"><span class="cl">'+i+'</span>'+
+      '<span><span class="ti">'+r.title+'</span><span class="un">'+(r.unlocks.length?r.unlocks.map(u=>UNLOCK_COPY[u]?UNLOCK_COPY[u].name:u).join(' \u00b7 '):'the badge, such as it is')+'</span></span>'+
+      '<span class="cost">'+(on?'\u2713':r.cp+' CP')+'</span></div>'; }).join('');
+  const a=$('dosArchive');
+  if(!has('archive')) a.innerHTML='<div class="dosbar">Archive unlocks at clearance 2.</div>';
+  else if(!META.arch.length) a.innerHTML='<div class="dosbar">No runs on file yet.</div>';
+  else a.innerHTML=META.arch.map(r=>'<div class="arow"><span>'+esc(r.d)+'</span><span>'+esc(r.mode)+' \u00b7 day '+(r.day|0)+' \u00b7 '+esc(r.disp||'')+'</span><span>+'+(r.filed|0)+' filed</span></div>').join('');
+}
+document.querySelectorAll('[data-dtab]').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('[data-dtab]').forEach(x=>x.classList.toggle('on',x===t));
+  const which=t.dataset.dtab;
+  $('dosGallery').classList.toggle('hidden',which!=='gallery');
+  $('dosClearance').classList.toggle('hidden',which!=='clearance');
+  $('dosArchive').classList.toggle('hidden',which!=='archive');
+  if(!muted){initAudio();beep(560,0.05,'square',0.04);} }));
+$('dossierBtn').addEventListener('click',()=>openModal('dossierModal'));
+
 /* ===================== DAILY CASE ===================== */
 function getDaily(){ try{ return JSON.parse(localStorage.getItem('jw_daily')||'null')||{d:'',best:0}; }catch(e){ return {d:'',best:0}; } }
 function reflectDaily(){ const el=$('dailyBest'); if(!el)return; const d=getDaily();
@@ -2199,7 +2372,7 @@ function reflectDaily(){ const el=$('dailyBest'); if(!el)return; const d=getDail
 reflectDaily();
 
 /* ===================== MODALS ===================== */
-function openModal(id){ const m=$(id); if(!m)return; if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden'); if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
+function openModal(id){ const m=$(id); if(!m)return; if(id==='dossierModal')renderDossier(); if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden'); if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
 function closeModal(id){ const m=$(id); if(m)m.classList.add('hidden'); }
 function anyModalOpen(){ return [...document.querySelectorAll('.modal')].some(m=>!m.classList.contains('hidden')); }
 function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); }
@@ -2263,7 +2436,7 @@ function drawScoreCard(){ const W=640,H=360,c=document.createElement('canvas'); 
 $('cardBtn').addEventListener('click',()=>{ try{ const url=drawScoreCard(); const a=document.createElement('a'); a.href=url; a.download='who-is-json-'+state.score+'.png'; document.body.appendChild(a); a.click(); a.remove();
   const b=$('cardBtn'); b.classList.add('ok'); b.textContent='✔ Saved!'; setTimeout(()=>{b.classList.remove('ok');b.innerHTML='🖼 Case card';},1800); }catch(e){} });
 
-renderMedals(); renderLB(-1); setHUD();
+renderMedals(); renderLB(-1); setHUD(); reflectRank();
 </script>
 <!-- ============ ART SPRITE: six disguise marks + the suspect sigil ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
