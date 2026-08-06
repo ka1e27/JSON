@@ -1,17 +1,28 @@
-# Publishes the game to GitHub Pages.
+# Publishes the game to GitHub Pages via Actions.
 #
-# enablement: true lets configure-pages create the Pages site itself, so this
-# works without anyone opening Settings -> Pages. It does still need the repo to
-# be public (or the account to be on a paid plan) -- Pages is not available for
-# private repos on the free tier, and the deploy fails with a plan error if so.
+# YOU PROBABLY DO NOT NEED THIS. index.html sits at the repo root, so the
+# simplest route is Settings -> Pages -> Source: "Deploy from a branch",
+# main / (root). That needs no Actions permissions at all and republishes on
+# every push to main.
 #
-# Only index.html is staged into _site, so the workflow file and the README are
-# not published alongside the game.
+# This workflow is the alternative for when you want a build step later
+# (minifying, splitting the file, generating a preview image). It is
+# MANUAL-ONLY on purpose: run 1 of it failed with
+#   Create Pages site failed. Error: Resource not accessible by integration
+# because GITHUB_TOKEN was refused pages:write. Triggering on push would have
+# meant a failure email on every commit to main. Before dispatching it, set
+# Settings -> Actions -> General -> Workflow permissions to
+# "Read and write permissions", or enable Pages with source "GitHub Actions"
+# first so configure-pages has nothing left to create.
+#
+# Either route also needs the repo to be public, unless the account is on a
+# paid plan -- Pages is not offered for private repos on the free tier.
+#
+# Only index.html is staged into _site, so this file and the README are not
+# served alongside the game.
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
