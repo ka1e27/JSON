@@ -762,7 +762,7 @@ body.cb .j-z{ text-decoration:line-through; }
         <span class="hint" id="caseHint">10 cases &middot; identify the disguise &middot; keys 1&ndash;6</span>
       </div>
 
-      <div class="gpanel" id="gpanel">
+      <div class="gpanel" id="gpanel" tabindex="-1">
         <div class="hud">
           <div class="stat"><span class="lab">Evidence</span><span class="num" id="score">0</span></div>
           <div class="stat"><span class="lab">Day</span><span class="num" id="level">1</span></div>
@@ -787,7 +787,7 @@ body.cb .j-z{ text-decoration:line-through; }
               <div class="collar"></div>
               <div class="sweat"></div><div class="qmark">!</div>
             </div>
-            <div class="bubble" id="question">&ldquo;You'll never guess what I'm wearing today.&rdquo;</div>
+            <div class="bubble" id="question" role="status" aria-live="polite" aria-atomic="true">&ldquo;You'll never guess what I'm wearing today.&rdquo;</div>
           </div>
           <div class="evbag mono" id="valueCard"><span class="tag">Exhibit &mdash; seized value</span><span class="v">42</span></div>
           <div class="verdict" id="flavor" aria-live="polite">Press START. JSON will show you a costume.</div>
@@ -797,12 +797,13 @@ body.cb .j-z{ text-decoration:line-through; }
           <div class="perkchips" id="perkChips" aria-label="Active perks"></div>
         </div>
 
+        <span class="sr-only" id="srLive" role="status" aria-live="assertive" aria-atomic="true"></span>
         <div class="speedlines" id="speedlines" aria-hidden="true"></div>
-        <div class="feedback" id="feedback"></div>
-        <div class="levelup" id="levelup">DAY 2!</div>
+        <div class="feedback" id="feedback" role="status" aria-live="assertive" aria-atomic="true"></div>
+        <div class="levelup" id="levelup" role="status" aria-live="polite" aria-atomic="true">DAY 2!</div>
         <div class="countdown" id="countdown"></div>
         <div class="firebadge" id="fireBadge">&#128293; ON HIS TRAIL!</div>
-        <div class="modebanner" id="modeBanner"></div>
+        <div class="modebanner" id="modeBanner" role="status" aria-live="assertive" aria-atomic="true"></div>
         <div class="zentag hidden" id="zenTag">&#9784; STAKEOUT</div>
 
         <!-- CASE BRIEFING -->
@@ -1771,7 +1772,9 @@ function setValue(raw,opts){
   valueCard.appendChild(v);
   if(opts.reveal!==false) revealCard();
 }
+function say(msg){ const el=$('srLive'); if(!el)return; el.textContent=''; setTimeout(()=>{ el.textContent=msg; },30); }
 function stampVerdict(okv,label){
+  say((okv?'Correct. ':'Wrong. ')+'It was '+label+'.');
   const el=document.createElement('div'); el.className='vstamp'+(okv?' ok':'');
   el.textContent=(okv?'identified \u00b7 ':'he slipped \u00b7 ')+label;
   valueCard.appendChild(el); void el.offsetWidth; el.classList.add('show');
@@ -1899,6 +1902,7 @@ function startGame(){
   setHUD(); renderPowers(); renderPerkChips();
   if(UPS.has('intern')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
   if(runMode.zen) bark('zenStart'); else if(runMode.daily) bark('dailyStart');
+  try{ $('gpanel').focus({preventScroll:true}); }catch(e){}
   showBriefing(1,()=>{ dayStartEffects(); runCountdown(()=>nextRound()); },true);
 }
 function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.textContent=txt; el.classList.toggle('boss',!!boss);
@@ -2000,6 +2004,11 @@ function nextRound(){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
     $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
   }
+  say(mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
+     :mode==='boss'?'Deep cover round. Name the outermost type.'
+     :mode==='valid'?'Credible or corrupted? Two choices.'
+     :mode==='spot'?('Pick the '+String(state.altTarget||'').toUpperCase()+' from four values.')
+     :'Count the items.');
   const think=thinkBudget(state.level);
   const modeMult = mode==='boss' ? BOSS_TIME : (mode!=='type' ? ALT_TIME : 1);
   state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
@@ -2221,7 +2230,8 @@ function gameOver(){
   if(qual){ $('initialsInp').value=(localStorage.getItem('jw_initials')||'YOU'); }
   renderLB(-1); renderMedals();
   $('overOverlay').classList.remove('hidden');
-  if(qual){ setTimeout(()=>{ try{$('initialsInp').focus();$('initialsInp').select();}catch(e){} },60); }
+  say('Game over. '+state.score+' evidence, day '+state.level+'.');
+  setTimeout(()=>{ try{ if(qual){$('initialsInp').focus();$('initialsInp').select();} else $('againBtn').focus(); }catch(e){} },60);
 }
 function fireBurst(){ if(reduced)return; const words=['GOTCHA!','BUSTED!','ID!','★','✦','★'];
   const cols=['--red','--yellow','--blue','--green','--purple','--pink'].map(v=>getComputedStyle(document.documentElement).getPropertyValue(v));
@@ -2250,7 +2260,14 @@ addEventListener('keydown',e=>{
   if(e.target&&(e.target.id==='initialsInp'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(e.key==='Escape'){ if(anyModalOpen()){ e.preventDefault(); closeAllModals(); return; } if(state.playing){ e.preventDefault(); if(state.paused)resumeGame(); else pauseGame(); } return; }
   if(anyModalOpen())return;
-  if(!state.playing){ if((e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();runMode={daily:false,zen:false};startGame();} if((e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();} return; }
+  if(!state.playing){
+    /* Enter/Space on a focused control must activate THAT control. The window listener
+       fires while keydown bubbles, i.e. before the button's synthetic click, so without
+       this guard the start shortcut swallowed every menu button for keyboard users. */
+    const onCtl = e.target && (e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='INPUT');
+    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();runMode={daily:false,zen:false};startGame();}
+    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();}
+    return; }
   if(state.paused)return;
   const pid=POWKEYS[e.key.toLowerCase()]; if(pid){ e.preventDefault(); usePower(pid); return; }
   if(state.mode==='valid'){ if(e.key==='1'){e.preventDefault();answerAlt('valid',false);} else if(e.key==='2'){e.preventDefault();answerAlt('broken',false);} return; }
@@ -2372,10 +2389,23 @@ function reflectDaily(){ const el=$('dailyBest'); if(!el)return; const d=getDail
 reflectDaily();
 
 /* ===================== MODALS ===================== */
-function openModal(id){ const m=$(id); if(!m)return; if(id==='dossierModal')renderDossier(); if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden'); if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
-function closeModal(id){ const m=$(id); if(m)m.classList.add('hidden'); }
+let _modalReturn=null;
+const _focusables=m=>[...m.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(e=>e.offsetParent!==null);
+function _trap(e){ const m=document.querySelector('.modal:not(.hidden)'); if(!m||e.key!=='Tab')return;
+  const f=_focusables(m); if(!f.length)return; const first=f[0], last=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+  else if(!m.contains(document.activeElement)){ e.preventDefault(); first.focus(); } }
+function _releaseModal(){ if(document.querySelector('.modal:not(.hidden)'))return;
+  removeEventListener('keydown',_trap,true);
+  if(_modalReturn&&_modalReturn.focus){ try{_modalReturn.focus();}catch(e){} } _modalReturn=null; }
+function openModal(id){ const m=$(id); if(!m)return; if(id==='dossierModal')renderDossier(); if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden');
+  _modalReturn=document.activeElement; addEventListener('keydown',_trap,true);
+  const f=_focusables(m); if(f.length) f[0].focus();
+  if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
+function closeModal(id){ const m=$(id); if(m)m.classList.add('hidden'); _releaseModal(); }
 function anyModalOpen(){ return [...document.querySelectorAll('.modal')].some(m=>!m.classList.contains('hidden')); }
-function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); }
+function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); _releaseModal(); }
 document.querySelectorAll('.shoptab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.shoptab').forEach(x=>x.classList.toggle('on',x===t));
   const up=t.dataset.tab==='upgrades';
@@ -2388,7 +2418,7 @@ $('shopBtn').addEventListener('click',()=>openModal('shopModal'));
 $('statsBtn').addEventListener('click',()=>openModal('statsModal'));
 $('howBtn').addEventListener('click',()=>openModal('howModal'));
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
-document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=>{ if(e.target===m)m.classList.add('hidden'); }));
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=>{ if(e.target===m){ m.classList.add('hidden'); _releaseModal(); } }));
 
 /* ===================== RUN MODES ===================== */
 let runMode={daily:false,zen:false};
