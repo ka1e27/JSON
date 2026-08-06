@@ -148,49 +148,82 @@ nav .bounty .n{font-family:var(--ff-display);font-size:19px;color:var(--yellow);
 .mugframe{position:relative;aspect-ratio:1/1.06;background:linear-gradient(180deg,#2b2318,#171310);border:1px solid rgba(0,0,0,.5);overflow:hidden;display:grid;place-items:end center;}
 .mugframe .rule{position:absolute;left:0;right:0;height:1px;background:rgba(247,217,76,.16);}
 .mugframe .rule span{position:absolute;left:6px;top:-13px;font-family:var(--ff-mono);font-size:9px;color:rgba(247,217,76,.5);}
-.mugstamp{position:absolute;bottom:12px;left:50%;transform:translateX(-50%) rotate(-4deg);font-family:var(--ff-type);
+/* hero mugshot: the FULL figure, briefcase and all, standing on the bottom rule */
+.mug .mascot{width:auto;height:100%;aspect-ratio:140/186;overflow:visible;margin:0;}
+.mug .mascot svg{height:100%;width:auto;}
+/* NO PHOTO ON FILE sits ON the 5'2" rule line, not across his chin */
+.mugstamp{position:absolute;top:70%;left:50%;transform:translate(-50%,-50%) rotate(-4deg);font-family:var(--ff-type);
   font-size:11px;letter-spacing:.22em;color:var(--red);border:2px solid var(--red);padding:3px 9px;background:rgba(23,19,16,.6);z-index:3;white-space:nowrap;}
 .mugcap{font-family:var(--ff-type);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);text-align:center;margin-top:9px;}
 .pin{position:absolute;width:15px;height:15px;border-radius:50%;z-index:5;
   background:radial-gradient(circle at 32% 30%, #ff8a7a, var(--string) 62%, #6d130f);box-shadow:0 3px 6px rgba(0,0,0,.55);}
 .pin.tc{top:-7px;left:50%;transform:translateX(-50%);}
+/* the pin now marks the paper it pierces, and the tape casts onto the card */
+.pin::after{content:"";position:absolute;left:1px;top:12px;width:18px;height:8px;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,rgba(25,19,8,.42),transparent 76%);}
+.tape{box-shadow:0 2px 6px rgba(0,0,0,.28),0 6px 10px -6px rgba(0,0,0,.5);}
 
-/* ---------- JSON (the suspect) ---------- */
-.mascot{position:relative;width:132px;height:132px;margin-bottom:26px;}
-.mascot .brace{position:absolute;top:26px;font-family:var(--ff-mono);font-weight:700;font-size:74px;line-height:1;color:var(--yellow);opacity:.9;}
-.mascot .brace.l{left:-4px;} .mascot .brace.r{right:-4px;}
-.mascot .hat{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:96px;height:15px;background:#0e0b09;border-radius:50%/70%;box-shadow:0 2px 0 #000;}
-.mascot .hat::after{content:"";position:absolute;left:50%;bottom:9px;transform:translateX(-50%);width:52px;height:26px;background:#141009;border-radius:12px 12px 4px 4px;}
-.mascot .head{position:absolute;left:50%;top:26px;transform:translateX(-50%);width:70px;height:74px;border-radius:34px 34px 30px 30px;
-  background:linear-gradient(165deg,#4a3d2c,#241d15);box-shadow:inset -6px -6px 14px rgba(0,0,0,.55);}
-.mascot .shades{position:absolute;left:50%;top:20px;transform:translateX(-50%);width:62px;height:17px;background:#08070a;border-radius:4px;
-  box-shadow:0 1px 0 rgba(255,255,255,.14);}
-.mascot .shades::before,.mascot .shades::after{content:"";position:absolute;top:2px;width:24px;height:12px;border-radius:3px;background:#15141b;}
-.mascot .shades::before{left:3px;} .mascot .shades::after{right:3px;}
-.mascot .glint{position:absolute;left:6px;top:2px;width:10px;height:12px;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
-  border-radius:3px;opacity:0;}
-.mascot .smirk{position:absolute;left:50%;bottom:13px;transform:translateX(-50%) rotate(-7deg);width:24px;height:8px;
-  border-bottom:3px solid #d9c9a6;border-right:3px solid transparent;border-radius:0 0 14px 4px;transition:all .16s;}
-.mascot .collar{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:104px;height:26px;background:#100d0b;
-  clip-path:polygon(0 100%,16% 0,50% 30%,84% 0,100% 100%);}
-.mascot .sweat{position:absolute;right:10px;top:44px;width:9px;height:12px;background:#7fd7ff;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;opacity:0;}
-.mascot .qmark{position:absolute;right:-10px;top:-6px;font-family:var(--ff-display);font-size:34px;color:var(--yellow);opacity:0;transform:rotate(12deg);}
-/* states */
-.mascot.talk{animation:jbob 1.9s var(--ease) infinite;}
-@keyframes jbob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
-.mascot.talk .smirk{animation:jtalk .5s steps(2) infinite;}
-@keyframes jtalk{0%{height:6px}100%{height:11px}}
-.mascot.blink .glint{opacity:1;animation:jglint .5s var(--ease);}
-@keyframes jglint{from{transform:translateX(-6px)}to{transform:translateX(46px)}}
-.mascot.happy .smirk{transform:translateX(-50%) rotate(180deg) translateY(4px);border-bottom-color:#ffb0a0;}
-.mascot.happy .qmark{opacity:1;animation:jq .5s var(--ease);}
-@keyframes jq{from{transform:rotate(12deg) scale(.3);opacity:0}to{transform:rotate(12deg) scale(1);opacity:1}}
-.mascot.sweating .sweat{opacity:1;animation:jdrip .9s ease-in infinite;}
-@keyframes jdrip{0%{transform:translateY(0);opacity:.95}100%{transform:translateY(22px);opacity:0}}
-.mascot.shake{animation:jlaugh .34s ease 2;}
-@keyframes jlaugh{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-6px,2px) rotate(-7deg)}75%{transform:translate(6px,-2px) rotate(7deg)}}
+/* ---------- JSON (the suspect) — one drawn SVG bust, eight states ----------
+   Every part is a j-* class on an SVG CHILD, so mascot.className='mascot talk'
+   can never clear the artwork. The two new states hang off #gpanel ancestors. */
+.mascot{position:relative;width:132px;height:118px;overflow:hidden;line-height:0;flex:none;}
+.mascot svg{display:block;width:100%;height:auto;overflow:visible;}
+.jsm{transform-box:fill-box;transform-origin:center;}
+/* cast shadow, offset down-right so he agrees with the lamp */
+.mascot::after{content:"";position:absolute;left:14%;right:-4%;bottom:0;height:9px;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,rgba(25,19,8,.46),transparent 78%);}
+.j-hat{fill:url(#gHat);} .j-hat2{fill:#080706;} .j-band{fill:#241d15;}
+.j-face{fill:url(#gFace);} .j-neck{fill:#2a2118;}
+.j-coat{fill:url(#gCoat);} .j-coat2{fill:#070606;} .j-coat3{fill:#14100c;}
+.j-lens{fill:#08070a;} .j-frame{fill:#211f28;}
+.j-brace{fill:none;stroke:var(--yellow);stroke-width:4.6;stroke-linecap:round;opacity:.95;}
+.j-mouth{fill:none;stroke:#241a10;stroke-width:2.6;stroke-linecap:round;}
+.j-cig{fill:#f2e7cb;} .j-ash{fill:#6b6156;} .j-ember{fill:#ff6a35;}
+.j-smoke{fill:none;stroke:rgba(240,230,205,.34);stroke-width:2.2;stroke-linecap:round;}
+.j-case{fill:#2a2017;stroke:#050404;stroke-width:1.6;}
+.j-caseh{fill:none;stroke:#050404;stroke-width:2.6;stroke-linecap:round;}
+.j-hand{fill:#7a6547;}
+.j-rim{fill:none;stroke:rgba(255,238,190,.3);stroke-width:1.7;stroke-linecap:round;}
+.j-glint{fill:#fff;opacity:0;} .j-sweat{fill:#8fdcff;opacity:0;} .j-puff{opacity:0;}
+.j-brow{fill:none;stroke:#120d07;stroke-width:4;stroke-linecap:round;opacity:0;}
+.j-eye{opacity:0;} .j-eyew{fill:#f6eeda;} .j-pupil{fill:#140e07;}
+.j-shades,.j-cigg,.j-hatgrp{transition:transform .18s var(--ease);}
+/* IDLE + TALKING */
+.mascot.talk{animation:jbob 3.6s cubic-bezier(.4,0,.6,1) infinite;}
+@keyframes jbob{0%,100%{transform:translateY(0) rotate(-.5deg)}50%{transform:translateY(-3px) rotate(.6deg)}}
+.mascot.talk .j-mouth{animation:jtalk .44s steps(2) infinite;}
+@keyframes jtalk{0%{d:path("M62 96q8 5 16 -3")}100%{d:path("M62 95q8 9 16 -2")}}
+.j-smoke{stroke-dasharray:3 8;animation:jsmoke 6s linear infinite;}
+@keyframes jsmoke{to{stroke-dashoffset:-44}}
+/* GLINT — the existing idle tic */
+.mascot.blink .j-glint{opacity:1;animation:jglint .55s var(--ease);}
+@keyframes jglint{from{transform:translateX(-16px)}to{transform:translateX(46px)}}
+/* RATTLED — .sweating, set when the clock goes urgent */
+.mascot.sweating .j-hatgrp{transform:translateY(-5px) rotate(5deg);}
+.mascot.sweating .j-brow{opacity:1;}
+.mascot.sweating .j-mouth{d:path("M62 98q8 -5 16 1");}
+.mascot.sweating .j-cigg{transform:rotate(19deg) translate(0,3px);}
+.mascot.sweating .j-sweat{opacity:1;animation:jdrip 1.05s ease-in infinite;}
+@keyframes jdrip{0%{opacity:.95;transform:translateY(0)}100%{opacity:0;transform:translateY(22px)}}
+/* LAUGHING — .shake, you got it wrong */
+.mascot.shake{animation:jlaugh .36s ease 2;}
+@keyframes jlaugh{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-5px,2px) rotate(-6deg)}75%{transform:translate(5px,-2px) rotate(6deg)}}
+.mascot.shake .j-mouth{d:path("M58 94q12 11 21 -4");}
+.mascot.shake .j-puff{opacity:1;animation:jpuff .8s ease-out;}
+@keyframes jpuff{0%{transform:scale(.3);opacity:.75}100%{transform:scale(2.4) translate(8px,-14px);opacity:0}}
+/* CAUGHT — .happy, you got it right. Hat jumps, shades slip, ONE EYE. */
+/* measured, not guessed: the shades must clear the eye (y66-77) AND the hat must lift,
+   or the lens still covers it. These are the resting values, so the eye is there under
+   prefers-reduced-motion too — the hat-pop only travels back TO this pose. */
+.mascot.happy .j-shades{transform:translateY(17px) rotate(-7deg);}
+.mascot.happy .j-eye{opacity:1;}
+.mascot.happy .j-brow{opacity:1;}
+.mascot.happy .j-mouth{d:path("M64 96a6.5 7 0 1 0 13 0a6.5 7 0 1 0 -13 0");fill:#1b120a;stroke-width:2.2;}
+.mascot.happy .j-hatgrp{transform:translateY(-6px) rotate(-6deg);animation:jhatpop .55s cubic-bezier(.2,.9,.3,1.4);}
+@keyframes jhatpop{0%{transform:translateY(0) rotate(0)}38%{transform:translateY(-13px) rotate(-11deg)}100%{transform:translateY(-6px) rotate(-6deg)}}
+/* CELEBRATE — streak of 5 */
 .mascot.celebrate{animation:jspin .7s var(--ease);}
-@keyframes jspin{0%{transform:rotate(0) scale(1)}45%{transform:rotate(-14deg) scale(1.1)}100%{transform:rotate(0) scale(1)}}
+@keyframes jspin{0%{transform:rotate(0) scale(1)}45%{transform:rotate(-13deg) scale(1.09)}100%{transform:rotate(0) scale(1)}}
 
 /* ---------- error ticker ---------- */
 .ticker{margin-top:22px;border-top:1px solid rgba(240,230,205,.18);border-bottom:1px solid rgba(240,230,205,.18);
@@ -271,11 +304,7 @@ nav .bounty .n{font-family:var(--ff-display);font-size:19px;color:var(--yellow);
 /* arena */
 .arena{text-align:center;}
 .host{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;}
-.host .mascot{width:104px;height:104px;margin-bottom:0;flex:none;}
-.host .mascot .brace{font-size:58px;top:20px;} .host .mascot .hat{width:76px;} .host .mascot .hat::after{width:41px;height:21px;}
-.host .mascot .head{width:55px;height:58px;top:20px;} .host .mascot .shades{width:49px;height:14px;top:16px;}
-.host .mascot .shades::before,.host .mascot .shades::after{width:19px;height:10px;}
-.host .mascot .collar{width:82px;height:21px;}
+.host .mascot{width:116px;height:122px;margin-bottom:0;flex:none;}  /* arena: bust crop, just below the shoulders */
 .bubble{position:relative;background:var(--card);border:var(--edge);border-radius:6px;padding:10px 14px;max-width:290px;
   font-family:var(--ff-type);font-size:13.5px;line-height:1.45;box-shadow:3px 3px 0 rgba(25,19,8,.25);}
 .bubble::after{content:"";position:absolute;left:-9px;top:20px;width:14px;height:14px;background:var(--card);
@@ -641,6 +670,81 @@ body.cb .j-z{ text-decoration:line-through; }
 .reduced .levelup.show,.reduced .modebanner.show{opacity:1;transform:translateY(-50%) scale(1);}
 .reduced .firebadge.show{opacity:1;}
 .reduced .strings line{stroke-dashoffset:0;}
+
+/* ============ R3: THE LAMP, AND THE PAPER IT LIGHTS ============
+   One pseudo-element carries the whole light rig AND the paper fibre. It sits at
+   z-index:-1 inside the panel's own stacking context, so it lights the manila and
+   never washes over the text. Nothing here animates except a 500ms failure flicker. */
+.gpanel{isolation:isolate;}
+.gpanel::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:4px;pointer-events:none;
+  background-image:
+    radial-gradient(44% 32% at 24% -10%, rgba(255,252,232,.95), rgba(255,244,198,.42) 44%, transparent 78%),
+    linear-gradient(156deg, rgba(255,252,236,.44) 0%, rgba(255,252,236,.10) 32%, transparent 50%),
+    radial-gradient(86% 74% at 106% 118%, rgba(25,19,8,.26), transparent 64%),
+    repeating-linear-gradient(94deg, rgba(120,96,52,.055) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(3deg,  rgba(120,96,52,.045) 0 1px, transparent 1px 4px),
+    radial-gradient(rgba(120,96,52,.09) .5px, transparent .8px);
+  background-size:auto,auto,auto,auto,auto,4px 4px;
+  opacity:var(--lamp,1);transition:opacity .25s linear;}
+/* he gets away -> the lamp stutters. Failure becomes a lighting event. */
+.gpanel.hit::before{animation:flick .5s steps(1) 1;}
+@keyframes flick{0%,100%{opacity:1}12%{opacity:.12}22%{opacity:.85}34%{opacity:.06}46%{opacity:.7}58%{opacity:.2}}
+/* DEEP COVER: the lamp dies. --paper/--card/--ink are re-declared ON THE PANEL, so every
+   child dims together through the cascade and contrast is preserved by construction.
+   The vignette rides the SAME ::before (.gpanel.urgent::after is already taken), and it is
+   fully static — it reads identically under prefers-reduced-motion. */
+.gpanel.boss{--paper:#b5a17c;--card:#c6b18a;--ink:#0f0c07;--ink-2:#4a4133;}
+.gpanel.boss::before{opacity:1;background-size:auto,auto;background-image:
+    radial-gradient(58% 52% at 50% 34%, transparent 32%, rgba(8,6,14,.44) 100%),
+    radial-gradient(30% 24% at 50% 22%, rgba(139,92,246,.3), transparent 70%);}
+/* the suspect goes to silhouette: only the ember and a violet rim survive */
+#gpanel.boss .j-face,#gpanel.boss .j-neck,#gpanel.boss .j-hand{fill:#0d0b0a;}
+#gpanel.boss .j-coat,#gpanel.boss .j-coat2,#gpanel.boss .j-coat3,
+#gpanel.boss .j-hat,#gpanel.boss .j-hat2,#gpanel.boss .j-band,#gpanel.boss .j-case{fill:#050404;}
+#gpanel.boss .j-mouth,#gpanel.boss .j-brow{stroke:transparent;}
+#gpanel.boss .j-rim{stroke:var(--purple);stroke-width:2.4;opacity:.95;}
+#gpanel.boss .j-lens{fill:#0b0813;}
+#gpanel.boss .j-glint{opacity:.9;fill:var(--purple);}
+#gpanel.boss .j-brace{stroke:var(--purple);}
+#gpanel.boss .j-ember{fill:#ff7a3d;}
+/* SMUG — free, from the .onfire class the game already sets at streak>=4 */
+#gpanel.onfire .j-hatgrp{transform:rotate(-5deg) translate(-2px,0);}
+#gpanel.onfire .j-mouth{d:path("M60 96q10 6 19 -6");}
+#gpanel.onfire .j-cigg{transform:rotate(-9deg);}
+
+/* ---------- the evidence bag, set-dressed. .v is never touched. ----------
+   .evbag::after is the reveal wipe, so the props live on one aria-hidden .dress
+   sibling of .v inside EVTAG; the ink bleed is .v's own ::before (content:"" adds
+   nothing to textContent, so the raw JSON stays byte-identical and JSON.parse-able). */
+.evbag{box-shadow:4px 5px 0 rgba(25,19,8,.18);isolation:isolate;}
+/* NB: .dress must NOT get a z-index — that would make it a stacking context and the
+   multiply below would blend against nothing instead of against the card stock. */
+.evbag .dress{position:absolute;inset:0;pointer-events:none;}
+/* coffee ring: mostly off the corner, so what crosses the bag reads as a stain, not a disc */
+.evbag .dress::before{content:"";position:absolute;right:-16px;bottom:-24px;width:92px;height:92px;border-radius:50%;
+  mix-blend-mode:multiply;
+  background:
+    radial-gradient(closest-side,transparent 63%,rgba(96,54,18,.3) 67%,rgba(72,38,10,.42) 74%,rgba(96,54,18,.13) 81%,transparent 88%),
+    radial-gradient(closest-side at 64% 34%,transparent 66%,rgba(72,38,10,.2) 70%,transparent 77%),
+    radial-gradient(closest-side,rgba(112,64,24,.06) 60%,transparent 64%);}
+/* partial thumbprint: two interfering ridge fields + an off-centre mask, so it is a smudge
+   with a delta rather than a bullseye */
+.evbag .dress::after{content:"";position:absolute;left:13px;bottom:11px;width:46px;height:60px;border-radius:50%/58%;
+  mix-blend-mode:multiply;transform:rotate(-16deg) skewX(-6deg);opacity:.55;
+  background:
+    repeating-radial-gradient(ellipse 58% 44% at 44% 54%,transparent 0 2.5px,rgba(44,28,12,.5) 2.5px 3.4px),
+    repeating-radial-gradient(ellipse 72% 62% at 64% 92%,transparent 0 2.8px,rgba(44,28,12,.3) 2.8px 3.8px);
+  -webkit-mask:radial-gradient(ellipse 64% 56% at 40% 44%,#000 38%,rgba(0,0,0,.5) 64%,transparent 80%);
+          mask:radial-gradient(ellipse 64% 56% at 40% 44%,#000 38%,rgba(0,0,0,.5) 64%,transparent 80%);}
+.evbag .v{position:relative;z-index:2;}
+.evbag .v::before{content:"";position:absolute;inset:-6px -10px;z-index:-1;border-radius:8px;
+  background:radial-gradient(closest-side,rgba(25,19,8,.13),transparent 78%);}
+.evbag .clip{position:absolute;right:14px;top:-19px;width:26px;height:44px;z-index:5;
+  filter:drop-shadow(2px 3px 1px rgba(25,19,8,.4));}
+.evbag .clip path{fill:none;stroke:#6f767f;stroke-width:2.8;stroke-linecap:round;}
+.evbag .clip .hi{stroke:#e6ebf0;stroke-width:.9;}
+@media(max-width:460px){.evbag .dress::before{width:70px;height:70px;right:-6px;bottom:-16px;}
+  .evbag .dress::after{width:38px;height:50px;left:8px;}}
 </style>
 </head>
 <body>
@@ -709,14 +813,54 @@ body.cb .j-z{ text-decoration:line-through; }
               <span class="rule" style="top:46%"><span>5'8"</span></span>
               <span class="rule" style="top:70%"><span>5'2"</span></span>
               <div class="mascot talk" aria-hidden="true">
-                <span class="brace l">{</span><span class="brace r">}</span>
-                <div class="hat"></div>
-                <div class="head">
-                  <div class="shades"><span class="glint"></span></div>
-                  <div class="smirk"></div>
-                </div>
-                <div class="collar"></div>
-                <div class="sweat"></div><div class="qmark">!</div>
+<svg viewBox="0 0 140 186" aria-hidden="true" focusable="false">
+ <g class="j-brace">
+   <path d="M22 34q-9 0-9 11v11q0 9-9 9 9 0 9 9v11q0 11 9 11"/>
+   <path d="M118 34q9 0 9 11v11q0 9 9 9-9 0-9 9v11q0 11-9 11"/>
+ </g>
+ <path class="j-coat2" d="M6 186C8 148 24 122 44 114L96 114C116 122 132 148 134 186Z"/>
+ <path class="j-coat"  d="M11 186C14 150 27 126 45 118L70 140 95 118C113 126 126 150 129 186Z"/>
+ <path class="j-coat3" d="M45 118L70 140 61 152 38 126Z"/>
+ <path class="j-coat3" d="M95 118L70 140 79 152 102 126Z"/>
+ <rect class="j-coat2" x="16" y="158" width="108" height="9" rx="2" opacity=".8"/>
+ <rect class="j-band"  x="60" y="156" width="20" height="13" rx="2"/>
+ <path class="j-coat"  d="M44 114C49 104 57 99 70 99s22 5 26 15l-12 6-14-12-14 12Z"/>
+ <path class="j-hand"  d="M115 142q6 0 6 6v8q0 5-6 5t-6-5v-8q0-6 6-6z"/>
+ <path class="j-caseh" d="M108 156q7-9 15 0"/>
+ <rect class="j-case"  x="99" y="156" width="33" height="21" rx="2"/>
+ <rect class="j-band"  x="113" y="156" width="5" height="21"/>
+ <path class="j-neck"  d="M58 92h24v16H58z"/>
+ <path class="j-face"  d="M42 52C42 88 53 106 70 106s28-18 28-54Z"/>
+ <path d="M41 52h58v13H41z" fill="#0b0805" opacity=".62"/>
+ <g class="j-brow"><path d="M50 70l11-4"/><path d="M90 70l-11-4"/></g>
+ <g class="j-eye"><ellipse class="j-eyew" cx="55" cy="72" rx="6.5" ry="5.4"/><circle class="j-pupil" cx="56" cy="72" r="2.8"/></g>
+ <g class="j-shades">
+   <path class="j-frame" d="M40 64h60v5H40z"/><path class="j-frame" d="M65 68h11v4H65z"/>
+   <path class="j-lens" d="M43 68h24v13q0 5-5 5H48q-5 0-5-5z"/>
+   <path class="j-lens" d="M73 68h24v13q0 5-5 5H78q-5 0-5-5z"/>
+   <g clip-path="url(#lensclip)"><rect class="j-glint jsm" x="40" y="64" width="9" height="24" transform="skewX(-20)"/></g>
+ </g>
+ <path class="j-mouth" d="M62 96q8 5 16-3"/>
+ <path class="j-sweat" d="M97 76c3.5 5 5 7.5 5 9.5a5 5 0 0 1-10 0c0-2 1.5-4.5 5-9.5z"/>
+ <g class="j-cigg jsm">
+   <rect class="j-cig" x="78" y="97" width="20" height="4.6" rx="1.6" transform="rotate(11 78 99)"/>
+   <rect class="j-ash" x="94" y="100" width="5" height="4.6" rx="1.6" transform="rotate(11 78 99)"/>
+   <circle class="j-ember" cx="99.5" cy="105" r="2.5"/>
+   <path class="j-smoke" d="M101 101c6-8-3-13 3-21 5-7-3-12 2-19"/>
+   <circle class="j-puff jsm" cx="100" cy="102" r="5" fill="rgba(240,230,205,.32)"/>
+ </g>
+ <g class="j-hatgrp jsm">
+   <path class="j-hat2" d="M8 50C8 41 30 33 70 33s62 8 62 17c0 10-26 16-62 16S8 60 8 50Z"/>
+   <path class="j-hat"  d="M10 48C10 39 31 32 70 32s60 7 60 16c0 9-25 14-60 14S10 57 10 48Z"/>
+   <path class="j-hat"  d="M41 50C36 20 44 4 70 4s58 16 29 46Z"/>
+   <path class="j-hat2" d="M47 9C54 17 86 17 93 9 86 3 54 3 47 9Z" opacity=".9"/>
+   <path class="j-band" d="M40 39C51 45 89 45 100 39v11c-11 5-49 5-60 0Z"/>
+ </g>
+ <path class="j-rim" d="M10 48C10 39 26 33 48 32"/>
+ <path class="j-rim" d="M41 50C36 26 39 10 52 5"/>
+ <path class="j-rim" d="M42 62C42 84 49 100 60 105" opacity=".4"/>
+ <path class="j-rim" d="M45 118C29 127 15 152 11 182" opacity=".38"/>
+</svg>
               </div>
               <span class="mugstamp">NO PHOTO ON FILE</span>
             </div>
@@ -778,18 +922,58 @@ body.cb .j-z{ text-decoration:line-through; }
         <div class="arena">
           <div class="host">
             <div class="mascot" id="mascot">
-              <span class="brace l">{</span><span class="brace r">}</span>
-              <div class="hat"></div>
-              <div class="head">
-                <div class="shades"><span class="glint"></span></div>
-                <div class="smirk"></div>
-              </div>
-              <div class="collar"></div>
-              <div class="sweat"></div><div class="qmark">!</div>
+<svg viewBox="0 0 140 186" aria-hidden="true" focusable="false">
+ <g class="j-brace">
+   <path d="M22 34q-9 0-9 11v11q0 9-9 9 9 0 9 9v11q0 11 9 11"/>
+   <path d="M118 34q9 0 9 11v11q0 9 9 9-9 0-9 9v11q0 11-9 11"/>
+ </g>
+ <path class="j-coat2" d="M6 186C8 148 24 122 44 114L96 114C116 122 132 148 134 186Z"/>
+ <path class="j-coat"  d="M11 186C14 150 27 126 45 118L70 140 95 118C113 126 126 150 129 186Z"/>
+ <path class="j-coat3" d="M45 118L70 140 61 152 38 126Z"/>
+ <path class="j-coat3" d="M95 118L70 140 79 152 102 126Z"/>
+ <rect class="j-coat2" x="16" y="158" width="108" height="9" rx="2" opacity=".8"/>
+ <rect class="j-band"  x="60" y="156" width="20" height="13" rx="2"/>
+ <path class="j-coat"  d="M44 114C49 104 57 99 70 99s22 5 26 15l-12 6-14-12-14 12Z"/>
+ <path class="j-hand"  d="M115 142q6 0 6 6v8q0 5-6 5t-6-5v-8q0-6 6-6z"/>
+ <path class="j-caseh" d="M108 156q7-9 15 0"/>
+ <rect class="j-case"  x="99" y="156" width="33" height="21" rx="2"/>
+ <rect class="j-band"  x="113" y="156" width="5" height="21"/>
+ <path class="j-neck"  d="M58 92h24v16H58z"/>
+ <path class="j-face"  d="M42 52C42 88 53 106 70 106s28-18 28-54Z"/>
+ <path d="M41 52h58v13H41z" fill="#0b0805" opacity=".62"/>
+ <g class="j-brow"><path d="M50 70l11-4"/><path d="M90 70l-11-4"/></g>
+ <g class="j-eye"><ellipse class="j-eyew" cx="55" cy="72" rx="6.5" ry="5.4"/><circle class="j-pupil" cx="56" cy="72" r="2.8"/></g>
+ <g class="j-shades">
+   <path class="j-frame" d="M40 64h60v5H40z"/><path class="j-frame" d="M65 68h11v4H65z"/>
+   <path class="j-lens" d="M43 68h24v13q0 5-5 5H48q-5 0-5-5z"/>
+   <path class="j-lens" d="M73 68h24v13q0 5-5 5H78q-5 0-5-5z"/>
+   <g clip-path="url(#lensclip)"><rect class="j-glint jsm" x="40" y="64" width="9" height="24" transform="skewX(-20)"/></g>
+ </g>
+ <path class="j-mouth" d="M62 96q8 5 16-3"/>
+ <path class="j-sweat" d="M97 76c3.5 5 5 7.5 5 9.5a5 5 0 0 1-10 0c0-2 1.5-4.5 5-9.5z"/>
+ <g class="j-cigg jsm">
+   <rect class="j-cig" x="78" y="97" width="20" height="4.6" rx="1.6" transform="rotate(11 78 99)"/>
+   <rect class="j-ash" x="94" y="100" width="5" height="4.6" rx="1.6" transform="rotate(11 78 99)"/>
+   <circle class="j-ember" cx="99.5" cy="105" r="2.5"/>
+   <path class="j-smoke" d="M101 101c6-8-3-13 3-21 5-7-3-12 2-19"/>
+   <circle class="j-puff jsm" cx="100" cy="102" r="5" fill="rgba(240,230,205,.32)"/>
+ </g>
+ <g class="j-hatgrp jsm">
+   <path class="j-hat2" d="M8 50C8 41 30 33 70 33s62 8 62 17c0 10-26 16-62 16S8 60 8 50Z"/>
+   <path class="j-hat"  d="M10 48C10 39 31 32 70 32s60 7 60 16c0 9-25 14-60 14S10 57 10 48Z"/>
+   <path class="j-hat"  d="M41 50C36 20 44 4 70 4s58 16 29 46Z"/>
+   <path class="j-hat2" d="M47 9C54 17 86 17 93 9 86 3 54 3 47 9Z" opacity=".9"/>
+   <path class="j-band" d="M40 39C51 45 89 45 100 39v11c-11 5-49 5-60 0Z"/>
+ </g>
+ <path class="j-rim" d="M10 48C10 39 26 33 48 32"/>
+ <path class="j-rim" d="M41 50C36 26 39 10 52 5"/>
+ <path class="j-rim" d="M42 62C42 84 49 100 60 105" opacity=".4"/>
+ <path class="j-rim" d="M45 118C29 127 15 152 11 182" opacity=".38"/>
+</svg>
             </div>
             <div class="bubble" id="question" role="status" aria-live="polite" aria-atomic="true">&ldquo;You'll never guess what I'm wearing today.&rdquo;</div>
           </div>
-          <div class="evbag mono" id="valueCard"><span class="tag">Exhibit &mdash; seized value</span><span class="v">42</span></div>
+          <div class="evbag mono" id="valueCard"><span class="tag">Exhibit &mdash; seized value</span><span class="dress" aria-hidden="true"></span><svg class="clip" viewBox="0 0 26 44" aria-hidden="true" focusable="false"><path d="M8 40V10a5 5 0 0 1 10 0v26a3.4 3.4 0 0 1-6.8 0V14"/><path class="hi" d="M9.6 38V10.6"/></svg><span class="v">42</span></div>
           <div class="verdict" id="flavor" aria-live="polite">Press START. JSON will show you a costume.</div>
           <div class="answers" id="answers"></div>
           <div class="altanswers hidden" id="altAnswers" aria-label="Answers"></div>
@@ -1787,7 +1971,12 @@ function pointsToScore(pts){ if(reduced)return; const from=valueCard.getBounding
               {transform:'translate('+((to.left+to.width/2)-(from.left+from.width/2))+'px,'+((to.top+12)-(from.top+16))+'px) scale(.7)',opacity:0}],
              {duration:620,easing:'cubic-bezier(.3,.7,.3,1)'});
   setTimeout(()=>el.remove(),650); }
-const EVTAG='<span class="tag">Exhibit &mdash; seized value</span>';
+/* static set-dressing, re-emitted by every existing valueCard write. Both extra nodes are
+   SIBLINGS of .v and carry no text, so #valueCard>.v stays the raw JSON and nothing else. */
+const EVTAG='<span class="tag">Exhibit &mdash; seized value</span>'
+  +'<span class="dress" aria-hidden="true"></span>'
+  +'<svg class="clip" viewBox="0 0 26 44" aria-hidden="true" focusable="false">'
+  +'<path d="M8 40V10a5 5 0 0 1 10 0v26a3.4 3.4 0 0 1-6.8 0V14"/><path class="hi" d="M9.6 38V10.6"/></svg>';
 
 /* ===================== VIBE TOOLS ===================== */
 const POWERS={
@@ -2468,8 +2657,15 @@ $('cardBtn').addEventListener('click',()=>{ try{ const url=drawScoreCard(); cons
 
 renderMedals(); renderLB(-1); setHUD(); reflectRank();
 </script>
-<!-- ============ ART SPRITE: six disguise marks + the suspect sigil ============ -->
+<!-- ============ ART SPRITE: the suspect's paint servers + six disguise marks + the sigil ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<linearGradient id="gFace" x1="0" y1="0" x2="1" y2=".3">
+  <stop offset="0" stop-color="#a98d61"/><stop offset=".45" stop-color="#7b6442"/><stop offset="1" stop-color="#2e2418"/></linearGradient>
+<linearGradient id="gHat" x1="0" y1="0" x2="1" y2=".4">
+  <stop offset="0" stop-color="#2b241c"/><stop offset=".5" stop-color="#14100c"/><stop offset="1" stop-color="#070605"/></linearGradient>
+<linearGradient id="gCoat" x1="0" y1="0" x2="1" y2=".2">
+  <stop offset="0" stop-color="#241d16"/><stop offset=".55" stop-color="#120e0a"/><stop offset="1" stop-color="#070605"/></linearGradient>
+<clipPath id="lensclip"><path d="M43 68h24v13q0 5-5 5H48q-5 0-5-5zM73 68h24v13q0 5-5 5H78q-5 0-5-5z"/></clipPath>
 <symbol id="di-string" viewBox="0 0 24 24">
   <g fill="currentColor">
     <path d="M4.6 2.6h4L6.2 10.4h-4z"/><path d="M10.4 2.6h4L12 10.4H8z"/>
