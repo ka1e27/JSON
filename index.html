@@ -1227,6 +1227,7 @@ details.mgroup>.menurow{margin-top:9px;}
             <div class="menurow" style="margin-top:8px">
               <button class="diff" id="cbToggle" aria-pressed="false">&#128065; Colorblind aid: OFF</button>
               <button class="diff" id="musicToggle" aria-pressed="false">&#127925; Radio: OFF</button>
+              <button class="diff" id="rainToggle" aria-pressed="true">&#127783; Rain: ON</button>
             </div>
           </details>
           <div class="dailybest hidden" id="dailyBest"></div>
@@ -1496,16 +1497,344 @@ if(!touch&&!reduced){ document.querySelectorAll('[data-magnetic]').forEach(el=>{
 })();
 
 /* ===================== SOUND ===================== */
-let actx=null, muted=(localStorage.getItem('jw_mute')==='1');
+/* One bus rack, two primitives (tone / nz), one named-cue table. Every cue is scheduled on
+   ABSOLUTE AudioContext time -- never setTimeout -- which is what lets the entire palette be
+   rendered and measured in an OfflineAudioContext instead of guessed at by ear.
+
+     busMusic --\                                 busSfx --\
+     busAmb   --+--> duck --> master --> limiter --> destination
+                             busUi ------/  (thresh -8dB, 20:1, 3ms/120ms)
+   plus one shared 550ms procedural plate on verbIn -> master. No audio files, ever.
+
+   NOTHING constructs an AudioContext until a real user gesture reaches initAudio(), so the
+   page is absolutely silent until it is touched. `muted` is still the single source of truth
+   and now rides ONE gain (master), so it fades instead of chopping AND -- unlike before --
+   it silences the radio and the rain too, which it previously did not. */
+let actx=null, AB=null, audioDead=false, muted=(localStorage.getItem('jw_mute')==='1');
 $('soundBtn').textContent=muted?'🔇':'🔊';
-function initAudio(){ if(!actx){ try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;} } }
-function beep(freq,dur,type='square',vol=0.05){ if(muted||!actx)return; if(actx.state==='suspended'){try{actx.resume();}catch(e){}} const o=actx.createOscillator(),g=actx.createGain(); o.type=type;o.frequency.value=freq;o.connect(g);g.connect(actx.destination); g.gain.setValueAtTime(vol,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur); o.start(); o.stop(actx.currentTime+dur); }
-const sCorrect=()=>{beep(660,0.07);setTimeout(()=>beep(880,0.1),60);};
-const sWrong=()=>{beep(140,0.24,'sawtooth',0.07);};
-const sTick=()=>beep(1150,0.03,'square',0.02);
-const sLevel=()=>[494,622,740,988].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle'),i*80));
-const sOver=()=>[392,311,247,185].forEach((f,i)=>setTimeout(()=>beep(f,0.24,'triangle',0.06),i*155));
-$('soundBtn').addEventListener('click',()=>{ muted=!muted; localStorage.setItem('jw_mute',muted?'1':'0'); $('soundBtn').textContent=muted?'🔇':'🔊'; if(!muted){initAudio();beep(820,0.08);} });
+const MASTER_G=0.9, AMB_G=0.45;
+function isPaused(){ try{ return !!state.paused; }catch(e){ return false; } }
+function resumeCtx(){ if(!actx)return; if(actx.state==='suspended'){ try{ const p=actx.resume(); if(p&&p.then) p.then(null,()=>{}); }catch(e){} } }
+function initAudio(){
+  if(AB){ resumeCtx(); return AB; }
+  if(audioDead) return null;
+  let ctx=null;
+  try{ const C=window.AudioContext||window.webkitAudioContext; if(!C){ audioDead=true; return null; } ctx=new C(); }
+  catch(e){ audioDead=true; return null; }
+  try{ AB=buildRack(ctx); actx=ctx; }
+  catch(e){ audioDead=true; AB=null; actx=null; try{ctx.close();}catch(e2){} return null; }
+  resumeCtx(); applyMuteGain(0); applyAudioState(0);
+  return AB;
+}
+function buildRack(ctx){
+  const SR=ctx.sampleRate;
+  const mk=(sec,fill)=>{ const b=ctx.createBuffer(1,Math.max(1,(SR*sec)|0),SR); fill(b.getChannelData(0),SR); return b; };
+  const NZ=mk(2.0,d=>{ for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; });
+  const PINK=mk(3.0,d=>{ let b0=0,b1=0,b2=0;
+    for(let i=0;i<d.length;i++){ const w=Math.random()*2-1;
+      b0=0.99765*b0+w*0.0990460; b1=0.96300*b1+w*0.2965164; b2=0.57000*b2+w*1.0526913;
+      d[i]=(b0+b1+b2+w*0.1848)*0.32; } });
+  const CRK=mk(4.0,(d,sr)=>{ let i=0;
+    while(i<d.length){ i+=(sr*(0.006+Math.random()*0.07))|0; if(i>=d.length)break;
+      const amp=(Math.random()*2-1)*(Math.random()<0.07?0.95:0.22), len=(sr*0.0018)|0;
+      for(let k=0;k<len&&i+k<d.length;k++) d[i+k]+=amp*(1-k/len); } });
+  const master=ctx.createGain(); master.gain.value=MASTER_G;
+  const limiter=ctx.createDynamicsCompressor();
+  limiter.threshold.value=-8; limiter.knee.value=0; limiter.ratio.value=20;
+  limiter.attack.value=0.003; limiter.release.value=0.12;
+  master.connect(limiter); limiter.connect(ctx.destination);
+  const busMusic=ctx.createGain(), busSfx=ctx.createGain(), busUi=ctx.createGain(), busAmb=ctx.createGain();
+  busMusic.gain.value=0.55; busSfx.gain.value=0.85; busUi.gain.value=0.55; busAmb.gain.value=AMB_G;
+  const duck=ctx.createGain(); duck.gain.value=1;
+  busMusic.connect(duck); busAmb.connect(duck); duck.connect(master);
+  busSfx.connect(master); busUi.connect(master);
+  let verbIn=null;
+  try{
+    const dur=0.55, ir=ctx.createBuffer(2,(SR*dur)|0,SR);
+    for(let ch=0;ch<2;ch++){ const d=ir.getChannelData(ch); let lp=0;
+      for(let i=0;i<d.length;i++){ const t=i/SR, e=Math.pow(1-t/dur,2.4)*Math.exp(-t*5.5);
+        lp+=((Math.random()*2-1)-lp)*0.34; d[i]=lp*e*(i<SR*0.008?i/(SR*0.008):1); } }
+    const cv=ctx.createConvolver(); cv.buffer=ir; cv.normalize=true;
+    const pre=ctx.createBiquadFilter(); pre.type='lowpass'; pre.frequency.value=3000;
+    const wet=ctx.createGain(); wet.gain.value=0.85;
+    verbIn=ctx.createGain(); verbIn.gain.value=1;
+    verbIn.connect(pre); pre.connect(cv); cv.connect(wet); wet.connect(master);
+  }catch(e){ verbIn=null; }
+  return {ctx,master,limiter,busMusic,busSfx,busUi,busAmb,duck,verbIn,NZ,PINK,CRK,live:0,peakLive:0,voices:0};
+}
+function applyMuteGain(fade){
+  if(!AB) return; const t=AB.ctx.currentTime, g=AB.master.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value,t);
+  g.linearRampToValueAtTime(muted?0.0001:MASTER_G, t+(fade==null?0.04:fade));
+}
+/* ONE rule for "the world should be quiet": tab hidden OR game paused. Only music+ambience
+   ride the duck bus, so a pause/resume click is still audible while the radio stays off.
+   This is the fix for tab-return-while-paused starting the radio over the pause overlay. */
+function applyAudioState(fade){
+  if(!AB) return; const t=AB.ctx.currentTime, g=AB.duck.gain;
+  const quiet=document.hidden||isPaused();
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value,t);
+  g.linearRampToValueAtTime(quiet?0.0001:1, t+(fade==null?0.15:fade));
+}
+/* nothing leaks: every voice disconnects itself. onended is the primary path; the timer is
+   for an autoplay-blocked (suspended) context, where `ended` never fires at all. */
+function reg(nodes,src,end){
+  if(!AB) return; const ctx=AB.ctx;
+  AB.live+=nodes.length; AB.voices++; if(AB.live>AB.peakLive) AB.peakLive=AB.live;
+  let dead=false;
+  const kill=()=>{ if(dead)return; dead=true;
+    for(let i=0;i<nodes.length;i++){ try{nodes[i].disconnect();}catch(e){} }
+    if(AB) AB.live-=nodes.length; };
+  if(src) src.onended=kill;
+  setTimeout(()=>{ if(ctx.state!=='running'||ctx.currentTime>=end-0.02) kill(); },
+    Math.max(0,(end-ctx.currentTime))*1000+400);
+}
+/* pitched voice. Linear attack (the old setValueAtTime step was a broadband click on every
+   single cue), optional hold, exponential release. NEVER write t=t||now: t=0 is falsy and is
+   also the first sample of an OfflineAudioContext, which silently teleports every cue. */
+function tone(o_){
+  const ctx=AB.ctx;
+  const p=Object.assign({f:440,f2:0,type:'sine',t:null,a:0.005,d:0.14,peak:0.3,dest:AB.busSfx,
+    glide:0,det:0,lp:0,lpQ:0.7,bp:0,bpQ:4,verb:0,hold:0,vib:0,vibF:5},o_);
+  const t=(p.t!=null?p.t:ctx.currentTime);
+  const o=ctx.createOscillator(), g=ctx.createGain(), nodes=[o,g];
+  o.type=p.type; o.frequency.setValueAtTime(p.f,t);
+  if(p.f2) o.frequency.exponentialRampToValueAtTime(Math.max(1,p.f2), t+(p.glide||p.d));
+  if(p.det) o.detune.setValueAtTime(p.det,t);
+  let head=o;
+  if(p.vib){ const lfo=ctx.createOscillator(), lg=ctx.createGain();
+    lfo.frequency.value=p.vibF; lg.gain.value=p.vib; lfo.connect(lg); lg.connect(o.frequency);
+    lfo.start(t); lfo.stop(t+p.a+p.hold+p.d+0.05); nodes.push(lfo,lg); }
+  if(p.lp){ const f=ctx.createBiquadFilter(); f.type='lowpass';  f.frequency.setValueAtTime(p.lp,t); f.Q.value=p.lpQ; head.connect(f); head=f; nodes.push(f); }
+  if(p.bp){ const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(p.bp,t); f.Q.value=p.bpQ; head.connect(f); head=f; nodes.push(f); }
+  head.connect(g);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(p.peak,t+p.a);
+  if(p.hold) g.gain.setValueAtTime(p.peak,t+p.a+p.hold);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+p.a+p.hold+p.d);
+  g.connect(p.dest);
+  if(p.verb&&AB.verbIn){ const v=ctx.createGain(); v.gain.value=p.verb; g.connect(v); v.connect(AB.verbIn); nodes.push(v); }
+  const end=t+p.a+p.hold+p.d+0.03;
+  o.start(t); o.stop(end); reg(nodes,o,end); return end;
+}
+/* filtered-noise voice: all percussion, the stamp body, rain, paper and the match strike */
+function nz(o_){
+  const ctx=AB.ctx;
+  const p=Object.assign({b:AB.NZ,t:null,a:0.001,d:0.09,peak:0.3,ft:'bandpass',f:2000,f2:0,Q:1.2,
+    dest:AB.busSfx,verb:0,rate:1,hold:0},o_);
+  const t=(p.t!=null?p.t:ctx.currentTime);
+  const s=ctx.createBufferSource(), f=ctx.createBiquadFilter(), g=ctx.createGain(), nodes=[s,f,g];
+  s.buffer=p.b; s.playbackRate.value=p.rate;
+  if(p.b.duration>0.5){ s.loopStart=0; s.loopEnd=p.b.duration; s.loop=true; }
+  f.type=p.ft; f.frequency.setValueAtTime(p.f,t); f.Q.value=p.Q;
+  if(p.f2) f.frequency.exponentialRampToValueAtTime(Math.max(20,p.f2), t+p.a+p.hold+p.d);
+  s.connect(f); f.connect(g); g.connect(p.dest);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(p.peak,t+p.a);
+  if(p.hold) g.gain.setValueAtTime(p.peak,t+p.a+p.hold);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+p.a+p.hold+p.d);
+  if(p.verb&&AB.verbIn){ const v=ctx.createGain(); v.gain.value=p.verb; g.connect(v); v.connect(AB.verbIn); nodes.push(v); }
+  const end=t+p.a+p.hold+p.d+0.02;
+  s.start(t, Math.random()*Math.max(0.001,p.b.duration-0.3));   /* random offset = free variation */
+  s.stop(end); reg(nodes,s,end); return end;
+}
+/* sidechain: music+ambience drop under every stinger so the stamp always cuts through.
+   Skipped while quiet, so it can never fight applyAudioState() back up to full. */
+function duckNow(amt,hold,rel,t){
+  if(!AB||document.hidden||isPaused()) return;
+  const ctx=AB.ctx; t=(t!=null?t:ctx.currentTime); amt=amt||0.42; hold=hold||0.10; rel=rel||0.34;
+  const g=AB.duck.gain;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value,t);
+  g.linearRampToValueAtTime(amt,t+0.012);
+  g.setValueAtTime(amt,t+0.012+hold);
+  g.setTargetAtTime(1,t+0.012+hold,rel/3);
+}
+/* THE STAMP -- 3 layers, ~130ms: wood body, sub drop into the desk, paper slap. Both
+   verdicts are this same rubber stamp on different paperwork, plus a musical tail. */
+function stamp(t,flavour){
+  const dark=(flavour==='wrong');
+  nz({t,ft:'bandpass',f:dark?140:190,f2:dark?70:95,Q:1.3,a:0.0012,d:dark?0.20:0.13,peak:0.55,verb:0.22});
+  tone({t,f:dark?76:96,f2:dark?42:52,glide:dark?0.11:0.085,type:'sine',a:0.002,d:dark?0.24:0.17,peak:0.5,verb:0.16});
+  nz({t:t+0.001,ft:'bandpass',f:dark?2400:3400,f2:dark?1400:2000,Q:0.9,a:0.0008,d:0.035,peak:0.26,verb:0.10});
+  duckNow(dark?0.30:0.42, dark?0.16:0.10, 0.34, t);
+  return t+0.26;
+}
+/* SIX TYPE TIMBRES -- the colourblind aid's twin, in the other sense. Each differs on three
+   independent axes (spectral centroid, onset count, duration) so they are learnable blind
+   and survive a phone speaker or hearing loss in any one band. */
+const TYPE_CUE={
+  string(t,d){
+    nz({t,ft:'bandpass',f:2600,f2:4200,Q:1.1,a:0.006,d:0.085,peak:0.40,dest:d,verb:0.12});
+    return tone({t:t+0.004,f:523.25,type:'triangle',a:0.008,d:0.16,peak:0.17,lp:3000,dest:d,verb:0.14}); },
+  number(t,d){
+    tone({t,f:1318.5,type:'sine',a:0.002,d:0.10,peak:0.055,dest:d,verb:0.10});
+    return tone({t,f:659.25,type:'sine',a:0.003,d:0.30,peak:0.165,dest:d,verb:0.16}); },
+  boolean(t,d){
+    tone({t,f:784,type:'square',a:0.003,d:0.055,peak:0.125,lp:2600,dest:d});
+    return tone({t:t+0.062,f:1046.5,type:'square',a:0.003,d:0.085,peak:0.125,lp:3200,dest:d,verb:0.10}); },
+  null(t,d){
+    nz({t,ft:'lowpass',f:420,f2:160,Q:0.9,a:0.002,d:0.13,peak:0.22,dest:d});
+    return tone({t,f:220,f2:110,glide:0.13,type:'sine',a:0.004,d:0.22,peak:0.26,lp:700,dest:d,verb:0.10}); },
+  /* measured: at 55ms spacing / 75ms decay the three plucks smear into two onsets and the
+     centroid lands 1.23x off boolean, which is not separable. 64ms apart, 58ms decay and a
+     darker corner gives three distinct onsets a full octave under boolean. */
+  array(t,d){ let e=t;
+    [440,554.37,659.25].forEach((f,i)=>{ e=tone({t:t+i*0.064,f,type:'sawtooth',a:0.002,d:0.058,
+      peak:0.15,lp:1050+i*220,lpQ:2.2,dest:d,verb:i===2?0.14:0.05}); });
+    return e; },
+  object(t,d){ let e=t;
+    [293.66,440,587.33].forEach((f,i)=>{ e=tone({t,f,type:'sine',a:0.028,d:0.34,
+      peak:i===0?0.105:0.062,det:i*3,lp:2200,dest:d,verb:0.20}); });
+    return e; }
+};
+const CUES={
+  /* ---- verdicts ---- */
+  correct(t){ stamp(t,'ok');
+    tone({t:t+0.055,f:392,type:'sawtooth',a:0.012,d:0.16,peak:0.13,lp:1100,lpQ:3,verb:0.20});
+    return tone({t:t+0.135,f:587.33,type:'sawtooth',a:0.014,d:0.30,peak:0.14,lp:1300,lpQ:3,verb:0.28,vib:3.5,vibF:5.5}); },
+  wrong(t){ stamp(t,'wrong');
+    tone({t:t+0.05,f:196,f2:174.6,glide:0.34,type:'sawtooth',a:0.02,d:0.42,peak:0.13,lp:800,lpQ:2,verb:0.2});
+    return tone({t:t+0.05,f:207.65,type:'sawtooth',a:0.02,d:0.40,peak:0.10,lp:800,lpQ:2,det:-14,verb:0.2}); },
+  bossdown(t){ stamp(t,'ok'); let e=0;
+    [523.25,622.25,784,1046.5].forEach((f,i)=>{ e=tone({t:t+0.09+i*0.075,f,type:'sawtooth',a:0.012,
+      d:i===3?0.5:0.16,peak:0.14,lp:1500,lpQ:3,verb:0.3,vib:i===3?4:0}); });
+    nz({t:t+0.09,ft:'bandpass',f:5200,f2:2400,Q:0.8,a:0.002,d:0.5,peak:0.09,verb:0.3});
+    duckNow(0.34,0.30,0.5,t); return e; },
+  perfect(t){
+    nz({t,ft:'bandpass',f:1800,f2:900,Q:0.8,a:0.01,d:0.22,peak:0.34,verb:0.2}); let e=0;
+    [349.23,466.16,622.25,830.61].forEach((f,i)=>{ e=tone({t:t+i*0.10,f,type:'triangle',a:0.01,
+      d:i===3?0.55:0.2,peak:0.19,lp:2600,verb:0.28}); });
+    duckNow(0.4,0.25,0.45,t); return e; },
+  levelup(t){ CUES.paper(t); let e=0;
+    [261.63,311.13,392,466.16,523.25].forEach((f,i)=>{ e=tone({t:t+0.06+i*0.085,f,type:'triangle',
+      a:0.008,d:i===4?0.45:0.17,peak:0.185,lp:2400,verb:0.24}); });
+    duckNow(0.45,0.22,0.4,t); return e; },
+  victory(t){ stamp(t,'ok'); let e=0;
+    [130.81,196,261.63,311.13,392,523.25,587.33].forEach((f,i)=>{ e=tone({t:t+0.06+i*0.085,f,
+      type:i<2?'triangle':'sawtooth',a:0.02,d:i===6?1.5:0.7,peak:i<2?0.16:0.09,lp:1400+i*220,lpQ:2.5,
+      verb:0.35,vib:i>3?4:0}); });
+    nz({t:t+0.06,ft:'bandpass',f:6000,f2:1800,Q:0.7,a:0.05,d:1.1,peak:0.07,verb:0.4});
+    duckNow(0.25,0.9,0.8,t); return e; },
+  gameover(t){ let e=0;
+    [392,311.13,246.94,185].forEach((f,i)=>{ e=tone({t:t+i*0.20,f,f2:f*(i===3?0.72:0.97),
+      glide:i===3?0.9:0.3,type:'sawtooth',a:0.02,d:i===3?1.0:0.30,peak:0.13,lp:900,lpQ:2,verb:0.3});
+      tone({t:t+i*0.20,f:f/2,type:'sine',a:0.02,d:0.3,peak:0.10}); });
+    nz({t:t+0.62,ft:'lowpass',f:900,f2:180,Q:0.9,a:0.15,d:1.0,peak:0.12,verb:0.3});
+    return e; },
+  /* ---- timer ---- */
+  tick(t,i){ const j=(i||0)%3;
+    nz({t,ft:'bandpass',f:5200+j*400,Q:3.5,a:0.0008,d:0.026,peak:0.60,dest:AB.busUi});
+    return tone({t,f:[1244.5,1318.5,1396.9][j],type:'square',a:0.001,d:0.030,peak:0.10,lp:4000,dest:AB.busUi}); },
+  tickhot(t,i){ const j=(i||0)%3;
+    tone({t,f:[92,98,104][j],type:'sine',a:0.002,d:0.13,peak:0.30});
+    return tone({t:t+0.14,f:[74,78,82][j],type:'sine',a:0.002,d:0.16,peak:0.20}); },
+  count(t,n){
+    if(n>0){ nz({t,ft:'bandpass',f:1200+(3-n)*260,Q:9,a:0.001,d:0.10,peak:0.28,verb:0.18});
+      return tone({t,f:[349.23,349.23,415.3,466.16][Math.min(n,3)],type:'triangle',a:0.003,d:0.16,peak:0.14,verb:0.2}); }
+    nz({t,ft:'bandpass',f:2600,f2:5200,Q:0.9,a:0.002,d:0.12,peak:0.22,verb:0.2});
+    return tone({t,f:698.46,type:'sawtooth',a:0.006,d:0.34,peak:0.16,lp:2000,lpQ:2.5,verb:0.26}); },
+  /* ---- UI / world foley ---- */
+  /* measured at -27.7 dBFS with Q 2.6 -- a high-Q bandpass throws away most broadband energy,
+     so noise voices need several times the drive a tone voice does. Q down, peak up. */
+  hover(t){ return nz({t,ft:'bandpass',f:3200+Math.random()*700,Q:2.0,a:0.001,d:0.024,peak:0.58,dest:AB.busUi}); },
+  click(t){
+    nz({t,ft:'bandpass',f:2400+Math.random()*900,Q:2.2,a:0.0008,d:0.030,peak:0.62,dest:AB.busUi,verb:0.08});
+    return tone({t,f:170+Math.random()*40,f2:110,glide:0.04,type:'square',a:0.001,d:0.045,peak:0.11,lp:900,dest:AB.busUi}); },
+  deny(t){ tone({t,f:146.83,type:'sawtooth',a:0.004,d:0.13,peak:0.14,lp:700,dest:AB.busUi});
+    return tone({t:t+0.075,f:138.59,type:'sawtooth',a:0.004,d:0.17,peak:0.13,lp:700,dest:AB.busUi}); },
+  buy(t){ let e=0; [659.25,880,1174.7].forEach((f,i)=>{ e=tone({t:t+i*0.06,f,type:'triangle',a:0.004,
+    d:i===2?0.28:0.10,peak:0.11,lp:3400,dest:AB.busUi,verb:0.16}); }); return e; },
+  ach(t){
+    nz({t,ft:'bandpass',f:230,f2:120,Q:1.2,a:0.001,d:0.10,peak:0.30,verb:0.2});
+    tone({t:t+0.05,f:830.61,type:'sine',a:0.003,d:0.26,peak:0.13,verb:0.24});
+    duckNow(0.5,0.06,0.28,t);
+    return tone({t:t+0.13,f:1108.7,type:'sine',a:0.003,d:0.40,peak:0.11,verb:0.3}); },
+  paper(t){ return nz({t,ft:'bandpass',f:2800,f2:1200,Q:0.75,a:0.012,d:0.19,peak:0.34,dest:AB.busUi,verb:0.14}); },
+  match(t){   /* the START sound: scrape, then a lowpassed flare. Sets the whole tone. */
+    nz({t,ft:'bandpass',f:1800,f2:5200,Q:0.7,a:0.004,d:0.11,peak:0.30,verb:0.2});
+    nz({t:t+0.10,b:AB.PINK,ft:'lowpass',f:1400,f2:500,Q:0.8,a:0.02,d:0.75,peak:0.22,verb:0.3});
+    return tone({t:t+0.10,f:110,f2:78,glide:0.5,type:'sine',a:0.03,d:0.6,peak:0.14,verb:0.2}); },
+  pause(t){ return tone({t,f:174.61,f2:130.81,glide:0.16,type:'triangle',a:0.006,d:0.22,peak:0.14,lp:1200,dest:AB.busUi,verb:0.16}); },
+  resume(t){ return tone({t,f:196,f2:261.63,glide:0.14,type:'triangle',a:0.006,d:0.22,peak:0.14,lp:1600,dest:AB.busUi,verb:0.16}); },
+  mode(t,boss){
+    if(boss){ tone({t,f:58.27,type:'sawtooth',a:0.03,d:0.9,peak:0.18,lp:300,verb:0.3});
+      tone({t,f:82.41,type:'sawtooth',a:0.03,d:0.9,peak:0.12,lp:340,det:-18,verb:0.3});
+      return nz({t,b:AB.PINK,ft:'lowpass',f:700,f2:200,Q:0.8,a:0.05,d:0.8,peak:0.14,verb:0.35}); }
+    nz({t,ft:'bandpass',f:1500,f2:700,Q:0.8,a:0.008,d:0.16,peak:0.14,verb:0.16});
+    return tone({t,f:311.13,f2:415.3,glide:0.12,type:'triangle',a:0.008,d:0.30,peak:0.13,lp:2200,verb:0.22}); },
+  power(t){ let e=0; [523.25,784,1046.5].forEach((f,i)=>{ e=tone({t:t+i*0.05,f,type:'triangle',a:0.004,
+    d:i===2?0.3:0.09,peak:0.11,lp:3000,dest:AB.busUi,verb:0.18,vib:i===2?5:0}); }); return e; },
+  lowlife(t){ tone({t,f:70,type:'sine',a:0.004,d:0.20,peak:0.34});
+    return tone({t:t+0.19,f:58,type:'sine',a:0.004,d:0.26,peak:0.24,verb:0.14}); }
+};
+Object.keys(TYPE_CUE).forEach(k=>{ CUES['type_'+k]=t=>TYPE_CUE[k](t,AB.busUi); });
+/* the whole API surface: cue('correct'). Mute + boot + unknown-name checks live in here, which
+   is what deleted ~25 copies of the if(!muted){initAudio();beep(...)} idiom. */
+function cue(name,t,arg){
+  if(muted) return 0; if(!initAudio()) return 0;
+  if(!Object.prototype.hasOwnProperty.call(CUES,name)) return 0;
+  try{ return CUES[name](t!=null?t:actx.currentTime,arg); }catch(e){ return 0; }
+}
+function cueIn(name,delay,arg){ if(muted||!initAudio()) return 0; return cue(name,actx.currentTime+(delay||0),arg); }
+let _lastHover=0;
+function cueHover(){ const n=(typeof performance!=='undefined'?performance.now():Date.now());
+  if(n-_lastHover<70) return; _lastHover=n; cue('hover'); }
+/* legacy shim, same signature. vol*1.6 compensates busUi=0.55, so it is level-neutral. */
+function beep(freq,dur,type,vol){
+  if(muted) return; if(!initAudio()) return;
+  tone({f:freq,type:type||'square',a:0.0015,d:(dur==null?0.1:dur),peak:(vol==null?0.05:vol)*1.6,dest:AB.busUi});
+}
+const sCorrect=()=>cue('correct');
+const sWrong  =()=>cue('wrong');
+const sTick   =(i)=>cue('tick',null,i);
+const sLevel  =()=>cue('levelup');
+const sOver   =()=>cue('gameover');
+$('soundBtn').addEventListener('click',()=>{ muted=!muted; localStorage.setItem('jw_mute',muted?'1':'0'); $('soundBtn').textContent=muted?'🔇':'🔊';
+  if(!muted){ initAudio(); applyMuteGain(); if(rainOn) ambStart(); cue('click'); } else applyMuteGain(); });
+
+/* ===================== AMBIENCE: rain + vinyl ===================== */
+/* The cheapest noir in the build: two looping buffers, 9 nodes, ~1% of one core. Unlike the
+   radio it competes with nothing, so it defaults ON. Untrusted key -- anything but "0" is ON. */
+let rainOn=true; try{ rainOn=(localStorage.getItem('jw_rain')!=='0'); }catch(e){ rainOn=true; }
+let AMB=null;
+function ambStart(){
+  if(AMB||!initAudio()) return; const ctx=AB.ctx, t=ctx.currentTime;
+  try{
+    const rs=ctx.createBufferSource(); rs.buffer=AB.PINK; rs.loop=true;
+    const rlp=ctx.createBiquadFilter(); rlp.type='lowpass'; rlp.frequency.value=2600; rlp.Q.value=0.6;
+    const rhp=ctx.createBiquadFilter(); rhp.type='highpass'; rhp.frequency.value=380;
+    const rg=ctx.createGain(); rg.gain.value=0.0001;
+    const gust=ctx.createOscillator(), gg=ctx.createGain();     /* 0.07Hz gust on the LP corner */
+    gust.frequency.value=0.07; gg.gain.value=700; gust.connect(gg); gg.connect(rlp.frequency);
+    rs.connect(rhp); rhp.connect(rlp); rlp.connect(rg); rg.connect(AB.busAmb);
+    const cs=ctx.createBufferSource(); cs.buffer=AB.CRK; cs.loop=true; cs.playbackRate.value=0.97;
+    const chp=ctx.createBiquadFilter(); chp.type='highpass'; chp.frequency.value=1400;
+    const cg=ctx.createGain(); cg.gain.value=0.0001;
+    cs.connect(chp); chp.connect(cg); cg.connect(AB.busAmb);
+    rg.gain.setValueAtTime(0.0001,t); rg.gain.linearRampToValueAtTime(0.30,t+2.5);
+    cg.gain.setValueAtTime(0.0001,t); cg.gain.linearRampToValueAtTime(0.16,t+1.5);
+    rs.start(t); cs.start(t); gust.start(t);
+    AMB={rs,cs,gust,rg,cg,nodes:[rs,rhp,rlp,rg,cs,chp,cg,gust,gg]};
+    AB.live+=AMB.nodes.length; if(AB.live>AB.peakLive) AB.peakLive=AB.live;
+  }catch(e){ AMB=null; }
+}
+function ambStop(){
+  if(!AMB||!AB) return; const t=AB.ctx.currentTime, a=AMB; AMB=null;
+  try{
+    a.rg.gain.cancelScheduledValues(t); a.rg.gain.setTargetAtTime(0.0001,t,0.25);
+    a.cg.gain.cancelScheduledValues(t); a.cg.gain.setTargetAtTime(0.0001,t,0.25);
+    const end=t+1.2; a.rs.stop(end); a.cs.stop(end); a.gust.stop(end);
+    let dead=false;
+    const kill=()=>{ if(dead)return; dead=true; a.nodes.forEach(n=>{ try{n.disconnect();}catch(e){} });
+      if(AB) AB.live-=a.nodes.length; };
+    a.rs.onended=kill; setTimeout(kill,1800);
+  }catch(e){}
+}
+function reflectRain(){ const t=$('rainToggle'); if(t){ t.setAttribute('aria-pressed',rainOn?'true':'false'); t.innerHTML='&#127783; Rain: '+(rainOn?'ON':'OFF'); } }
+function toggleRain(){ rainOn=!rainOn; try{ localStorage.setItem('jw_rain',rainOn?'1':'0'); }catch(e){}
+  reflectRain(); if(rainOn){ ambStart(); cue('paper'); } else { ambStop(); cue('click'); } }
+{ const rt=$('rainToggle'); if(rt) rt.addEventListener('click',toggleRain); }
+reflectRain();
 
 /* ===================== STAKEOUT RADIO (noir loop, off by default) ===================== */
 let musicPref=(localStorage.getItem('jw_music')==='1');
@@ -1513,9 +1842,17 @@ let musicOn=false, musMaster=null, musTimer=null, musStep=0, musTime=0;
 const MUS_ROOT=[0,-3,-5,-1];
 const MUS_ARP=[0,7,10,7,3,12,10,7];
 const midi=n=>220*Math.pow(2,n/12);
-function musNote(f,t,d,type,v){ if(!actx)return; const o=actx.createOscillator(),g=actx.createGain(); o.type=type;o.frequency.value=f;o.connect(g);g.connect(musMaster);
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.014); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.start(t); o.stop(t+d+0.03); }
-function musSchedule(){ if(!musicOn||!actx)return;
+function musNote(f,t,d,type,v){ if(!actx||!musMaster)return; const o=actx.createOscillator(),g=actx.createGain(); o.type=type;o.frequency.value=f;o.connect(g);g.connect(musMaster);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.014); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.start(t); o.stop(t+d+0.03);
+  /* the gain used to stay wired to the destination for ever -- at ~40 notes/sec that is real
+     garbage. Everything that connects now disconnects on ended. */
+  reg([o,g],o,t+d+0.03); }
+function musSchedule(){ if(!musicOn||!actx||!musMaster)return;
+  if(document.hidden) return;
+  /* a hidden tab throttles setInterval to ~1Hz, so musTime falls seconds behind and the
+     while-loop below used to dump every missed note at a PAST time -- i.e. all at once, as a
+     burst, the moment you came back. Resync instead of catching up. */
+  if(musTime<actx.currentTime) musTime=actx.currentTime+0.06;
   const lvl=state.playing?state.level:1; const hot=state.streak>=4;
   const bpm=92+Math.min(lvl*3,42)+(hot?20:0); const spb=60/bpm/2;
   while(musTime<actx.currentTime+0.22){
@@ -1525,20 +1862,25 @@ function musSchedule(){ if(!musicOn||!actx)return;
     if(hot && musStep%2===1) musNote(midi(root+17),musTime,spb*0.35,'square',0.018);
     musStep++; musTime+=spb;
   } }
-function startMusic(){ initAudio(); if(!actx||musicOn)return; if(actx.state==='suspended'){try{actx.resume();}catch(e){}}
-  if(!musMaster){ musMaster=actx.createGain(); musMaster.gain.value=0.5; musMaster.connect(actx.destination); }
-  musicOn=true; musStep=0; musTime=actx.currentTime+0.1; musTimer=setInterval(musSchedule,25); reflectMusic(); }
+function startMusic(){ if(!initAudio()||musicOn)return;
+  /* onto busMusic, not straight to the destination: that is what puts the radio under the
+     master mute and under the stinger duck. 1.0 * busMusic .55 * master .9 == the old 0.5. */
+  if(!musMaster){ musMaster=actx.createGain(); musMaster.gain.value=1; musMaster.connect(AB.busMusic); }
+  musicOn=true; musStep=0; musTime=actx.currentTime+0.1; musTimer=setInterval(musSchedule,25); reflectMusic(); applyAudioState(0.2); }
 function stopMusic(){ musicOn=false; if(musTimer){clearInterval(musTimer);musTimer=null;} reflectMusic(); }
 function reflectMusic(){ $('musicBtn').classList.toggle('off',!musicOn); const tg=$('musicToggle'); if(tg){ tg.setAttribute('aria-pressed',musicOn?'true':'false'); tg.innerHTML='🎵 Radio: '+(musicOn?'ON':'OFF'); } }
 function toggleMusic(){ musicPref=!musicOn; localStorage.setItem('jw_music',musicPref?'1':'0'); if(musicPref)startMusic(); else stopMusic(); }
 $('musicBtn').addEventListener('click',toggleMusic);
 $('musicToggle').addEventListener('click',toggleMusic);
-addEventListener('visibilitychange',()=>{ if(document.hidden && musMaster) musMaster.gain.value=0; else if(musMaster) musMaster.gain.value=0.5; });
+/* was: gain=0.5 unconditionally on return, so hiding the tab while PAUSED (or with the radio
+   switched off) brought the music back over the pause overlay. One rule now, and it is
+   pause-aware. Ambience rides the same bus, so the rain goes with it. */
+addEventListener('visibilitychange',()=>{ applyAudioState(); });
 
 /* ===================== COLORBLIND AID ===================== */
 let cbOn=(localStorage.getItem('jw_cb')==='1'); document.body.classList.toggle('cb',cbOn);
 function reflectCB(){ const t=$('cbToggle'); if(t){ t.setAttribute('aria-pressed',cbOn?'true':'false'); t.innerHTML='👁 Colorblind aid: '+(cbOn?'ON':'OFF'); } }
-$('cbToggle').addEventListener('click',()=>{ cbOn=!cbOn; localStorage.setItem('jw_cb',cbOn?'1':'0'); document.body.classList.toggle('cb',cbOn); reflectCB(); if(!muted){initAudio();beep(cbOn?700:460,0.06);} });
+$('cbToggle').addEventListener('click',()=>{ cbOn=!cbOn; localStorage.setItem('jw_cb',cbOn?'1':'0'); document.body.classList.toggle('cb',cbOn); reflectCB(); cue('click'); });
 reflectCB();
 
 /* ===================== PARALLAX ===================== */
@@ -1548,7 +1890,9 @@ if(!touch&&!reduced){ const ht=document.querySelector('.halftone'), pl=document.
 
 /* ===================== JUICE ===================== */
 function speedLines(boss){ if(reduced)return; const el=$('speedlines'); if(!el)return; el.classList.toggle('boss',!!boss); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
-function screenFlash(){ if(reduced)return; const el=$('flash'); if(!el)return; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); if(!muted){initAudio();beep(1280,0.05,'square',0.04);setTimeout(()=>beep(1700,0.07,'square',0.04),55);} }
+/* the sound is NOT behind the reduced gate: reduced motion removes motion, never audio. The
+   flash is the motion; the rising triple is the reward, and everybody gets it. */
+function screenFlash(){ cue('power'); if(reduced)return; const el=$('flash'); if(!el)return; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
 function confetti(){ if(reduced)return; const vars=['--red','--yellow','--blue','--green','--purple','--pink'];
   const cols=vars.map(v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim());
   for(let i=0;i<30;i++){ const el=document.createElement('div'); el.className='confetti'; el.style.background=cols[i%cols.length];
@@ -1990,7 +2334,7 @@ function claimWarrant(which){
   if(fromKbd){ const nx=document.querySelector('#warrantBoard .wclaim.ready')||$('startBtn');
     if(nx){ try{ nx.focus({preventScroll:true}); }catch(e){} } }
   toast({ic:'▩',name:'Warrant signed off',desc:'+'+def.cp+' CP into your clearance'},'Filed');
-  if(!muted){initAudio();[660,880,1180].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} }
+  cue('ach'); }
 function warrantsReady(){ return [W.d,W.w,W.s].filter(s=>wdef(s)&&s.done&&!s.claimed).length; }
 function renderWarrants(){
   const grp=$('warrantGroup'), g=$('warrantBoard'); if(!grp||!g)return;
@@ -2039,7 +2383,7 @@ function modNames(list){ return cleanMods(list).map(id=>MODS[id].n.toUpperCase()
 function toggleMod(id){ if(!Object.prototype.hasOwnProperty.call(MODS,id))return;
   const cur=cleanMods(META.mods), i=cur.indexOf(id);
   if(i>=0) cur.splice(i,1);
-  else { if(cur.length>=MOD_MAX){ if(!muted){initAudio();beep(150,0.18,'sawtooth',0.05);} return; } cur.push(id); }
+  else { if(cur.length>=MOD_MAX){ cue('deny'); return; } cur.push(id); }
   META.mods=cur; saveMeta();
   /* renderMods() replaces the row wholesale, which throws away the focused chip.
      Put focus back on the same chip, or a keyboard user is thrown to the top of the
@@ -2048,7 +2392,7 @@ function toggleMod(id){ if(!Object.prototype.hasOwnProperty.call(MODS,id))return
   const keep=!!(ae&&ae.getAttribute&&ae.getAttribute('data-mod')===id);
   renderMods();
   if(keep){ const b=document.querySelector('#modRow [data-mod="'+id+'"]'); if(b){ try{ b.focus({preventScroll:true}); }catch(e){} } }
-  if(!muted){initAudio();beep(i>=0?420:640,0.06,'square',0.04);} }
+  cue('click'); }
 function renderMods(){
   const grp=$('modGroup'), row=$('modRow'); if(!grp||!row)return;
   grp.classList.toggle('hidden',!has('modifiers'));
@@ -2204,7 +2548,7 @@ function showPerkDraft(cb){
   $('draftOverlay').classList.remove('hidden');
   try{ $('gpanel').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'}); }catch(e){}
   bark('perkDraft');
-  if(!muted){initAudio();[660,880].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*90));}
+  cue('paper'); cueIn('mode',0.14,false);          /* the draft is case files being shuffled */
   if(window._bindCursor)window._bindCursor();
   host._auto=setTimeout(()=>{ if(host._done)return; host._done=1; $('draftOverlay').classList.add('hidden'); applyPerk(rand(pick)); cb(); },20000);
 }
@@ -2235,7 +2579,7 @@ function showBriefing(day,cb,fast){
   const go=()=>{ if(done)return; done=true; clearTimeout(ov._auto); ov.classList.add('hidden'); cb(); };
   btn.onclick=go; ov.classList.remove('hidden');
   try{ $('gpanel').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'}); }catch(e){}
-  if(!muted){initAudio();beep(300,0.1,'sawtooth',0.05);}
+  cue('paper');
   ov._auto=setTimeout(go, reduced?200:(fast?1800:3400));
 }
 function dayStartEffects(){ state.duckUsed=false;
@@ -2268,8 +2612,8 @@ function renderUpgrades(){ const g=$('upGrid'); if(!g)return; g.innerHTML='';
 function buyUpgrade(id,btn){ const u=UPGRADES[id]; if(!u||UPS.has(id))return;
   if(wallet>=u.cost){ wallet-=u.cost; UPS.add(id); saveUps(); saveShop(); reflectWallet(); renderUpgrades(); confetti();
     toast({ic:u.ic,name:u.n,desc:'Permanent upgrade!'},'Requisitioned'); setTimeout(()=>bark('buyUpgrade'),600);
-    if(!muted){initAudio();[620,830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} }
-  else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} if(!muted){initAudio();beep(150,0.2,'sawtooth',0.06);} } }
+    cue('buy'); }
+  else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} cue('deny'); } }
 
 /* ===================== DETECTIVE RANK (persistent XP) ===================== */
 const RANKS=[[0,'Prompt Goblin'],[2000,'Accept-All Enjoyer'],[6000,'Junior Detective'],[15000,'Type Detective'],[30000,'Lead Detective'],[60000,"JSON's Nemesis"]];
@@ -2344,7 +2688,7 @@ function winGame(){
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
   document.querySelector('.stat.combo').classList.remove('fire'); timerBar.classList.remove('frozen');
   $('winOverlay').classList.remove('hidden');
-  if(!muted){initAudio();[523,659,784,1046,1318].forEach((f,i)=>setTimeout(()=>beep(f,0.16,'triangle',0.06),i*130));}
+  cue('victory');
   confetti(); setTimeout(confetti,500); setTimeout(confetti,1000); vibrate([40,60,40,60,120]);
 }
 $('endlessBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); state.playing=true; state.endless=true;
@@ -2365,7 +2709,8 @@ const ico = id => `<svg class="di" aria-hidden="true"><use href="#di-${id}"/></s
 const answersHost=$('answers');
 TYPES.forEach(t=>{ const b=document.createElement('button'); b.className='abtn '+t.id; b.dataset.id=t.id;
   b.innerHTML=`<span class="key">${t.key}</span>${ico(t.id)}${t.label}<span class="ex mono">${t.ex.replace(/</g,'&lt;')}</span>`;
-  b.addEventListener('click',()=>answer(t.id)); answersHost.appendChild(b); });
+  b.addEventListener('click',()=>answer(t.id));
+  b.addEventListener('pointerenter',cueHover); answersHost.appendChild(b); });
 if(window._bindCursor) window._bindCursor();
 
 /* ---- balance v2 save migration: score deflated ~0.55x, so veterans' own ghosts
@@ -2505,7 +2850,7 @@ function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const
   b.classList.toggle('armed', id==='double'&&state.doubleArmed); }); }
 function grantPower(id){ if(modOn('notools'))return;      /* NO REQUISITION: the closet is locked */
   if(!POWERS[id])return; if(state.powers[id]>=(TOOL_CAPS[id]||99))return;   /* no hoarding */
-  state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Vibe tool acquired!'},'New tool'); if(!muted){initAudio();beep(680,0.06,'triangle',0.05);setTimeout(()=>beep(1020,0.09,'triangle',0.05),70);} renderPowers(); }
+  state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Vibe tool acquired!'},'New tool'); cue('power'); renderPowers(); }
 function usePower(id){ if(modOn('notools'))return;
   if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
   if(id==='life'){ if(state.lives>=state.maxLives)return; state.powers[id]--; state.lives=Math.min(state.maxLives,state.lives+1); }   /* heals, never raises the cap */
@@ -2513,7 +2858,7 @@ function usePower(id){ if(modOn('notools'))return;
   else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
   else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
-  state.usedAnyPower=true; state.dayUsedPower=true; unlock('powerup'); bark('tool_'+id); if(!muted){initAudio();beep(800,0.09,'triangle',0.05);} setHUD(); }
+  state.usedAnyPower=true; state.dayUsedPower=true; unlock('powerup'); bark('tool_'+id); cue('power'); setHUD(); }
 
 /* ===================== CASE FILES (achievements) ===================== */
 const ACH={
@@ -2536,7 +2881,7 @@ let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')
 const ACH_CP={firstblood:1,powerup:1,combo5:1, level5:2,hoarder:2,sharp:2,boss:2,
   combo10:3,level8:3,perfect:3,grand:3, caught:5};
 function achCP(id){ return Object.prototype.hasOwnProperty.call(ACH_CP,id)?ACH_CP[id]:1; }
-function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); awardCP(achCP(id),'case file'); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
+function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); awardCP(achCP(id),'case file'); toast(ACH[id],'Case file'); renderMedals(); cue('ach'); }
 /* one-time, silent back-pay: case files earned before the ladder existed still count.
    Runs after ACH_CP exists (META loads far earlier), and never runs twice. */
 (function backpayCP(){ if(META.bp) return; META.bp=1;
@@ -2557,7 +2902,7 @@ function qualifiesLB(sc){ if(sc<=0)return false; const lb=getLB(); return lb.len
 function renderLB(hi){ const ol=$('lbList'); if(!ol)return; const lb=getLB(); ol.innerHTML=''; if(!lb.length){ ol.innerHTML='<li><span class="rk">—</span><span class="nm">???</span><span class="sc">0</span></li>'; return; }
   lb.forEach((e,i)=>{ const li=document.createElement('li'); if(i===hi)li.className='you'; li.innerHTML=`<span class="rk">${i+1}</span><span class="nm">${esc(e.name)}</span><span class="sc">${e.score}</span>`; ol.appendChild(li); }); }
 
-document.querySelectorAll('#diffSel .diff').forEach(b=>b.addEventListener('click',()=>{ diff=b.dataset.diff; document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x===b)); reflectDiffSel(); if(!muted){initAudio();beep(500,0.06);} }));
+document.querySelectorAll('#diffSel .diff').forEach(b=>b.addEventListener('click',()=>{ diff=b.dataset.diff; document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x===b)); reflectDiffSel(); cue('click'); }));
 
 function renderLives(){ const el=$('lives'); el.innerHTML='';
   if(state.zen){ const z=document.createElement('span'); z.className='zen'; z.textContent='∞ STAKEOUT'; el.appendChild(z);
@@ -2612,10 +2957,14 @@ function runCountdown(done){
   addEventListener('keydown',skip,true); addEventListener('pointerdown',skip,true);
   (function step(){ if(ended)return; if(i>=seq.length){finish();return;}
     el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-    beep(340+i*260,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
+    cue('count',null,seq[i]==='GO!'?0:3); i++; setTimeout(step,640); })(); }
 
 function startGame(){
+  /* first user gesture that always reaches audio: boot the rack, strike the match, and bring
+     the rain up under it. Everything here is inside a click/keypress, so nothing autoplays. */
   initAudio(); closeAllModals();
+  cue('match');
+  if(rainOn) ambStart();
   if(musicPref && !musicOn) startMusic();
   /* EVERY run is seeded now (it used to be the daily only), which is what makes every run
      shareable as #c=<seed36>. A challenge link is honoured exactly once: replaying a
@@ -2660,7 +3009,7 @@ function startGame(){
 }
 function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.textContent=txt; el.classList.toggle('boss',!!boss);
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); if(reduced) setTimeout(()=>el.classList.remove('show'),1100);
-  if(!muted){ initAudio(); beep(boss?190:500,0.14,'sawtooth',0.05); if(boss)setTimeout(()=>beep(140,0.2,'sawtooth',0.05),150); } }
+  cue('mode',null,!!boss); }
 
 function buildValidRound(alt){
   const useValid=rnd()<0.5; let raw,reason='';
@@ -2767,6 +3116,7 @@ function nextRound(){
   } else if(mode==='spot'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildSpotRound(alt);
     $('question').innerHTML='&ldquo;Pick me out of the lineup. Quickly.&rdquo;'; announceMode('🎯 SPOT THE '+state.altTarget.toUpperCase());
+    cueIn('type_'+state.altTarget,0.20);      /* unknown names are a no-op, so count rounds are safe */
   } else {
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
     $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
@@ -2794,7 +3144,11 @@ function tick(now){
   timerFill.style.background = frac>0.5?'var(--green)':frac>0.25?'var(--yellow)':'var(--red)';
   const urgent=frac<0.28; $('gpanel').classList.toggle('urgent',urgent);
   if(!state.frozen) mascot.classList.toggle('sweating', urgent);
-  { const sec=Math.ceil(remain/1000); if(urgent && sec!==state.lastTick && sec>0){state.lastTick=sec;sTick();} }
+  /* two stages: a light 5kHz mechanical tick with a 3-way pitch rotation so 40 of them do not
+     fatigue, then a low 92->74Hz double-thump heartbeat in the last sliver. No reduced gate:
+     audio is not motion, and this heartbeat is the only warning some players get. */
+  { const sec=Math.ceil(remain/1000);
+    if(urgent && sec!==state.lastTick && sec>0){ state.lastTick=sec; cue(frac<0.14?'tickhot':'tick',null,sec); } }
   if(remain<=0){ if(state.mode!=='type'&&state.mode!=='boss') answerAlt(null,true); else answer(null); return; }
   requestAnimationFrame(tick);
 }
@@ -2835,7 +3189,7 @@ function awardCorrect(mult){
     if(rg==='always' || (rg==='clean'&&clean)) state.lives=Math.min(state.maxLives, state.lives+heal);
     if(state.level>=5)unlock('level5'); if(state.level>=8)unlock('level8');
     if(perfect){ const bonus=PERFECT_BONUS(state.level); state.score+=bonus; state.coins+=CLOUT_PERFECT; unlock('perfect');
-      setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); bark('perfectDay'); }
+      setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); cueIn('perfect',0.26); bark('perfectDay'); }
     state.levelWrong=0; state.graceUsed=TRAINING_MISSES;   /* training case is Case 1 only */
     state.dayTarget=dayTargetFor(state.level);
     /* warrants observe the close; they never alter it */
@@ -2866,6 +3220,7 @@ function penalize(){
   else if(perkOn('duck') && !state.duckUsed){ state.duckUsed=true; saved=true; why='🦆 The duck took that one.'; }
   else if(perkOn('vibetest') && rnd()<0.25){ saved=true; why='🧪 Vibes held. No life lost.'; }
   if(!saved && !state.zen) state.lives--;
+  if(state.lives===1) cueIn('lowlife',0.72);       /* one voice for tension: same heartbeat as tickhot */
   if(saved) toast({ic:coached?'🎓':'🛡️',name:coached?'Coached':'Saved!',desc:why},coached?'Training case':'Perk');
   state.lastCoached=coached;
   /* streak insurance: a long streak drops to 3, not to 0 — hotreload stays strictly better */
@@ -2887,6 +3242,7 @@ function answer(id){
   state.roundActive=false;
   state.frozen=false; timerBar.classList.remove('frozen');
   const cur=state.current, correct = id===cur.type, boss=state.mode==='boss';
+  if(id) cue('type_'+id);            /* you hear what you picked -- mouse and keys 1-6 alike */
   recordAns(cur.type,correct,cur.raw);
   mascot.classList.remove('talk','sweating');
   answersHost.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
@@ -2901,7 +3257,9 @@ function answer(id){
       if(Object.keys(state.daySeen).length>=6) track('sixInDay',1); }
     const {pts,doubled}=awardCorrect(boss?BOSS_EV:1);
     if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; track('bossClean',1); }
-    correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
+    correctBtn.classList.add('correct'); mascot.classList.add('happy');
+    /* +55ms so the wood hits on the 60% keyframe of vstampin, i.e. when the stamp touches paper */
+    cueIn(boss?'bossdown':'correct',0.055); vibrate(30);
     stampVerdict(true, cur.type.toUpperCase()); pointsToScore(pts+(doubled?pts:0));
     if(boss) showFeedback('COVER BLOWN! +'+pts+(doubled?'!!':''),false);
     setTimeout(()=>{ speedLines(boss); fireBurst(false); }, reduced?0:40);   /* 40ms hit-stop before the world moves */
@@ -2916,7 +3274,7 @@ function answer(id){
     correctBtn.classList.add('correct');
     stampVerdict(false, cur.type.toUpperCase());
     setTimeout(()=>{                                   /* 70ms hit-stop: impact, then the world moves */
-      mascot.classList.add('shake'); sWrong(); vibrate([55,35,90]);
+      mascot.classList.add('shake'); cue('wrong'); cueIn('type_'+cur.type,0.46); vibrate([55,35,90]);
       $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
     }, reduced?0:70);
     flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+rand(FAIL_QUIPS)+'</span>';
@@ -3048,7 +3406,7 @@ function saveScore(){
   const lb=getLB(); lb.push({name:nm,score:state.score}); lb.sort((a,b)=>b.score-a.score);
   const trimmed=lb.slice(0,5); localStorage.setItem('jw_lb',JSON.stringify(trimmed));
   const idx=trimmed.findIndex(e=>e.name===nm&&e.score===state.score);
-  renderLB(idx); $('initialsBox').classList.add('hidden'); if(!muted){initAudio();beep(860,0.1,'triangle',0.05);}
+  renderLB(idx); $('initialsBox').classList.add('hidden'); cue('buy');
 }
 $('saveScoreBtn').addEventListener('click',saveScore);
 $('initialsInp').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();saveScore();} });
@@ -3112,10 +3470,10 @@ function renderShop(){ const g=$('shopGrid'); if(!g)return; reflectWallet(); g.i
   g.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click',()=>buyOrEquip(b.dataset.buy,b)));
   if(window._bindCursor)window._bindCursor(); }
 function buyOrEquip(id,btn){ const t=Object.prototype.hasOwnProperty.call(THEMES,id)?THEMES[id]:null; if(!t)return;
-  if(owned.has(id)){ equipped=id; applyTheme(id); saveShop(); if(!muted){initAudio();beep(740,0.07,'triangle',0.05);} renderShop(); }
+  if(owned.has(id)){ equipped=id; applyTheme(id); saveShop(); cue('click'); renderShop(); }
   else if(wallet>=t.cost){ wallet-=t.cost; owned.add(id); equipped=id; applyTheme(id); saveShop(); confetti();
-    if(!muted){initAudio();[640,860,1140].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} toast({ic:t.ic,name:t.name,desc:'Theme unlocked!'},'Unlocked'); renderShop(); setTimeout(()=>bark('buyTheme'),600); }
-  else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} if(!muted){initAudio();beep(150,0.2,'sawtooth',0.06);} } }
+    cue('buy'); toast({ic:t.ic,name:t.name,desc:'Theme unlocked!'},'Unlocked'); renderShop(); setTimeout(()=>bark('buyTheme'),600); }
+  else { if(btn){btn.classList.remove('deny');void btn.offsetWidth;btn.classList.add('deny');} cue('deny'); } }
 applyTheme(equipped);
 
 /* ===================== CASE RECORD ===================== */
@@ -3187,7 +3545,7 @@ document.querySelectorAll('[data-dtab]').forEach(t=>t.addEventListener('click',(
   $('dosGallery').classList.toggle('hidden',which!=='gallery');
   $('dosClearance').classList.toggle('hidden',which!=='clearance');
   $('dosArchive').classList.toggle('hidden',which!=='archive');
-  if(!muted){initAudio();beep(560,0.05,'square',0.04);} }));
+  cue('click'); }));
 $('dossierBtn').addEventListener('click',()=>openModal('dossierModal'));
 
 /* ===================== DAILY CASE ===================== */
@@ -3211,7 +3569,7 @@ function _releaseModal(){ if(document.querySelector('.modal:not(.hidden)'))retur
 function openModal(id){ const m=$(id); if(!m)return; if(id==='dossierModal')renderDossier(); if(id==='shopModal'){renderShop();renderUpgrades();} if(id==='statsModal')renderStats(); m.classList.remove('hidden');
   _modalReturn=document.activeElement; addEventListener('keydown',_trap,true);
   const f=_focusables(m); if(f.length) f[0].focus();
-  if(!muted){initAudio();beep(580,0.05,'square',0.04);} }
+  cue('click'); }
 function closeModal(id){ const m=$(id); if(m)m.classList.add('hidden'); _releaseModal(); }
 function anyModalOpen(){ return [...document.querySelectorAll('.modal')].some(m=>!m.classList.contains('hidden')); }
 function closeAllModals(){ document.querySelectorAll('.modal').forEach(m=>m.classList.add('hidden')); _releaseModal(); }
@@ -3222,7 +3580,7 @@ document.querySelectorAll('.shoptab').forEach(t=>t.addEventListener('click',()=>
   if(up)renderUpgrades(); else renderShop();
   const ti=document.getElementById('shopTitle'); if(ti) ti.innerHTML = up?'Supply <span class="y">closet</span>':'IDE <span class="y">themes</span>';
   const sb=document.querySelector('#shopModal .sub'); if(sb) sb.textContent = up?'Permanent \u2014 these carry across every run':'Spend clout \u00b7 because that is what clout is for';
-  if(!muted){initAudio();beep(560,0.05,'square',0.04);} }));
+  cue('click'); }));
 $('shopBtn').addEventListener('click',()=>openModal('shopModal'));
 $('statsBtn').addEventListener('click',()=>openModal('statsModal'));
 $('howBtn').addEventListener('click',()=>openModal('howModal'));
@@ -3244,7 +3602,7 @@ function backToDesk(){
   rollWarrants(); renderWarrants(); renderMods(); reflectSecondFile(); reflectRank(); reflectStartOverlay();
   $('startOverlay').classList.remove('hidden');
   try{ $('startBtn').focus({preventScroll:true}); }catch(e){}
-  if(!muted){initAudio();beep(380,0.07,'square',0.04);} }
+  cue('paper'); }
 $('deskBtn').addEventListener('click',backToDesk);
 $('winDeskBtn').addEventListener('click',backToDesk);
 /* NEW GAME+ -- the second file. Needs the clearance AND an actual win on record. */
@@ -3263,10 +3621,10 @@ function pauseGame(){ if(!state.playing||state.paused||!state.roundActive)return
   state.pauseRemain=Math.max(0,state.deadline-performance.now());
   $('pauseScore').textContent=state.score; $('pauseLevel').textContent=state.level;
   const pt=document.querySelector('.pausetag'); if(pt) pt.textContent="JSON is having a coffee. "+rand(LOADING_TIPS).replace("TIP: ","Tip: ");
-  $('pauseOverlay').classList.remove('hidden'); if(musMaster)musMaster.gain.value=0; if(!muted){initAudio();beep(290,0.08,'square',0.04);} }
+  $('pauseOverlay').classList.remove('hidden'); cue('pause'); applyAudioState(); }
 function resumeGame(){ if(!state.paused)return; state.paused=false; $('pauseOverlay').classList.add('hidden');
-  state.deadline=performance.now()+state.pauseRemain; if(musMaster&&!document.hidden)musMaster.gain.value=0.5; if(!muted){initAudio();beep(510,0.08,'square',0.04);} requestAnimationFrame(tick); }
-function quitRun(){ if(!state.playing)return; state.paused=false; $('pauseOverlay').classList.add('hidden'); if(musMaster&&!document.hidden)musMaster.gain.value=0.5; gameOver(); }
+  state.deadline=performance.now()+state.pauseRemain; applyAudioState(); cue('resume'); requestAnimationFrame(tick); }
+function quitRun(){ if(!state.playing)return; state.paused=false; $('pauseOverlay').classList.add('hidden'); applyAudioState(); gameOver(); }
 $('resumeBtn').addEventListener('click',()=>{ resumeGame(); bark('resume'); });
 $('quitBtn').addEventListener('click',quitRun);
 
@@ -3297,7 +3655,7 @@ function shareText(kind){
 function bragText(){ return shareText(state.won?'win':'loss'); }   /* old name, kept alive */
 function fallbackCopy(txt,done){ try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){ alert(txt); } }
 /* buttons report, then revert. No modal, no toast, no confetti for copying. */
-function copyOut(btn,txt,okLabel,revertHTML){ if(!btn)return;
+function copyOut(btn,txt,okLabel,revertHTML){ if(!btn)return; cue('paper');
   const done=()=>{ btn.classList.add('ok'); btn.textContent=okLabel;
     setTimeout(()=>{ btn.classList.remove('ok'); btn.innerHTML=revertHTML; },1800); };
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done));
@@ -3415,7 +3773,7 @@ function posterCanvas(){
   return c; }
 function drawScoreCard(){ return posterCanvas().toDataURL('image/png'); }   /* old name, kept alive */
 function sharePoster(b){
-  if(!b)return;
+  if(!b)return; cue('paper');
   const REV='&#128444; Wanted poster';
   const ok=t=>{ b.classList.add('ok'); b.textContent=t; setTimeout(()=>{ b.classList.remove('ok'); b.innerHTML=REV; },1800); };
   let c; try{ c=posterCanvas(); }catch(e){ return; }
@@ -3480,7 +3838,7 @@ function reflectStartOverlay(){
   r.addEventListener('click',()=>{ if(r.classList.contains('open'))return;
     r.classList.add('open'); r.setAttribute('aria-expanded','true');
     r.textContent='a data format. allegedly.';
-    if(!muted){ initAudio(); beep(520,0.06,'triangle',0.05); } }); })();
+    cue('click'); }); })();
 /* three more fact rows is 90-250px of small type between the meme and the button, which is
    exactly the space the demo needed. Folded by default at every width; the two charges that
    carry the joke stay visible above it. */
@@ -3498,7 +3856,8 @@ function buildDemo(){ const host=$('demoAns'); if(!host)return;
   TYPES.forEach(t=>{ const b=document.createElement('button');
     b.className='dbtn'; b.dataset.t=t.id;              /* NOT .abtn, NOT data-id -- on purpose */
     b.innerHTML='<span class="dk">'+t.key+'</span>'+t.label;
-    b.addEventListener('click',()=>demoAnswer(t.id)); host.appendChild(b); });
+    b.addEventListener('click',()=>demoAnswer(t.id));
+    b.addEventListener('pointerenter',cueHover); host.appendChild(b); });
   if(demoAnswered) demoAnswer(DEMO_TYPE,true);          /* returning visitor: pre-solved, as a reminder */
   if(window._bindCursor) window._bindCursor();
   if('IntersectionObserver' in window){
@@ -3519,7 +3878,7 @@ function demoAnswer(picked,silent){
   const cta=$('heroCta');
   if(cta){ cta.innerHTML='&#9654; You&rsquo;re hired &mdash; open case #0001';
     if(!silent && !reduced){ cta.classList.remove('pulse'); void cta.offsetWidth; cta.classList.add('pulse'); } }
-  if(!silent && !muted){ initAudio(); if(ok) sCorrect(); else beep(300,0.12,'triangle',0.05); } }
+  if(!silent){ cue('type_'+picked); cueIn(ok?'correct':'wrong',0.10); if(!ok) cueIn('type_'+DEMO_TYPE,0.62); } }
 /* keys 1-6, but only when all four are true: the game is idle, the demo is unanswered, the
    demo is actually on screen, and no modal is open. #demoBox sits ~1500px above #startBtn,
    so by the time anybody is at the lineup this cannot fire. */
