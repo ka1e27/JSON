@@ -569,6 +569,43 @@ nav .rank{font-family:var(--ff-type);font-size:10.5px;letter-spacing:.12em;text-
 [data-reveal]{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
 [data-reveal].in{opacity:1;transform:none;}
 .reduced *,.reduced *::before,.reduced *::after{animation:none!important;transition:none!important;}
+:root{ --ti-string:#0d5335; --ti-number:#8c3510; --ti-boolean:#4c2a8f;
+       --ti-null:#423b2f;  --ti-array:#1a3aa8;  --ti-object:#7c1c57; --red-ink:#8f1310; }
+/* syntax-lit evidence: the quotes get their own colour, because "42" is the lesson */
+.evbag{ font-size:clamp(28px,6.4vw,48px); letter-spacing:-.01em; }
+.evbag .v{ font-variant-ligatures:none; font-feature-settings:"calt" 0; white-space:pre-wrap; }
+.j-q{ color:var(--red-ink); }
+.j-s{ color:var(--ti-string); }
+.j-k{ color:var(--ti-object); }
+.j-n{ color:var(--ti-number); }
+.j-b{ color:var(--ti-boolean); }
+.j-z{ color:var(--ti-null); font-style:italic; }
+.j-p{ color:var(--ink); }
+.j-c{ color:var(--ink-2); }
+body.cb .j-q{ text-decoration:underline; text-underline-offset:3px; }
+body.cb .j-z{ text-decoration:line-through; }
+/* wind-up: a redaction bar wipes off and the value slams in behind it */
+.evbag::after{ content:""; position:absolute; inset:2px; border-radius:4px; background:var(--ink);
+  transform:scaleX(0); transform-origin:left center; z-index:4; pointer-events:none; }
+.evbag.revealing::after{ animation:redact .34s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes redact{ 0%{transform:scaleX(1)} 100%{transform:scaleX(0)} }
+.evbag.revealing .v{ animation:vslam .26s cubic-bezier(.2,.9,.3,1.15) .1s both; }
+@keyframes vslam{ 0%{transform:scale(1.12) translateY(-4px);opacity:0} 100%{transform:none;opacity:1} }
+.reduced .evbag.revealing::after,.reduced .evbag.revealing .v{ animation:none; }
+/* the verdict is now a rubber stamp on the corner, so the evidence stays readable */
+.vstamp{ position:absolute; right:8px; bottom:6px; z-index:6; pointer-events:none; opacity:0;
+  font-family:var(--ff-type); font-size:clamp(13px,2.6vw,19px); letter-spacing:.14em;
+  text-transform:uppercase; color:var(--red-ink); border:3px solid var(--red-ink);
+  border-radius:5px; padding:4px 12px; white-space:nowrap; background:rgba(250,243,226,.82);
+  transform:rotate(-9deg) scale(2.6); transform-origin:100% 100%; }
+.vstamp.ok{ color:var(--ti-string); border-color:var(--ti-string); }
+.vstamp.show{ animation:vstampin .2s cubic-bezier(.2,.9,.3,1.2) forwards; }
+@keyframes vstampin{ 0%{opacity:0;transform:rotate(-9deg) scale(2.6)}
+  60%{opacity:1;transform:rotate(-11deg) scale(.94)} 100%{opacity:1;transform:rotate(-9deg) scale(1)} }
+.reduced .vstamp.show{ animation:none;opacity:1;transform:rotate(-9deg) scale(1); }
+.feedback{ top:8%; font-size:clamp(22px,5vw,44px); max-width:94%; }
+.ptsfloat{ position:fixed; z-index:83; font-family:var(--ff-display); font-size:26px;
+  color:var(--ti-string); -webkit-text-stroke:1.5px var(--ink); pointer-events:none; }
 /* reduced motion must remove MOTION, not the feedback itself: these rest at scale(0)/opacity:0 */
 .reduced .feedback.show{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1);}
 .reduced .levelup.show,.reduced .modebanner.show{opacity:1;transform:translateY(-50%) scale(1);}
@@ -1565,6 +1602,54 @@ const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,str
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
+const REVEAL_MS = reduced?0:340;
+function litJSON(raw){
+  const re=/"(?:\\.|[^"\\])*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:]|\s+/g;
+  let last=0,m,out='';
+  while((m=re.exec(raw))){
+    if(m.index!==last) return null;
+    last=re.lastIndex; const t=m[0];
+    if(t[0]==='"'){
+      const isKey=/^\s*:/.test(raw.slice(last));
+      out+='<span class="'+(isKey?'j-k':'j-s')+'"><span class="j-q">"</span>'
+          +esc(t.slice(1,-1))+'<span class="j-q">"</span></span>';
+    }
+    else if(/^-?\d/.test(t))         out+='<span class="j-n">'+t+'</span>';
+    else if(t==='true'||t==='false')  out+='<span class="j-b">'+t+'</span>';
+    else if(t==='null')               out+='<span class="j-z">null</span>';
+    else if(/^[{}\[\]]$/.test(t))     out+='<span class="j-p">'+esc(t)+'</span>';
+    else if(t===','||t===':')         out+='<span class="j-c">'+t+'</span>';
+    else out+=t;
+  }
+  return last===raw.length?out:null;
+}
+function revealCard(){ if(reduced)return; valueCard.classList.remove('revealing'); void valueCard.offsetWidth;
+  valueCard.classList.add('revealing'); setTimeout(()=>valueCard.classList.remove('revealing'),REVEAL_MS+90); }
+function setValue(raw,opts){
+  opts=opts||{};
+  /* never light a CREDIBLE-or-CORRUPTED round: colouring a syntax error gives the answer away */
+  const lit = opts.lit!==false && (state.mode==='type'||state.mode==='boss'||state.mode==='count');
+  valueCard.innerHTML=EVTAG;
+  const v=document.createElement('span'); v.className='v';
+  if(lit){ const html=litJSON(raw); if(html){ v.innerHTML=html; if(v.textContent!==raw) v.textContent=raw; }
+           else v.textContent=raw; }
+  else v.textContent=raw;
+  valueCard.appendChild(v);
+  if(opts.reveal!==false) revealCard();
+}
+function stampVerdict(okv,label){
+  const el=document.createElement('div'); el.className='vstamp'+(okv?' ok':'');
+  el.textContent=(okv?'identified \u00b7 ':'he slipped \u00b7 ')+label;
+  valueCard.appendChild(el); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=>el.remove(),1500);
+}
+function pointsToScore(pts){ if(reduced)return; const from=valueCard.getBoundingClientRect(), to=$('score').getBoundingClientRect();
+  const el=document.createElement('div'); el.className='ptsfloat'; el.textContent='+'+pts;
+  el.style.left=(from.left+from.width/2)+'px'; el.style.top=(from.top+16)+'px'; document.body.appendChild(el);
+  el.animate([{transform:'translate(-50%,0) scale(1)',opacity:1},
+              {transform:'translate('+((to.left+to.width/2)-(from.left+from.width/2))+'px,'+((to.top+12)-(from.top+16))+'px) scale(.7)',opacity:0}],
+             {duration:620,easing:'cubic-bezier(.3,.7,.3,1)'});
+  setTimeout(()=>el.remove(),650); }
 const EVTAG='<span class="tag">Exhibit &mdash; seized value</span>';
 
 /* ===================== VIBE TOOLS ===================== */
@@ -1694,7 +1779,7 @@ function buildValidRound(alt){
   state.shownChars=raw.length; state.shownItems=0;
   const long=raw.length>16;
   valueCard.style.fontSize = long ? 'clamp(18px,4.2vw,28px)' : 'clamp(26px,6vw,44px)';
-  valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
+  setValue(raw);
   alt.className='altanswers two';
   alt.innerHTML=`<button class="altbtn valid" data-v="valid"><span class="key">1</span>Credible<span class="ex mono">parses clean</span></button>`+
                 `<button class="altbtn broken" data-v="broken"><span class="key">2</span>Corrupted<span class="ex mono">syntax error</span></button>`;
@@ -1733,7 +1818,7 @@ function buildCountRound(alt){
   state.altCorrectIdx=arr.indexOf(cnt);
   state.shownChars=raw.length; state.shownItems=cnt;   /* counting is paid for per item */
   valueCard.style.fontSize='clamp(15px,3.4vw,25px)';
-  valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
+  setValue(raw);
   alt.className='altanswers grid';
   alt.innerHTML=arr.map((v,i)=>`<button class="altbtn pick" data-i="${i}"><span class="key">${i+1}</span><span class="mono">${v} ${isArr?'items':'keys'}</span></button>`).join('');
   alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(parseInt(b.dataset.i,10),false)));
@@ -1760,7 +1845,7 @@ function nextRound(){
     const raw=state.current.raw, long=raw.length>18;
     state.shownChars=raw.length;
     valueCard.style.fontSize = long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
-    valueCard.innerHTML=EVTAG+`<span class="v">${esc(raw)}</span>`;
+    setValue(raw);
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
     if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
       const pick=wr[Math.floor(rnd()*wr.length)]; if(pick){pick.classList.add('eliminated');pick.disabled=true;} }
@@ -1786,7 +1871,7 @@ function nextRound(){
   state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
                    + (state.mercyNext ? think*MERCY_CLOCK_BONUS : 0);
   state.mercyNext=false;
-  state.deadline=performance.now()+state.duration*1000; state.roundActive=true; state.lastTick=0;
+  state.deadline=performance.now()+REVEAL_MS+state.duration*1000; state.roundActive=true; state.lastTick=0;   /* clock starts when he is unmasked */
   renderPowers();
   requestAnimationFrame(tick);
 }
@@ -1879,12 +1964,15 @@ function answer(id){
   mascot.classList.remove('talk','sweating');
   answersHost.querySelectorAll('.abtn').forEach(b=>b.disabled=true);
   const correctBtn=answersHost.querySelector('.abtn.'+cur.type);
-  flavorEl.innerHTML=flavorFor(cur.value)+`  <b>&mdash; he was a ${cur.type.toUpperCase()}.</b>`;
+  const art=/^[aeiou]/i.test(cur.type)?'an':'a';
+  flavorEl.innerHTML=flavorFor(cur.value)+`  <b>&mdash; he was ${art} ${cur.type.toUpperCase()}.</b>`;
   if(correct){
     const {pts,doubled}=awardCorrect(boss?BOSS_EV:1);
     if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; }
-    correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30); speedLines(boss);
-    showFeedback((boss?'COVER BLOWN! +':rand(['GOTCHA!','MADE HIM!','BUSTED!','NAILED IT!','ID CONFIRMED!','CUFFED!','PARSED!','CLEAN ID!','NO NOTES!'])+' +')+pts+(doubled?'!!':''),false); fireBurst(false);
+    correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
+    stampVerdict(true, cur.type.toUpperCase()); pointsToScore(pts+(doubled?pts:0));
+    if(boss) showFeedback('COVER BLOWN! +'+pts+(doubled?'!!':''),false);
+    setTimeout(()=>{ speedLines(boss); fireBurst(false); }, reduced?0:40);   /* 40ms hit-stop before the world moves */
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
   } else {
     penalize();
@@ -1892,12 +1980,15 @@ function answer(id){
     if(state.lastCoached && TELLS[cur.type]) flavorEl.innerHTML+=' <b>🎓 '+esc(TELLS[cur.type])+'</b>';
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
     correctBtn.classList.add('correct');
-    mascot.classList.add('shake'); sWrong(); vibrate([60,40,60]);
-    $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
+    stampVerdict(false, cur.type.toUpperCase());
+    setTimeout(()=>{                                   /* 70ms hit-stop: impact, then the world moves */
+      mascot.classList.add('shake'); sWrong(); vibrate([55,35,90]);
+      $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
+    }, reduced?0:70);
     flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+rand(FAIL_QUIPS)+'</span>';
     if(!id) bark('slowRound'); else if(state.levelWrong===1) bark('firstMiss');
     if(state.lives===1) bark('lowLives');
-    showFeedback(id?'HE SLIPPED!':'TOO SLOW!',true);
+    if(!id) showFeedback('TOO SLOW!',true);
   }
   $('gpanel').classList.remove('boss');
   finishRound(correct);
