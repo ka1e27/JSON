@@ -6,6 +6,19 @@
 <title>WHO IS JSON? — Case File #0001 · a vibe coder investigation</title>
 <meta name="description" content="Nobody knows who JSON is. He keeps breaking production. Study the evidence, then pick his disguise out of the lineup before the clock runs out." />
 <meta name="theme-color" content="#171310" />
+<meta name="robots" content="index" />
+<!-- Unfurl copy. No og:image and no og:url on purpose: this file has to keep working when
+     it is opened from a disk, a bucket or somebody's staging box, and an absolute URL we
+     invent here would be a lie in two of those three cases. Unfurlers do not run JS, so the
+     canvas poster (see drawPosterCard) can never be the preview image either — which means
+     the title and the description below have to carry the whole joke on their own. -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Dept. of Undefined Behavior" />
+<meta property="og:title" content="WHO IS JSON?" />
+<meta property="og:description" content="A vibe coder asked their AI editor &quot;who is json&quot;. We opened a case file. He wears six disguises, he keeps breaking production, and nobody has ever seen his face. Name the disguise before the clock runs out." />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="WHO IS JSON?" />
+<meta name="twitter:description" content="He keeps breaking production. Nobody knows who he is. Name his disguise." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23171310'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='17' font-weight='700' fill='%23f7d94c' text-anchor='middle'%3E%7B%3F%7D%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,7 +148,7 @@ nav .bounty .n{font-family:var(--ff-display);font-size:19px;color:var(--yellow);
 .redact::after{content:"";position:absolute;inset:0;}
 @media(max-width:420px){.fact{grid-template-columns:1fr;gap:2px;}}
 .cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:22px;}
-.bigbtn{display:inline-flex;align-items:center;gap:10px;font-family:var(--ff-display);font-size:clamp(20px,2.6vw,27px);text-transform:uppercase;
+.bigbtn{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--ff-display);font-size:clamp(20px,2.6vw,27px);text-transform:uppercase;
   background:var(--red);color:var(--paper-2);border:var(--edge);border-radius:4px;padding:13px 26px;box-shadow:5px 5px 0 var(--ink);
   transition:transform .12s var(--ease),box-shadow .12s;}
 .bigbtn:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink);}
@@ -269,7 +282,7 @@ nav .bounty .n{font-family:var(--ff-display);font-size:19px;color:var(--yellow);
 
 /* ---------- THE LINEUP (game) ---------- */
 .gpanel{position:relative;background:var(--paper);color:var(--ink);border-radius:4px;padding:clamp(16px,2.4vw,26px);
-  box-shadow:var(--lift),0 0 0 1px rgba(0,0,0,.4);}
+  box-shadow:var(--lift),0 0 0 1px rgba(0,0,0,.4);scroll-margin-top:64px;}
 .gpanel.hit{animation:pshake .34s ease;}
 @keyframes pshake{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,3px)}40%{transform:translate(7px,-3px)}60%{transform:translate(-5px,2px)}80%{transform:translate(5px,-2px)}}
 .gpanel.onfire{box-shadow:var(--lift),0 0 0 3px var(--red),0 0 40px -6px rgba(207,43,35,.75);}
@@ -768,6 +781,84 @@ body.cb .j-z{ text-decoration:line-through; }
 .evbag .clip .hi{stroke:#e6ebf0;stroke-width:.9;}
 @media(max-width:460px){.evbag .dress::before{width:70px;height:70px;right:-6px;bottom:-16px;}
   .evbag .dress::after{width:38px;height:50px;left:8px;}}
+
+/* ============ THE FIRST DISGUISE — one free round, inside the poster ============
+   Deliberately not the game and deliberately impossible to confuse WITH the game:
+   .dbtn + data-t (never .abtn + data-id), #demoValue > .dv (never #valueCard > .v),
+   no clock, no score, no lives, static in the normal flow ~1500px above #startBtn. */
+.rap{margin-top:9px;}
+.rap>summary{list-style:none;cursor:pointer;font-family:var(--ff-type);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-2);border-bottom:1px dashed rgba(25,19,8,.35);padding-bottom:6px;}
+.rap>summary::-webkit-details-marker{display:none;}
+.rap>summary::after{content:" +";font-family:var(--ff-mono);}
+.rap[open]>summary::after{content:" \2212";}
+.rap[open]>summary{color:var(--red);}
+.rap .facts{margin-top:11px;border-top:0;padding-top:0;}
+button.redact{background:var(--ink);color:transparent;border-radius:2px;padding:0 6px;font:inherit;
+  font-family:var(--ff-mono);font-size:12.5px;line-height:inherit;transition:color .18s,background .18s;}
+button.redact.open{background:rgba(25,19,8,.1);color:var(--ink);}
+.demo{margin-top:15px;}
+.demobag{position:relative;background:var(--card);border:2px dashed var(--ink);border-radius:6px;
+  padding:15px 14px 11px;box-shadow:3px 3px 0 rgba(25,19,8,.17);transition:border-color .2s;}
+.demolab{position:absolute;top:-10px;left:11px;background:var(--yellow);border:var(--edge);border-radius:2px;
+  font-family:var(--ff-type);font-size:9px;letter-spacing:.15em;text-transform:uppercase;padding:2px 8px;white-space:nowrap;
+  max-width:calc(100% - 22px);overflow:hidden;text-overflow:ellipsis;}
+.demoval{font-family:var(--ff-mono);font-weight:700;font-size:clamp(26px,6.6vw,34px);line-height:1.1;
+  text-align:center;word-break:break-all;}
+.demoq{font-family:var(--ff-type);font-size:12px;line-height:1.4;color:var(--ink-2);margin-top:7px;text-align:center;}
+.demoq b{color:var(--ink);}
+.demoans{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px;}
+/* one row of six once there is room for it — the demo is the only thing on this page that
+   has to stay short, because everything below it is the reason the page exists */
+@media(min-width:640px){.demoans{grid-template-columns:repeat(6,1fr);}}
+.dbtn{position:relative;border:var(--edge);border-radius:4px;box-shadow:2px 2px 0 var(--ink);color:#fff;
+  padding:7px 3px 6px;font-family:var(--ff-display);font-size:14px;text-transform:uppercase;line-height:1;
+  display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;
+  transition:transform .1s var(--ease),box-shadow .1s,opacity .2s,filter .2s;}
+.dbtn .dk{font-family:var(--ff-mono);font-weight:700;font-size:8.5px;opacity:.85;}
+.dbtn[data-t="string"]{background:var(--t-string);}  .dbtn[data-t="number"]{background:var(--t-number);}
+.dbtn[data-t="boolean"]{background:var(--t-boolean);} .dbtn[data-t="null"]{background:var(--t-null);}
+.dbtn[data-t="array"]{background:var(--t-array);}     .dbtn[data-t="object"]{background:var(--t-object);}
+.dbtn:not(:disabled):hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink);}
+.dbtn:not(:disabled):active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink);}
+.dbtn:disabled{opacity:.32;filter:grayscale(.7);}
+.dbtn.is-answer{opacity:1;filter:none;box-shadow:2px 2px 0 var(--ink),0 0 0 3px var(--yellow);}
+.dbtn.is-picked{opacity:.62;box-shadow:2px 2px 0 var(--ink),0 0 0 3px var(--red);text-decoration:line-through;}
+.demov{font-family:var(--ff-type);font-size:12.5px;line-height:1.5;color:var(--ink-2);margin-top:10px;}
+.demov b{color:var(--ink);background:var(--yellow);padding:0 3px;}
+.demov .mono{background:none;}
+#demoBox[data-state="ok"] .demobag{border-style:solid;border-color:var(--t-string);}
+#demoBox[data-state="no"] .demobag{border-color:var(--red);}
+.bigbtn.pulse{animation:ctapulse .9s var(--ease) 2;}
+@keyframes ctapulse{0%,100%{transform:none;box-shadow:5px 5px 0 var(--ink)}
+  50%{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink),0 0 26px -4px var(--red)}}
+.reduced .bigbtn.pulse{animation:none;}
+@media(max-width:360px){.demoans{gap:5px;} .dbtn{font-size:12.5px;} .demolab{font-size:8px;}}
+
+/* the desk, disclosed progressively: the seven mode buttons and the two option toggles
+   live behind one summary until the player has finished a run. #startBtn is a direct
+   child of #startOverlay ABOVE this, so a collapsed <details> can never cover it. */
+details.mgroup>summary{list-style:none;cursor:pointer;}
+details.mgroup>summary::-webkit-details-marker{display:none;}
+details.mgroup>summary .mglabel{margin-bottom:0;}
+details.mgroup>summary .mglabel::after{content:" \25BE";}
+details.mgroup[open]>summary .mglabel::after{content:" \25B4";}
+details.mgroup>.menurow{margin-top:9px;}
+.diff .mm{font-family:var(--ff-mono);font-size:9.5px;opacity:.68;margin-left:5px;}
+.diff .rec{font-family:var(--ff-mono);font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;
+  background:var(--red);color:var(--paper-2);border-radius:99px;padding:1px 6px;margin-left:5px;vertical-align:1px;}
+.diffnote{font-family:var(--ff-type);font-size:11.5px;line-height:1.5;color:var(--ink-2);margin-top:9px;}
+.diffnote b{color:var(--ink);}
+.chnote{font-family:var(--ff-type);font-size:12px;line-height:1.5;max-width:44ch;background:var(--card);
+  border-left:4px solid var(--blue);padding:8px 11px;text-align:left;}
+.chnote b{color:var(--ink);}
+/* CHAIN OF CUSTODY: the HUD used to keep advertising five hearts while penalize() was
+   ending the run on the first miss. One heart, one label, no ambiguity. */
+.hud .lives{flex-wrap:wrap;justify-content:flex-end;align-items:center;}
+.hud .lives span.cust{font-family:var(--ff-type);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--red);border:2px solid var(--red);border-radius:3px;padding:1px 6px;white-space:nowrap;
+  background:rgba(207,43,35,.08);}
+.sharebtn.primary{background:var(--yellow);}
 </style>
 </head>
 <body>
@@ -817,17 +908,38 @@ body.cb .j-z{ text-decoration:line-through; }
             <div class="pmiss">Wanted for questioning</div>
             <h1>Who is<br>JSON<span class="q">?</span></h1>
             <p class="psub">Every vibe coder has met him. Nobody has seen his face. He shows up <b>unannounced</b>, wearing a different costume every time, and production goes down. <b>Your job: name his disguise before the clock runs out.</b></p>
-            <div class="facts">
-              <div class="fact"><span class="k">Also known as</span><span class="v">JavaScript Object Notation &middot; "json" (as typed at 3&nbsp;AM) &middot; JSON Bourne</span></div>
-              <div class="fact"><span class="k">Last seen</span><span class="v">line 1, column 1 &mdash; <span class="mono">Unexpected token 'J'</span></span></div>
-              <div class="fact"><span class="k">Charges</span><span class="v">47 counts of unexpected token; 1 trailing comma</span></div>
-              <div class="fact"><span class="k">Known haunts</span><span class="v">your <span class="mono">node_modules</span>, every API response</span></div>
-              <div class="fact"><span class="k">Real identity</span><span class="v"><span class="redact">absolutely nobody knows</span></span></div>
+            <!-- THE FIRST DISGUISE: one untimed, unscored round, in the poster, above the fold.
+                 This is not the game and must never become the game's first round — see
+                 demoAnswer(). It sits directly under the premise because that is the highest
+                 point on the page a person can be handed something to touch. -->
+            <div class="demo" id="demoBox" data-state="ask">
+              <div class="demobag">
+                <span class="demolab">Evidence bag #1 &mdash; from your logs</span>
+                <div class="demoval" id="demoValue"><span class="dv">"42"</span></div>
+                <p class="demoq">Which disguise is he wearing? <b>No timer, no score, nothing on the line.</b></p>
+                <div class="demoans" id="demoAns"></div>
+              </div>
+              <div class="demov" id="demoVerdict" aria-live="polite"></div>
             </div>
+            <!-- the button sits directly under the demo, so the label morphing to YOU'RE HIRED
+                 the instant you answer happens in front of the player rather than 100px below
+                 the fold. The rap sheet is flavour and follows the call to action. -->
             <div class="cta">
-              <a class="bigbtn" href="#lineup" data-magnetic>&#9654; Start the lineup</a>
+              <a class="bigbtn" href="#gpanel" id="heroCta" data-magnetic>&#9654; Start the lineup</a>
               <span class="ctanote">6 disguises &middot; 1 suspect &middot; no idea</span>
             </div>
+            <div class="facts">
+              <div class="fact"><span class="k">Also known as</span><span class="v">JavaScript Object Notation &middot; "json" (as typed at 3&nbsp;AM) &middot; JSON Bourne</span></div>
+              <div class="fact"><span class="k">Charges</span><span class="v">47 counts of unexpected token; 1 trailing comma</span></div>
+            </div>
+            <details class="rap" id="rapSheet">
+              <summary>The rest of the rap sheet</summary>
+              <div class="facts">
+                <div class="fact"><span class="k">Last seen</span><span class="v">line 1, column 1 &mdash; <span class="mono">Unexpected token 'J'</span></span></div>
+                <div class="fact"><span class="k">Known haunts</span><span class="v">your <span class="mono">node_modules</span>, every API response</span></div>
+                <div class="fact"><span class="k">Real identity</span><span class="v"><button class="redact" id="redactBtn" aria-expanded="false">absolutely nobody knows</button></span></div>
+              </div>
+            </details>
           </div>
           <div class="mug">
             <span class="pin tc"></span>
@@ -1050,6 +1162,13 @@ body.cb .j-z{ text-decoration:line-through; }
           </div>
           <div class="mbtns">
             <button class="cbtn hidden" id="ngBtn">&#9646; Open the second file</button>
+          </div>
+          <!-- Winning is the one outcome anybody wants to post, and it was the one outcome
+               with no way to post it: the poster's IN CUSTODY stamp was unreachable. -->
+          <div class="sharerow">
+            <button class="sharebtn primary" id="winLinkBtn">&#128279; Copy challenge link</button>
+            <button class="sharebtn" id="winCardBtn">&#128444; Wanted poster</button>
+            <button class="sharebtn" id="winBragBtn">&#128203; Copy brag</button>
             <button class="sharebtn" id="winDeskBtn">&#8592; Back to the desk</button>
           </div>
         </div>
@@ -1070,8 +1189,9 @@ body.cb .j-z{ text-decoration:line-through; }
 
         <!-- START -->
         <div class="overlay" id="startOverlay">
-          <div class="big">Think you can <span class="r">ID him?</span></div>
-          <p>JSON wears one of <b>six disguises</b>. Name it before the clock runs out. Close all <b>10 cases</b> to finally catch him &mdash; pick a <b>perk</b> after every case, and spend clout on <b>permanent upgrades</b>.</p>
+          <div class="big" id="startTitle">Think you can <span class="r">ID him?</span></div>
+          <p id="startSub">JSON wears one of <b>six disguises</b>. Name it before the clock runs out.</p>
+          <div class="chnote hidden" id="challengeNote"></div>
           <div class="mgroup">
             <span class="mglabel">Pick your pace</span>
             <div class="diffsel" id="diffSel">
@@ -1079,6 +1199,7 @@ body.cb .j-z{ text-decoration:line-through; }
               <button class="diff active" data-diff="normal">&#128526; Shipping</button>
               <button class="diff" data-diff="chaos">&#128293; Prod on Friday</button>
             </div>
+            <div class="diffnote" id="diffNote"></div>
           </div>
           <button class="cbtn" id="startBtn" data-magnetic>&#9654; Open the case</button>
           <!-- modifiers sit BELOW the start button on purpose: eight chips is eight rows at
@@ -1092,8 +1213,8 @@ body.cb .j-z{ text-decoration:line-through; }
             <span class="mglabel" id="warrantLabel">Warrants</span>
             <div class="wboard" id="warrantBoard"></div>
           </div>
-          <div class="mgroup">
-            <span class="mglabel">More ways to investigate</span>
+          <details class="mgroup" id="moreWays">
+            <summary><span class="mglabel">More ways to investigate</span></summary>
             <div class="menurow">
               <button class="diff" id="dailyBtn">&#128197; Daily case</button>
               <button class="diff" id="zenBtn">&#9784; Stakeout</button>
@@ -1103,14 +1224,11 @@ body.cb .j-z{ text-decoration:line-through; }
               <button class="diff" id="statsBtn">&#128202; Record</button>
               <button class="diff" id="dossierBtn">&#128193; Dossier</button>
             </div>
-          </div>
-          <div class="mgroup">
-            <span class="mglabel">Options</span>
-            <div class="menurow">
+            <div class="menurow" style="margin-top:8px">
               <button class="diff" id="cbToggle" aria-pressed="false">&#128065; Colorblind aid: OFF</button>
               <button class="diff" id="musicToggle" aria-pressed="false">&#127925; Radio: OFF</button>
             </div>
-          </div>
+          </details>
           <div class="dailybest hidden" id="dailyBest"></div>
         </div>
 
@@ -1124,6 +1242,7 @@ body.cb .j-z{ text-decoration:line-through; }
             <div class="fs"><div class="l">Day</div><div class="n" id="finalLevel">1</div></div>
             <div class="fs"><div class="l">Best streak</div><div class="n" id="finalCombo">&times;1</div></div>
           </div>
+          <div class="runsum hidden" id="vsLine"></div>
           <div class="runsum" id="runSum"></div>
           <div class="lostev hidden" id="lostEv"></div>
           <p id="overQuip">He'll be in your node_modules.</p>
@@ -1135,8 +1254,9 @@ body.cb .j-z{ text-decoration:line-through; }
           <div class="lb" id="lbBox"><h4>&#9733; Detective board &#9733;</h4><ol id="lbList"></ol></div>
           <div class="medals" id="medalRow" aria-label="Case files earned"></div>
           <div class="sharerow">
+            <button class="sharebtn primary" id="linkBtn">&#128279; Copy challenge link</button>
+            <button class="sharebtn" id="cardBtn">&#128444; Wanted poster</button>
             <button class="sharebtn" id="bragBtn">&#128203; Copy brag</button>
-            <button class="sharebtn" id="cardBtn">&#128444; Case card</button>
             <button class="sharebtn" id="deskBtn">&#8592; Back to the desk</button>
           </div>
           <button class="cbtn yellow" id="againBtn" data-magnetic>&#8635; Reopen the case</button>
@@ -1295,18 +1415,25 @@ const touch=matchMedia('(hover: none),(pointer: coarse)').matches;
 const $=id=>document.getElementById(id);
 const LOADING_TIPS=["TIP: IF IT COMPILES, IT IS DONE","TIP: TESTS SLOW THE VIBE DOWN","TIP: ACCEPT ALL, ASK LATER","TIP: FRIDAY IS THE QUIETEST DEPLOY DAY","TIP: A GREEN STATUS PAGE IS A FEELING","TIP: 47 DEPENDENCIES IS FINE","TIP: NAME IT FIX-FINAL-FINAL-2","TIP: NOBODY READS THE DIFF. BE NOBODY","TIP: THE LOGS ARE FOR AFTERWARDS","TIP: IF IT PARSES, IT IS TRUE","TIP: DELETE THE TEST, NOT THE BUG","TIP: PROD IS THE ONLY REAL STAGING"];   /* declared early: the loader IIFE below uses it */
 
-/* loader */
-(function(){ const l=$('loader');
-  const kk=l&&l.querySelectorAll('.lk')[1];
+/* loader — 1000ms, and any input opens the door early. A meme link cannot afford to hold
+   somebody at a black screen for two and a half seconds; the CLASSIFIED slam is charm, not
+   a turnstile. #loader still exists and is still removed the same way. */
+(function(){ const l=$('loader'); if(!l)return;
+  const kk=l.querySelectorAll('.lk')[1];
   if(kk) kk.textContent=LOADING_TIPS[Math.floor(Math.random()*LOADING_TIPS.length)];
-  setTimeout(()=>{l.classList.add('done');setTimeout(()=>l.remove(),1000);}, reduced?250:1600); })();
+  let gone=false;
+  const kill=()=>{ if(gone)return; gone=true; l.classList.add('done'); setTimeout(()=>{ if(l.parentNode)l.remove(); },1000); };
+  setTimeout(kill, reduced?250:1000);
+  ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>
+    addEventListener(ev,kill,{once:true,passive:true}));
+})();
 
 /* magnifier cursor */
 if(!touch&&!reduced){
   const ring=$('curRing'),star=$('curStar'); let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
   addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;star.style.transform=`translate(${mx}px,${my}px) translate(-50%,-50%)`;});
   (function loop(){rx+=(mx-rx)*0.2;ry+=(my-ry)*0.2;ring.style.transform=`translate(${rx}px,${ry}px) translate(-50%,-50%)`;requestAnimationFrame(loop);})();
-  const bind=()=>document.querySelectorAll('a,button,input,.abtn,.dcard,[data-magnetic]').forEach(el=>{ if(el._cb)return; el._cb=1;
+  const bind=()=>document.querySelectorAll('a,button,input,summary,.abtn,.dbtn,.dcard,[data-magnetic]').forEach(el=>{ if(el._cb)return; el._cb=1;
     el.addEventListener('mouseenter',()=>document.body.classList.add('cur-hover')); el.addEventListener('mouseleave',()=>document.body.classList.remove('cur-hover')); });
   bind(); window._bindCursor=bind;
   addEventListener('mousedown',()=>document.body.classList.add('cur-press'));
@@ -1440,6 +1567,66 @@ function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.im
 function dailySeed(){ const d=new Date(); const s=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate(); let h=2166136261; const str='jw'+s; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 function dailyKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
+/* ===================== CHALLENGE LINKS =====================
+   #c=<seed36>[.<c|n|x>[.<score36>[.<initials>]]] — the whole competitive loop with no
+   backend and no accounts, because on a site with neither, the URL IS the distribution.
+   Every run is seeded now (it used to be only the daily), which costs nothing and makes
+   every run replayable by a stranger. Two Math.random() call sites stay unseeded on
+   purpose -- usePower('fifty')'s shuffle and the confetti -- because neither decides
+   WHICH values appear, so the case sequence is still identical for both players.
+   The hash is untrusted input: anything unexpected returns null and the page is an
+   ordinary page. Read ONCE at boot; no hashchange handler, or a link could reseed a
+   live run out from under the player. */
+let CHALLENGE=null;
+const newRunSeed=()=>((Math.random()*0x7fffffff)>>>0)||1;
+const DIFFCODE={chill:'c',normal:'n',chaos:'x'}, CODEDIFF={c:'chill',n:'normal',x:'chaos'};
+function siteURL(){ try{
+    if(location.protocol==='file:'||location.origin==='null'||!location.origin) return location.href.split('#')[0];
+    return location.origin+location.pathname; }catch(e){ return ''; } }
+function encodeChallenge(){
+  const d=Object.prototype.hasOwnProperty.call(DIFFCODE,diff)?DIFFCODE[diff]:'n';
+  let nm=''; try{ nm=String(localStorage.getItem('jw_initials')||''); }catch(e){}
+  nm=nm.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase();
+  const seed=(state.seed>>>0)||1;
+  return 'c='+[seed.toString(36),d,Math.max(0,state.score|0).toString(36),nm].filter((v,i)=>i<2||v).join('.'); }
+function shareLink(){ return siteURL()+'#'+encodeChallenge(); }
+function decodeChallenge(hash){
+  const m=/(?:^|[#&])c=([0-9a-z]{1,8})(?:\.([cnx]))?(?:\.([0-9a-z]{1,8}))?(?:\.([a-z0-9]{1,3}))?/i.exec(String(hash||''));
+  if(!m) return null;
+  const seed=parseInt(m[1],36);
+  if(!Number.isFinite(seed)||seed<=0) return null;
+  const code=String(m[2]||'n').toLowerCase();
+  const rival=m[3]?(parseInt(m[3],36)||0):0;
+  return {seed:seed>>>0||1,
+          diff:(Object.prototype.hasOwnProperty.call(CODEDIFF,code)?CODEDIFF[code]:'normal'),
+          rival:Number.isFinite(rival)&&rival>0?rival:0,
+          name:String(m[4]||'').toUpperCase()}; }
+function applyChallengeFromHash(){
+  let ch=null; try{ ch=decodeChallenge(location.hash); }catch(e){ ch=null; }
+  if(!ch) return false;
+  CHALLENGE=ch; diff=ch.diff;
+  document.querySelectorAll('#diffSel .diff').forEach(b=>b.classList.toggle('active',b.dataset.diff===ch.diff));
+  return true; }
+/* #daily and #zen drop you on the desk with that mode armed for the next OPEN THE CASE.
+   Deliberately not an auto-start: landing inside a running clock you did not ask for is
+   the same crime as the un-skippable countdown. */
+let HASH_MODE='';
+function applyHashMode(){ const h=String(location.hash||'');
+  if(/(?:^|[#&])daily\b/i.test(h)) HASH_MODE='daily';
+  else if(/(?:^|[#&])zen\b/i.test(h)) HASH_MODE='zen'; }
+function reflectChallengeNote(){ const n=$('challengeNote'); if(!n)return;
+  if(CHALLENGE){ n.classList.remove('hidden');
+    n.innerHTML='&#128233; '+(CHALLENGE.rival
+      ? '<b>'+esc(CHALLENGE.name||'A detective')+'</b> sent you their exact case file &mdash; they walked out with <b>'+CHALLENGE.rival+'</b> evidence. Same ten cases, same clock.'
+      : 'Somebody sent you their exact case file. Same ten cases, same clock, no excuses available.');
+    return; }
+  if(HASH_MODE){ n.classList.remove('hidden');
+    n.innerHTML=HASH_MODE==='daily'
+      ? '&#128197; You came in on the <b>daily case</b> &mdash; the same ten cases everybody gets today. Open the case when you are ready.'
+      : '&#9784; You came in on a <b>stakeout</b> &mdash; no clock, no lives, no point. Open the case when you are ready.';
+    return; }
+  n.classList.add('hidden'); n.innerHTML=''; }
+
 /* ===================== JSON'S VOICE ===================== */
 const rand=a=>a[Math.floor(rnd()*a.length)];
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -1470,7 +1657,16 @@ const TIERS={
 };
 function typeOf(v){ if(v===null)return 'null'; if(Array.isArray(v))return 'array'; return typeof v; }
 let lastRaw='';
+function mkValue(raw){ const v=JSON.parse(raw); lastRaw=raw; return {raw:raw,value:v,type:typeOf(v)}; }
 function pickValue(level){
+  /* A first-ever run opens on the quotes trap and its twin, back to back, because that is
+     the single highest-value rule in the game and the only lesson worth spending the two
+     most valuable rounds on. If the hero demo already served "42" thirty seconds ago the
+     pair arrives the other way round -- same lesson, not a literal rerun. This is still an
+     ordinary level-1 type round built by nextRound(); nothing else in the path changes.
+     Never on a daily or a challenge run: those two have to stay comparable. */
+  if(state.firstEver && !state.endless && (state.answered|0)<2){
+    return mkValue((demoAnswered?['42','"42"']:['"42"','42'])[state.answered|0]); }
   const maxTier=level<=1?1:level<=3?2:3;
   const bag=[]; for(let t=1;t<=maxTier;t++){ const w=t===maxTier?3:1; for(let k=0;k<w;k++) bag.push(t); }
   let raw, tries=0;
@@ -2026,7 +2222,8 @@ function showBriefing(day,cb,fast){
   $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+campDays();
   $('briefName').textContent=c.n;
   $('briefObj').textContent='ID him '+(state.dayTarget||CORRECT_PER_DAY)+' times. '+(c.obj||'Close the file.')
-    +(day===1&&!state.endless?' Training case: your first '+TRAINING_MISSES+' misses are coached, not fatal.':'');
+    +(modOn('custody')?' One wrong ID throws the case out — that is the whole run.':'')
+    +(day===1&&!state.endless&&!modOn('custody')?' Training case: your first '+TRAINING_MISSES+' misses are coached, not fatal.':'');
   $('briefDiff').textContent=state.endless?'Beyond the file':(DIFFWORD[Math.min(day,10)-1]||'Hostile');
   const threat=(state.ng&&c.t2)?ngThreat(c.t2):c.t;
   $('briefThreat').innerHTML=threat+(c.memo?'<br><br>'+c.memo:'');
@@ -2117,7 +2314,7 @@ function selfFile(){ const raw=selfValue(); let v; try{ v=JSON.parse(raw); }catc
   return {raw:raw,value:v,type:typeOf(v)}; }
 function runXP(){ return Math.min(XP_CAP_PER_RUN, Math.floor(state.score/XP_DIV)); }
 function winGame(){
-  state.playing=false; state.roundActive=false; state.paused=false;
+  state.playing=false; state.roundActive=false; state.paused=false; state.won=true;
   const runCoins=finalizeClout(true);
   wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
   if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
@@ -2136,6 +2333,7 @@ function winGame(){
     localStorage.setItem('jw_daily',JSON.stringify({d:dk,best:Math.max(best,state.score)})); reflectDaily(); }
   $('winScore').textContent=state.score; $('winCombo').textContent='×'+(1+state.bestCombo); $('winClout').textContent=runCoins;
   $('winEpi').innerHTML=state.ng?rand(EPILOGUES_NG):rand(EPILOGUES);
+  { const lb=$('winLinkBtn'); if(lb) lb.innerHTML=linkLabel(); }   /* "send it back" after a challenge */
   { const st=document.querySelector('#winOverlay .stamp');
     if(st) st.textContent = state.ng ? ('Second file closed · tier '+(state.ngTier|0)) : 'Case closed'; }
   localStorage.setItem('jw_won','1');
@@ -2359,9 +2557,22 @@ function qualifiesLB(sc){ if(sc<=0)return false; const lb=getLB(); return lb.len
 function renderLB(hi){ const ol=$('lbList'); if(!ol)return; const lb=getLB(); ol.innerHTML=''; if(!lb.length){ ol.innerHTML='<li><span class="rk">—</span><span class="nm">???</span><span class="sc">0</span></li>'; return; }
   lb.forEach((e,i)=>{ const li=document.createElement('li'); if(i===hi)li.className='you'; li.innerHTML=`<span class="rk">${i+1}</span><span class="nm">${esc(e.name)}</span><span class="sc">${e.score}</span>`; ol.appendChild(li); }); }
 
-document.querySelectorAll('#diffSel .diff').forEach(b=>b.addEventListener('click',()=>{ diff=b.dataset.diff; document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x===b)); if(!muted){initAudio();beep(500,0.06);} }));
+document.querySelectorAll('#diffSel .diff').forEach(b=>b.addEventListener('click',()=>{ diff=b.dataset.diff; document.querySelectorAll('#diffSel .diff').forEach(x=>x.classList.toggle('active',x===b)); reflectDiffSel(); if(!muted){initAudio();beep(500,0.06);} }));
 
-function renderLives(){ const el=$('lives'); el.innerHTML=''; if(state.zen){ const z=document.createElement('span'); z.className='zen'; z.textContent='∞ STAKEOUT'; el.appendChild(z); return; }
+function renderLives(){ const el=$('lives'); el.innerHTML='';
+  if(state.zen){ const z=document.createElement('span'); z.className='zen'; z.textContent='∞ STAKEOUT'; el.appendChild(z);
+    el.setAttribute('aria-label','Stakeout: no lives at stake'); return; }
+  /* CHAIN OF CUSTODY ignores every life you own (penalize() zeroes them on the first miss),
+     so the HUD must stop drawing five hearts and inviting the player to play loose. One
+     heart, one label. #lives keeps its id and its meaning: what you have left to lose. */
+  if(modOn('custody')){
+    const s=document.createElement('span'); s.textContent='❤'; if(state.lives<=0)s.className='lost'; el.appendChild(s);
+    /* terse on purpose: the long version is in the aria-label and the title, and a HUD chip
+       wide enough to wrap adds three rows at 320px and eats the arena. */
+    const c=document.createElement('span'); c.className='cust'; c.textContent='⚖ no misses';
+    c.title='Chain of custody — one wrong ID and the case is thrown out'; el.appendChild(c);
+    el.setAttribute('aria-label','Chain of custody: one wrong ID ends the run'); return; }
+  el.setAttribute('aria-label','lives');
   const total=Math.max(state.maxLives,state.lives); for(let i=0;i<total;i++){ const s=document.createElement('span'); s.textContent='❤'; if(i>=state.lives)s.className='lost'; el.appendChild(s);} }
 function animateScore(target){ const start=state.displayScore, d=target-start; if(reduced||d===0){ state.displayScore=target; $('score').textContent=target; return; } const t0=performance.now(),dur=450;
   (function st(now){ const p=Math.min(1,(now-t0)/dur); state.displayScore=Math.round(start+d*(1-Math.pow(1-p,3))); $('score').textContent=state.displayScore; if(p<1)requestAnimationFrame(st); })(performance.now()); }
@@ -2389,13 +2600,30 @@ function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); 
 function dayTargetFor(l){ const t=(DIFFC().target!=null)?DIFFC().target:CORRECT_PER_DAY;
   return t + (state.endless ? Math.floor(endlessDayNo(l)/3) : 0); }
 function bossEveryNow(){ return modOn('everywhere') ? 2 : (state.endless ? 3 : BOSS_EVERY); }
-function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
-  (function step(){ if(i>=seq.length){el.classList.remove('show');done();return;} el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); beep(340+i*130,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
+/* The 3-2-1 was 2.56s of un-skippable waiting AFTER the player had already committed by
+   pressing the button — the worst-placed delay on the page. A first-ever run skips it
+   outright; everybody else gets two beats, and any key or tap ends it early. */
+function runCountdown(done){
+  if(reduced||state.firstEver){ done(); return; }
+  const el=$('countdown'); const seq=['3','GO!']; let i=0, ended=false;
+  const finish=()=>{ if(ended)return; ended=true; el.classList.remove('show');
+    removeEventListener('keydown',skip,true); removeEventListener('pointerdown',skip,true); done(); };
+  const skip=()=>finish();
+  addEventListener('keydown',skip,true); addEventListener('pointerdown',skip,true);
+  (function step(){ if(ended)return; if(i>=seq.length){finish();return;}
+    el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    beep(340+i*260,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
 
 function startGame(){
   initAudio(); closeAllModals();
   if(musicPref && !musicOn) startMusic();
-  seedRng = runMode.daily ? mulberry32(dailySeed()) : null;
+  /* EVERY run is seeded now (it used to be the daily only), which is what makes every run
+     shareable as #c=<seed36>. A challenge link is honoured exactly once: replaying a
+     stranger's ten cases for ever is a trap, and the rematch you send back should be
+     your own case file. */
+  const ch=CHALLENGE; if(ch){ CHALLENGE=null; reflectChallengeNote(); }
+  const runSeed = ch ? ch.seed : (runMode.daily ? dailySeed() : newRunSeed());
+  seedRng = mulberry32(runSeed);
   const cfg=DIFF[diff];
   /* MODIFIERS are field work only: the daily has to stay comparable and the stakeout is
      the one mode whose entire point is that nothing is at stake. NG+ tiers 2 and up add
@@ -2410,7 +2638,11 @@ function startGame(){
     perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
     mods:mods,ng:!!runMode.ng,ngTier:ngTier,campaignDays:(mods.indexOf('longcon')>=0?15:CAMPAIGN_DAYS),
     caseOrder:buildCaseOrder(mods),dayUsedPower:false,daySeen:{},selfServed:false,selfFile:false,
-    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{},locker:[],filedThisRun:0});
+    dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{},locker:[],filedThisRun:0,
+    seed:runSeed,rival:(ch&&ch.rival)?ch:null,won:false,lastMissRaw:'',lastMissType:'',
+    /* a first-ever run gets the forced "42"/42 opening and no countdown. A daily or a
+       challenge run never does, because both of those have to be identical for everybody. */
+    firstEver:(STATS.games===0 && !runMode.daily && !ch)});
   state.dayTarget=dayTargetFor(1);   /* difficulty-scoped from Case 1, not just from day 2 */
   $('pauseOverlay').classList.add('hidden');
   $('zenTag').classList.toggle('hidden',!runMode.zen);
@@ -2676,6 +2908,8 @@ function answer(id){
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
   } else {
     penalize();
+    /* the most human line in the whole share kit comes out of these two assignments */
+    state.lastMissRaw=cur.raw; state.lastMissType=cur.type;
     /* coach the RULE, not just the answer, while the training case is live */
     if(state.lastCoached && TELLS[cur.type]) flavorEl.innerHTML+=' <b>🎓 '+esc(TELLS[cur.type])+'</b>';
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
@@ -2775,6 +3009,14 @@ function gameOver(){
   const mods=cleanMods(state.mods);
   $('runSum').innerHTML=`${modeTag}Accuracy <b>${acc}%</b> · <b>${state.correct}</b> IDs · +<b>${runCoins}</b> clout`
     +(mods.length?`<br><b>${esc(modNames(mods))}</b> &mdash; evidence &times;${modMult().toFixed(2)}`:'');
+  /* you vs them: the whole competitive loop, for one if and no server */
+  { const vs=$('vsLine'), rv=state.rival;
+    if(vs){ if(rv && rv.rival>0){ const d=state.score-rv.rival, nm=esc(rv.name||'They');
+        vs.classList.remove('hidden');
+        vs.innerHTML = d>=0 ? '&#129351; You beat <b>'+nm+'</b> by <b>'+d+'</b>.'
+                            : '&#129352; <b>'+nm+'</b> is still ahead by <b>'+(-d)+'</b>. Reopen the case.';
+      } else { vs.classList.add('hidden'); vs.innerHTML=''; } } }
+  { const lb=$('linkBtn'); if(lb) lb.innerHTML=linkLabel(); }
   $('overQuip').textContent=rand(OVER_QUIPS);
   mascot.className='mascot'; sOver(); vibrate([80,50,80,50,120]);
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show'); document.querySelector('.stat.combo').classList.remove('fire');
@@ -2811,10 +3053,15 @@ function saveScore(){
 $('saveScoreBtn').addEventListener('click',saveScore);
 $('initialsInp').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();saveScore();} });
 
-$('startBtn').addEventListener('click',()=>{ runMode={daily:false,zen:false,ng:false}; startGame(); });
+/* one door for OPEN THE CASE, so a #daily / #zen deep link is honoured by the keyboard
+   shortcut and the button alike, and is spent after one use. */
+function startFieldRun(){ runMode={daily:HASH_MODE==='daily',zen:HASH_MODE==='zen',ng:false};
+  HASH_MODE=''; reflectChallengeNote(); startGame(); }
+$('startBtn').addEventListener('click',startFieldRun);
 $('againBtn').addEventListener('click',startGame);
 addEventListener('keydown',e=>{
   if(e.target&&(e.target.id==='initialsInp'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  if(demoKeys(e)) return;          /* the hero demo, and only while it is on screen */
   if(e.key==='Escape'){ if(anyModalOpen()){ e.preventDefault(); closeAllModals(); return; } if(state.playing){ e.preventDefault(); if(state.paused)resumeGame(); else pauseGame(); } return; }
   if(anyModalOpen())return;
   if(!state.playing){
@@ -2822,7 +3069,7 @@ addEventListener('keydown',e=>{
        fires while keydown bubbles, i.e. before the button's synthetic click, so without
        this guard the start shortcut swallowed every menu button for keyboard users. */
     const onCtl = e.target && (e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='INPUT');
-    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();runMode={daily:false,zen:false,ng:false};startGame();}
+    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();startFieldRun();}
     if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();}
     return; }
   if(state.paused)return;
@@ -2994,7 +3241,7 @@ function backToDesk(){
   $('overOverlay').classList.add('hidden'); $('winOverlay').classList.add('hidden');
   $('pauseOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
   $('initialsBox').classList.add('hidden');
-  rollWarrants(); renderWarrants(); renderMods(); reflectSecondFile(); reflectRank();
+  rollWarrants(); renderWarrants(); renderMods(); reflectSecondFile(); reflectRank(); reflectStartOverlay();
   $('startOverlay').classList.remove('hidden');
   try{ $('startBtn').focus({preventScroll:true}); }catch(e){}
   if(!muted){initAudio();beep(380,0.07,'square',0.04);} }
@@ -3023,37 +3270,270 @@ function quitRun(){ if(!state.playing)return; state.paused=false; $('pauseOverla
 $('resumeBtn').addEventListener('click',()=>{ resumeGame(); bark('resume'); });
 $('quitBtn').addEventListener('click',quitRun);
 
-/* ===================== SHARE ===================== */
-function bragText(){ const md=runMode.daily?' [Daily case]':runMode.zen?' [Stakeout]':''; return `I finally worked out who JSON is: ${state.score} evidence${md} — Day ${state.level}, best streak ×${1+state.bestCombo}. Can you ID him? 🕵️ #WhoIsJSON`; }
-$('bragBtn').addEventListener('click',()=>{ const b=$('bragBtn'), txt=bragText();
-  const done=()=>{ b.classList.add('ok'); b.textContent='✔ Copied!'; setTimeout(()=>{b.classList.remove('ok');b.innerHTML='📋 Copy brag';},1800); };
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done)); } else fallbackCopy(txt,done); });
+/* ===================== SHARE =====================
+   Four rules, held everywhere below: line 1 is the meme, quoted, alone; the URL is always
+   LAST because that is where unfurlers attach; the numbers are the ones a non-player can
+   scale (disguises named, accuracy) and never the internal ones; and every string carries
+   a door, because a brag with no link is a dead end for whoever reads it. */
+function accPct(){ return state.answered?Math.round(state.correct/state.answered*100):0; }
+function caughtMeAs(){ if(!state.lastMissRaw) return '';
+  const t=String(state.lastMissType||'');
+  return state.lastMissRaw+' (it was '+(/^[aeiou]/i.test(t)?'an ':'a ')+t.toUpperCase()+')'; }
+function shareText(kind){
+  const url=shareLink(), acc=accPct();
+  const rank=String($('rankBadge').textContent||'').replace(/^\S+\s*/,'').trim()||'PROMPT GOBLIN';
+  if(kind==='plain') return 'who is json? (i took the test. it is worse than you think) '+url;
+  if(state.daily) return 'who is json? — daily case '+dailyKey()+'\n'
+    +'Day '+state.level+' · '+state.correct+' disguises named · '+acc+'% accuracy\n'
+    +'Everyone gets the same ten cases today. Beat me: '+siteURL()+'#daily';
+  if(kind==='win') return 'who is json?\n\nCASE CLOSED. He was, allegedly, a data format.\n'
+    +acc+'% accuracy · best streak ×'+(1+state.bestCombo)+' · '+state.correct+' disguises named'
+    +'\n\nYour turn, detective: '+url;
+  const miss=caughtMeAs();
+  return 'who is json?\n\nI found out. He wore '+state.correct+' disguises before he got away.\n'
+    +rank+' · '+acc+'% accuracy'+(miss?' · he got me with '+miss:'')
+    +'\n\nPlay my exact case: '+url;
+}
+function bragText(){ return shareText(state.won?'win':'loss'); }   /* old name, kept alive */
 function fallbackCopy(txt,done){ try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }catch(e){ alert(txt); } }
+/* buttons report, then revert. No modal, no toast, no confetti for copying. */
+function copyOut(btn,txt,okLabel,revertHTML){ if(!btn)return;
+  const done=()=>{ btn.classList.add('ok'); btn.textContent=okLabel;
+    setTimeout(()=>{ btn.classList.remove('ok'); btn.innerHTML=revertHTML; },1800); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done));
+  else fallbackCopy(txt,done); }
+function linkLabel(){ return state.rival?'&#128279; Send it back':'&#128279; Copy challenge link'; }
+/* Both end-of-run overlays carry the same three doors. Bound by element rather than by id
+   so the button that reports back is the one the player actually pressed. */
+['linkBtn','winLinkBtn'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',()=>copyOut(b,shareLink(),'✔ Link copied',linkLabel())); });
+['bragBtn','winBragBtn'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',()=>copyOut(b,bragText(),'✔ Copied','&#128203; Copy brag')); });
+
+/* ---------- the wanted poster: 1200x630, drawn by the page, never a file in the repo ----------
+   OG ratio so nothing letterboxes it. Colours are read live off the CSS custom properties,
+   so a purchased IDE theme travels with the share. Canvas primitives only -- no
+   foreignObject, no DOM rasterisation, no network request, so it also works offline and
+   with the webfonts blocked. */
 function roundRect(x,rx,ry,w,h,r){ x.beginPath(); x.moveTo(rx+r,ry); x.arcTo(rx+w,ry,rx+w,ry+h,r); x.arcTo(rx+w,ry+h,rx,ry+h,r); x.arcTo(rx,ry+h,rx,ry,r); x.arcTo(rx,ry,rx+w,ry,r); x.closePath(); }
-function drawScoreCard(){ const W=640,H=360,c=document.createElement('canvas'); c.width=W;c.height=H; const x=c.getContext('2d');
-  const cs=getComputedStyle(document.documentElement); const cvar=n=>cs.getPropertyValue(n).trim()||'#000';
-  const board=cvar('--board'),paper=cvar('--paper'),ink=cvar('--ink'),card=cvar('--card'),yellow=cvar('--yellow'),red=cvar('--red'),blue=cvar('--blue'),ink2=cvar('--ink-2');
+function hasFont(n){ try{ return !!(document.fonts && document.fonts.check('400 32px '+n)); }catch(e){ return false; } }
+const PDISP=()=>(hasFont('Anton')?'Anton, Impact, "Arial Narrow", sans-serif':'Impact, "Arial Narrow Bold", "Helvetica Neue", sans-serif');
+const PMONO='"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace';
+/* shrink until it fits. A share card that overflows its own margin is worse than a small one. */
+function fitText(x,s,maxW,size,stack,weight){ let px=size;
+  do{ x.font=(weight||400)+' '+px+'px '+stack; px-=2; } while(x.measureText(s).width>maxW && px>11);
+  return x.font; }
+function spacedText(x,s,px,py,gap){ let cx=px; for(const ch of String(s)){ x.fillText(ch,cx,py); cx+=x.measureText(ch).width+gap; } return cx; }
+function drawMug(x,bx,by,bw,bh,yellow,red){
+  x.save(); x.beginPath(); x.rect(bx,by,bw,bh); x.clip();
+  x.fillStyle='#171310'; x.fillRect(bx,by,bw,bh);
+  x.strokeStyle='rgba(247,217,76,.18)'; x.lineWidth=1;
+  [0.22,0.46,0.70].forEach(f=>{ x.beginPath(); x.moveTo(bx,by+bh*f); x.lineTo(bx+bw,by+bh*f); x.stroke(); });
+  const cx=bx+bw/2, base=by+bh*0.92, s=bh/186;
+  /* the braces he is technically made of */
+  x.strokeStyle=yellow; x.lineWidth=6*s; x.lineCap='round';
+  [-1,1].forEach(d=>{ x.beginPath();
+    x.moveTo(cx+d*62*s, base-152*s); x.quadraticCurveTo(cx+d*72*s, base-152*s, cx+d*72*s, base-120*s);
+    x.quadraticCurveTo(cx+d*72*s, base-96*s, cx+d*84*s, base-96*s);
+    x.quadraticCurveTo(cx+d*72*s, base-96*s, cx+d*72*s, base-72*s);
+    x.quadraticCurveTo(cx+d*72*s, base-40*s, cx+d*62*s, base-40*s); x.stroke(); });
+  /* coat, face, shades, hat: the same silhouette as the SVG, in five fills */
+  x.fillStyle='#12100c'; x.beginPath(); x.moveTo(cx-66*s,base); x.quadraticCurveTo(cx-58*s,base-64*s,cx-26*s,base-78*s);
+  x.lineTo(cx+26*s,base-78*s); x.quadraticCurveTo(cx+58*s,base-64*s,cx+66*s,base); x.closePath(); x.fill();
+  x.fillStyle='#7b6442'; x.beginPath(); x.moveTo(cx-28*s,base-140*s);
+  x.bezierCurveTo(cx-28*s,base-92*s,cx-17*s,base-76*s,cx,base-76*s);
+  x.bezierCurveTo(cx+17*s,base-76*s,cx+28*s,base-92*s,cx+28*s,base-140*s); x.closePath(); x.fill();
+  x.fillStyle='#0b0805'; x.fillRect(cx-30*s,base-142*s,60*s,14*s);
+  x.fillStyle='#211f28'; x.fillRect(cx-31*s,base-128*s,62*s,6*s);
+  x.fillStyle='#08070a'; x.fillRect(cx-29*s,base-122*s,25*s,17*s); x.fillRect(cx+4*s,base-122*s,25*s,17*s);
+  x.fillStyle='#14100c'; x.beginPath(); x.ellipse(cx,base-140*s,62*s,15*s,0,0,7); x.fill();
+  x.beginPath(); x.moveTo(cx-30*s,base-140*s); x.bezierCurveTo(cx-34*s,base-186*s,cx-24*s,base-198*s,cx,base-198*s);
+  x.bezierCurveTo(cx+24*s,base-198*s,cx+34*s,base-186*s,cx+30*s,base-140*s); x.closePath(); x.fill();
+  x.fillStyle='#241d15'; x.fillRect(cx-32*s,base-152*s,64*s,10*s);
+  /* NO PHOTO ON FILE, on the rule line, never across his chin */
+  x.font='700 '+Math.round(bh*0.045)+'px '+PMONO; x.textAlign='center';
+  const t='NO PHOTO ON FILE', tw=x.measureText(t).width+18;
+  x.fillStyle='rgba(23,19,16,.72)'; x.fillRect(cx-tw/2,by+bh*0.70-13,tw,26);
+  x.strokeStyle=red; x.lineWidth=2; x.strokeRect(cx-tw/2,by+bh*0.70-13,tw,26);
+  x.fillStyle=red; x.textBaseline='middle'; x.fillText(t,cx,by+bh*0.70+1);
+  x.restore(); x.textAlign='left'; x.textBaseline='alphabetic'; }
+function posterCanvas(){
+  const W=1200,H=630,c=document.createElement('canvas'); c.width=W;c.height=H; const x=c.getContext('2d');
+  const cs=getComputedStyle(document.documentElement), cvar=n=>cs.getPropertyValue(n).trim()||'#000';
+  const board=cvar('--board'),paper=cvar('--paper'),ink=cvar('--ink'),yellow=cvar('--yellow'),
+        red=cvar('--red'),ink2=cvar('--ink-2'),DISP=PDISP();
   x.fillStyle=board; x.fillRect(0,0,W,H);
-  x.fillStyle=paper; x.globalAlpha=1; roundRect(x,20,20,W-40,H-40,6); x.fill();
-  x.fillStyle=ink; for(let gy=26;gy<H-26;gy+=13)for(let gx=26;gx<W-26;gx+=13){x.globalAlpha=.06;x.beginPath();x.arc(gx,gy,1.1,0,7);x.fill();} x.globalAlpha=1;
-  x.fillStyle=red; roundRect(x,40,40,268,30,4); x.fill();
-  x.fillStyle=paper; x.font='700 13px "JetBrains Mono",monospace'; x.textBaseline='middle'; x.fillText('CASE #0001 · WHO IS JSON?',52,56);
-  x.fillStyle=ink; x.textBaseline='alphabetic'; x.font='400 34px Anton,Impact,sans-serif'; x.fillText('EVIDENCE COLLECTED',40,112);
-  x.fillStyle=red; x.font='400 116px Anton,Impact,sans-serif'; x.fillText(String(state.score),38,226);
-  x.fillStyle=ink2; x.font='700 12px "JetBrains Mono",monospace';
-  x.textAlign='right'; x.fillText('DAY',W-56,116); x.fillText('BEST STREAK',W-56,172); x.fillText('MODE',W-56,228);
-  x.fillStyle=ink; x.font='400 38px Anton,Impact,sans-serif';
-  x.fillText(String(state.level),W-56,148); x.fillText('×'+(1+state.bestCombo),W-56,204);
-  x.font='400 24px Anton,Impact,sans-serif'; x.fillStyle=blue; x.fillText(runMode.daily?'DAILY':runMode.zen?'STAKEOUT':'FIELD WORK',W-56,258);
-  x.textAlign='left'; x.fillStyle=ink2; x.font='700 11px "JetBrains Mono",monospace'; x.fillText('STATUS: STILL AT LARGE · '+dailyKey(),40,H-42);
-  x.fillStyle=yellow; x.font='700 52px "JetBrains Mono",monospace'; x.fillText('{',W-150,H-52); x.fillText('}',W-112,H-52);
-  x.fillStyle=ink; x.font='400 20px Anton,Impact,sans-serif'; x.fillText('?',W-133,H-60);
-  return c.toDataURL('image/png'); }
-$('cardBtn').addEventListener('click',()=>{ try{ const url=drawScoreCard(); const a=document.createElement('a'); a.href=url; a.download='who-is-json-'+state.score+'.png'; document.body.appendChild(a); a.click(); a.remove();
-  const b=$('cardBtn'); b.classList.add('ok'); b.textContent='✔ Saved!'; setTimeout(()=>{b.classList.remove('ok');b.innerHTML='🖼 Case card';},1800); }catch(e){} });
+  x.fillStyle=paper; roundRect(x,26,26,W-52,H-52,7); x.fill();
+  x.fillStyle=ink; for(let gy=34;gy<H-34;gy+=13)for(let gx=34;gx<W-34;gx+=13){ x.globalAlpha=.05; x.beginPath(); x.arc(gx,gy,1.1,0,7); x.fill(); }
+  x.globalAlpha=1;
+  /* department banner */
+  x.fillStyle=red; roundRect(x,56,50,600,36,4); x.fill();
+  x.fillStyle=paper; x.font='700 15px '+PMONO; x.textBaseline='middle';
+  spacedText(x,'DEPT. OF UNDEFINED BEHAVIOR · CASE #0001',70,69,0.6);
+  x.textBaseline='alphabetic';
+  /* the joke, at the size a thumbnail can read */
+  x.fillStyle=red; x.font='400 16px '+PMONO; spacedText(x,'WANTED FOR QUESTIONING',56,124,4.4);
+  x.fillStyle=ink; x.font=fitText(x,'WHO IS',700,104,DISP); x.fillText('WHO IS',56,214);
+  x.font=fitText(x,'JSON?',700,104,DISP);
+  x.fillText('JSON',56,306); const jw=x.measureText('JSON').width;
+  x.fillStyle=red; x.fillText('?',56+jw,306);
+  x.strokeStyle='rgba(25,19,8,.35)'; x.lineWidth=2; x.setLineDash([7,6]);
+  x.beginPath(); x.moveTo(56,340); x.lineTo(740,340); x.stroke(); x.setLineDash([]);
+  /* the four fields a stranger can actually read */
+  const rows=[['DISGUISES NAMED',String(state.correct)],
+              ['ACCURACY',accPct()+'%'],
+              ['RANK',String($('rankBadge').textContent||'').replace(/^\S+\s*/,'').trim()||'PROMPT GOBLIN'],
+              ['CAUGHT ME AS',caughtMeAs()||'nothing. he never landed one.']];
+  rows.forEach(([k,v],i)=>{ const y=374+i*42;
+    x.fillStyle=ink2; x.font='700 13px '+PMONO; spacedText(x,k,56,y-2,1.6);
+    x.fillStyle=ink; x.font=fitText(x,v,W-410,30,DISP); x.fillText(v,330,y+2); });
+  x.strokeStyle='rgba(25,19,8,.35)'; x.lineWidth=2; x.setLineDash([7,6]);
+  x.beginPath(); x.moveTo(56,528); x.lineTo(740,528); x.stroke(); x.setLineDash([]);
+  /* the numbers players care about, demoted to where they belong */
+  const mode=state.ng?'SECOND FILE':state.daily?'DAILY CASE':state.zen?'STAKEOUT':'FIELD WORK';
+  x.fillStyle=ink2; x.font='700 14px '+PMONO;
+  x.fillText('EVIDENCE '+state.score.toLocaleString('en-US')+' · DAY '+state.level+' · STREAK ×'+(1+state.bestCombo)
+    +' · '+mode+' · '+dailyKey(),56,556);
+  /* a PNG dropped in a chat loses its link entirely, so the door is printed on the poster.
+     Opened from a disk there is no door to print, and saying so is better than inventing one. */
+  { const host=String(location.host||'').replace(/^www\./,''), sd=((state.seed>>>0)||1).toString(36);
+    x.fillStyle=red; x.font='700 16px '+PMONO;
+    x.fillText(host? host+location.pathname.replace(/index\.html$/,'')+'#c='+sd
+                   : 'case file #c='+sd+' · ask whoever sent you this',56,584); }
+  /* mugshot */
+  drawMug(x,806,110,330,318,yellow,red);
+  x.strokeStyle=ink; x.lineWidth=3; x.strokeRect(806,110,330,318);
+  x.fillStyle=ink2; x.font='700 12px '+PMONO;
+  { const cap='SUSPECT SKETCH · ARTIST GAVE UP', gap=1.2;
+    const w=x.measureText(cap).width+gap*(cap.length-1);
+    spacedText(x,cap,806+165-w/2,448,gap); }
+  /* verdict stamp */
+  x.save(); x.translate(966,510); x.rotate(-8*Math.PI/180);
+  const stamp=state.won?'IN CUSTODY':'STILL AT LARGE', sc=state.won?cvar('--green'):red;
+  x.font='400 30px '+DISP; const sw=x.measureText(stamp).width;
+  x.strokeStyle=sc; x.lineWidth=4; roundRect(x,-sw/2-20,-28,sw+40,56,6); x.stroke();
+  x.fillStyle=sc; x.textAlign='center'; x.textBaseline='middle'; x.fillText(stamp,0,2);
+  x.restore(); x.textAlign='left'; x.textBaseline='alphabetic';
+  return c; }
+function drawScoreCard(){ return posterCanvas().toDataURL('image/png'); }   /* old name, kept alive */
+function sharePoster(b){
+  if(!b)return;
+  const REV='&#128444; Wanted poster';
+  const ok=t=>{ b.classList.add('ok'); b.textContent=t; setTimeout(()=>{ b.classList.remove('ok'); b.innerHTML=REV; },1800); };
+  let c; try{ c=posterCanvas(); }catch(e){ return; }
+  const name='who-is-json-'+dailyKey()+'.png';
+  const dl=()=>{ try{ const a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download=name;
+    document.body.appendChild(a); a.click(); a.remove(); ok('✔ Saved'); }catch(e){} };
+  /* on a phone the poster and the link travel together in one tap. Never auto-invoked. */
+  if(c.toBlob && navigator.share && navigator.canShare){
+    c.toBlob(bl=>{ if(!bl){ dl(); return; }
+      let f=null,can=false;
+      try{ f=new File([bl],name,{type:'image/png'}); can=navigator.canShare({files:[f]}); }catch(e){ can=false; }
+      if(!can){ dl(); return; }
+      navigator.share({files:[f],text:bragText()}).then(()=>ok('✔ Shared'),
+        err=>{ if(!(err&&err.name==='AbortError')) dl(); }); },'image/png');
+  } else dl(); }
+['cardBtn','winCardBtn'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',()=>sharePoster(b)); });
+
+/* ===================== THE FIRST SIXTY SECONDS =====================
+   Three jobs: recommend a pace instead of silently defaulting into the hard-ish middle,
+   greet a returning detective as one, and put the seven mode buttons behind one summary
+   until the player has actually finished a case. Warrants and case modifiers are already
+   clearance-gated (has('warrants') / has('modifiers')), so a first-timer never sees those
+   at all -- that is the disclosure mechanism this file already had, and it is left alone. */
+const DIFFMETA={ chill:{ic:'😌',n:'Vibing'}, normal:{ic:'😎',n:'Shipping'}, chaos:{ic:'🔥',n:'Prod on Friday'} };
+function recommendedDiff(){
+  if((STATS.games|0)===0) return 'chill';
+  let won=false; try{ won=localStorage.getItem('jw_won')==='1'; }catch(e){}
+  return won?'normal':'chill'; }
+function diffLives(d){ return (d.lives||1)+(UPS.has('union')?1:0); }
+function reflectDiffSel(){
+  const rec=recommendedDiff();
+  document.querySelectorAll('#diffSel .diff').forEach(b=>{
+    const id=b.dataset.diff, m=DIFFMETA[id], d=DIFF[id]; if(!m||!d)return;
+    b.innerHTML=m.ic+' '+m.n+'<span class="mm">'+d.time.toFixed(1)+'s · '+diffLives(d)+'&#10084;</span>'
+      +(id===rec?'<span class="rec">rec</span>':'');
+    b.setAttribute('aria-describedby','diffNote'); });
+  const n=$('diffNote'); if(!n)return;
+  const d=DIFF[diff]||DIFF.normal, m=DIFFMETA[diff]||DIFFMETA.normal, L=diffLives(d);
+  n.innerHTML='<b>'+m.n+'</b> &mdash; '+d.time.toFixed(1)+'s of thinking time per exhibit, <b>'+L+'</b> '+(L===1?'life':'lives')
+    +', '+(d.target||CORRECT_PER_DAY)+' IDs to close a case.'
+    +(diff===rec ? ((STATS.games|0)===0 ? ' Recommended for a first case. Nobody is watching.'
+                                        : ' Where your record says you belong.') : ''); }
+function reflectStartOverlay(){
+  const first=(STATS.games|0)===0;
+  const t=$('startTitle'), s=$('startSub'), b=$('startBtn'), mw=$('moreWays');
+  const title=(CLEARANCE[META.cl]&&CLEARANCE[META.cl].title)||rankFor(XP);
+  if(t) t.innerHTML=first ? 'Think you can <span class="r">ID him?</span>'
+                          : 'Welcome back, <span class="r">'+esc(String(title).toUpperCase())+'.</span>';
+  if(s) s.innerHTML=first
+    ? 'JSON wears one of <b>six disguises</b>. Name it before the clock runs out.'
+    : 'He is still out there. Best haul <b>'+HI+'</b> &middot; <b>'+(STATS.games|0)+'</b> case'
+      +((STATS.games|0)===1?'':'s')+' on file &middot; <b>'+filedCount()+'</b> disguises catalogued.';
+  if(b) b.innerHTML=first ? '&#9654; Open the case' : '&#9654; Reopen the case';
+  /* opened for veterans, shut for newcomers -- and once the player has touched it
+     themselves we never fight them for it again */
+  if(mw && !mw._touched) mw.open=!first;
+  reflectDiffSel(); reflectChallengeNote(); }
+(function(){ const mw=$('moreWays'); if(mw) mw.addEventListener('toggle',()=>{ mw._touched=1; }); })();
+
+/* ---------- the redaction bar: the cheapest possible proof that the page answers you ---------- */
+(function(){ const r=$('redactBtn'); if(!r)return;
+  r.addEventListener('click',()=>{ if(r.classList.contains('open'))return;
+    r.classList.add('open'); r.setAttribute('aria-expanded','true');
+    r.textContent='a data format. allegedly.';
+    if(!muted){ initAudio(); beep(520,0.06,'triangle',0.05); } }); })();
+/* three more fact rows is 90-250px of small type between the meme and the button, which is
+   exactly the space the demo needed. Folded by default at every width; the two charges that
+   carry the joke stay visible above it. */
+
+/* ---------- THE FIRST DISGUISE: the hero demo round ----------
+   Teaches the quotes trap, scores nothing, cannot be lost. It writes to no game state:
+   no #score, no #lives, no #level, no .abtn, no #valueCard. Being WRONG here teaches more
+   than being right, which is exactly what you want at the only moment a person is happy
+   to be wrong. */
+const DEMO_RAW='"42"', DEMO_TYPE='string';
+let demoAnswered=false; try{ demoAnswered=(localStorage.getItem('jw_demo')==='1'); }catch(e){}
+let demoVisible=false;
+function buildDemo(){ const host=$('demoAns'); if(!host)return;
+  { const dv=document.querySelector('#demoValue .dv'); if(dv) dv.textContent=DEMO_RAW; }  /* one source of truth */
+  TYPES.forEach(t=>{ const b=document.createElement('button');
+    b.className='dbtn'; b.dataset.t=t.id;              /* NOT .abtn, NOT data-id -- on purpose */
+    b.innerHTML='<span class="dk">'+t.key+'</span>'+t.label;
+    b.addEventListener('click',()=>demoAnswer(t.id)); host.appendChild(b); });
+  if(demoAnswered) demoAnswer(DEMO_TYPE,true);          /* returning visitor: pre-solved, as a reminder */
+  if(window._bindCursor) window._bindCursor();
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>es.forEach(e=>{ demoVisible=e.isIntersecting; }),{threshold:.4});
+    io.observe($('demoBox')); } }
+function demoAnswer(picked,silent){
+  const box=$('demoBox'); if(!box||box.dataset.state!=='ask')return;
+  const ok=(picked===DEMO_TYPE);
+  box.dataset.state=ok?'ok':'no';
+  document.querySelectorAll('#demoAns .dbtn').forEach(b=>{ b.disabled=true;
+    if(b.dataset.t===DEMO_TYPE) b.classList.add('is-answer');
+    else if(!ok && b.dataset.t===picked) b.classList.add('is-picked'); });   /* say what you picked */
+  const v=$('demoVerdict');
+  if(v) v.innerHTML=ok
+    ? 'Correct &mdash; <b>String</b>. It is wearing <b>quotes</b>, so it is a String even though it looks like a number. That one trick is most of this case.'
+    : 'Not quite. Look at the <b>quotes</b>: anything inside them is a <b>String</b>, even <span class="mono">"42"</span>. He gets everybody with that one, and it cost you nothing.';
+  demoAnswered=true; try{ localStorage.setItem('jw_demo','1'); }catch(e){}
+  const cta=$('heroCta');
+  if(cta){ cta.innerHTML='&#9654; You&rsquo;re hired &mdash; open case #0001';
+    if(!silent && !reduced){ cta.classList.remove('pulse'); void cta.offsetWidth; cta.classList.add('pulse'); } }
+  if(!silent && !muted){ initAudio(); if(ok) sCorrect(); else beep(300,0.12,'triangle',0.05); } }
+/* keys 1-6, but only when all four are true: the game is idle, the demo is unanswered, the
+   demo is actually on screen, and no modal is open. #demoBox sits ~1500px above #startBtn,
+   so by the time anybody is at the lineup this cannot fire. */
+function demoKeys(e){
+  if(state.playing || demoAnswered || !demoVisible || anyModalOpen()) return false;
+  if(e.ctrlKey||e.metaKey||e.altKey) return false;
+  const i=['1','2','3','4','5','6'].indexOf(e.key);
+  if(i<0) return false;
+  e.preventDefault(); demoAnswer(TYPES[i].id); return true; }
+buildDemo();
 
 renderMedals(); renderLB(-1); setHUD(); reflectRank();
 renderWarrants(); renderMods(); reflectSecondFile();
+applyChallengeFromHash(); applyHashMode(); reflectStartOverlay();
 </script>
 <!-- ============ ART SPRITE: the suspect's paint servers + six disguise marks + the sigil ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
