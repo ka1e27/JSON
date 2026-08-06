@@ -62,7 +62,7 @@ button{background:none;border:none;}
     radial-gradient(45% 40% at 96% 70%, rgba(61,123,255,.13), transparent 70%);}
 .vignette{position:fixed;inset:0;z-index:0;pointer-events:none;
   background:radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(0,0,0,.62) 100%);}
-.grain{position:fixed;inset:-50%;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+.grain{position:fixed;inset:-12%;z-index:1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation:gr .6s steps(2) infinite;}
 @keyframes gr{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-3%)}}
@@ -604,6 +604,13 @@ body.cb .j-z{ text-decoration:line-through; }
   60%{opacity:1;transform:rotate(-11deg) scale(.94)} 100%{opacity:1;transform:rotate(-9deg) scale(1)} }
 .reduced .vstamp.show{ animation:none;opacity:1;transform:rotate(-9deg) scale(1); }
 .feedback{ top:8%; font-size:clamp(22px,5vw,44px); max-width:94%; }
+/* drawn disguise marks: paths not glyphs, so they are immune to blocked webfonts */
+.di{display:block;width:1em;height:1em;flex:none}
+.abtn .di{font-size:25px;margin-bottom:1px;opacity:.97}
+.dcard .alias{display:inline-flex;align-items:center;gap:7px}
+.dcard .alias .di{font-size:17px}
+.dcard .wm{position:absolute;right:8px;bottom:6px;font-size:58px;opacity:.11;color:var(--ink);pointer-events:none}
+.pertype .di{font-size:14px;display:inline-block;vertical-align:-2px;margin-right:5px}
 .ptsfloat{ position:fixed; z-index:83; font-family:var(--ff-display); font-size:26px;
   color:var(--ti-string); -webkit-text-stroke:1.5px var(--ink); pointer-events:none; }
 /* reduced motion must remove MOTION, not the feedback itself: these rest at scale(0)/opacity:0 */
@@ -903,27 +910,27 @@ body.cb .j-z{ text-decoration:line-through; }
         </svg>
         <div class="dgrid">
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-string)">String</span>
+            <span class="alias" style="background:var(--t-string)"><svg class="di" aria-hidden="true"><use href="#di-string"/></svg>String</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-string"/></svg></span>
             <div class="looks mono">"hello" &middot; "42" &middot; ""</div>
             <div class="tell">Hiding inside <b>quotes</b>. If it wears quotes it's a string &mdash; even <b>"42"</b>. That one gets everybody.</div></div>
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-number)">Number</span>
+            <span class="alias" style="background:var(--t-number)"><svg class="di" aria-hidden="true"><use href="#di-number"/></svg>Number</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-number"/></svg></span>
             <div class="looks mono">42 &middot; -7 &middot; 3.14 &middot; 1e3</div>
             <div class="tell">Bare digits, <b>no quotes</b>. Confident. Unbothered. Occasionally the answer to everything.</div></div>
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-boolean)">Boolean</span>
+            <span class="alias" style="background:var(--t-boolean)"><svg class="di" aria-hidden="true"><use href="#di-boolean"/></svg>Boolean</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-boolean"/></svg></span>
             <div class="looks mono">true &middot; false</div>
             <div class="tell">Only two outfits, always <b>lowercase</b>. <b>"true"</b> in quotes is an impostor &mdash; that's a string.</div></div>
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-null)">Null</span>
+            <span class="alias" style="background:var(--t-null)"><svg class="di" aria-hidden="true"><use href="#di-null"/></svg>Null</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-null"/></svg></span>
             <div class="looks mono">null</div>
             <div class="tell">Shows up as <b>nothing at all</b>. Not zero. Not empty. Nothing. Deeply relatable.</div></div>
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-array)">Array</span>
+            <span class="alias" style="background:var(--t-array)"><svg class="di" aria-hidden="true"><use href="#di-array"/></svg>Array</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-array"/></svg></span>
             <div class="looks mono">[1,2,3] &middot; [] &middot; [null]</div>
             <div class="tell">Travels in a gang, wears <b>square brackets</b>. Even alone. Even empty.</div></div>
           <div class="dcard"><span class="pin" style="top:-7px;left:50%;transform:translateX(-50%)"></span>
-            <span class="alias" style="background:var(--t-object)">Object</span>
+            <span class="alias" style="background:var(--t-object)"><svg class="di" aria-hidden="true"><use href="#di-object"/></svg>Object</span><span class="wm"><svg class="di" aria-hidden="true"><use href="#di-object"/></svg></span>
             <div class="looks mono">{"a":1} &middot; {}</div>
             <div class="tell">The classic look: <b>curly braces</b> and keys. Often has more objects inside. It never ends.</div></div>
         </div>
@@ -1536,9 +1543,10 @@ const TYPES=[
   {id:'array',  label:'Array',   ex:'[ ... ]',key:'5', sym:'[ ]'},
   {id:'object', label:'Object',  ex:'{ ... }',key:'6', sym:'{ }'}
 ];
+const ico = id => `<svg class="di" aria-hidden="true"><use href="#di-${id}"/></svg>`;
 const answersHost=$('answers');
 TYPES.forEach(t=>{ const b=document.createElement('button'); b.className='abtn '+t.id; b.dataset.id=t.id;
-  b.innerHTML=`<span class="key">${t.key}</span><span class="cbsym">${t.sym.replace(/</g,'&lt;')}</span>${t.label}<span class="ex mono">${t.ex.replace(/</g,'&lt;')}</span>`;
+  b.innerHTML=`<span class="key">${t.key}</span>${ico(t.id)}${t.label}<span class="ex mono">${t.ex.replace(/</g,'&lt;')}</span>`;
   b.addEventListener('click',()=>answer(t.id)); answersHost.appendChild(b); });
 if(window._bindCursor) window._bindCursor();
 
@@ -2181,7 +2189,7 @@ function renderStats(){ const g=$('statGrid'); if(!g)return; const acc=STATS.ans
   const pt=$('perType'); const order=['string','number','boolean','null','array','object'];
   if(!order.some(t=>STATS.perType[t]&&STATS.perType[t].a>0)){ pt.innerHTML='<div class="empty">Work a case to chart your accuracy.</div>'; return; }
   pt.innerHTML=order.map(t=>{ const p=STATS.perType[t]; if(!p||!p.a)return ''; const pc=Math.round(p.c/p.a*100);
-    return `<div class="row"><span class="tn" style="color:var(--t-${t})">${t}</span><div class="bar"><i style="width:${pc}%;background:var(--t-${t})"></i></div><span class="pc">${pc}%</span></div>`; }).join(''); }
+    return `<div class="row"><span class="tn" style="color:var(--t-${t})">${ico(t)}${t}</span><div class="bar"><i style="width:${pc}%;background:var(--t-${t})"></i></div><span class="pc">${pc}%</span></div>`; }).join(''); }
 
 /* ===================== DAILY CASE ===================== */
 function getDaily(){ try{ return JSON.parse(localStorage.getItem('jw_daily')||'null')||{d:'',best:0}; }catch(e){ return {d:'',best:0}; } }
@@ -2257,5 +2265,59 @@ $('cardBtn').addEventListener('click',()=>{ try{ const url=drawScoreCard(); cons
 
 renderMedals(); renderLB(-1); setHUD();
 </script>
+<!-- ============ ART SPRITE: six disguise marks + the suspect sigil ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="di-string" viewBox="0 0 24 24">
+  <g fill="currentColor">
+    <path d="M4.6 2.6h4L6.2 10.4h-4z"/><path d="M10.4 2.6h4L12 10.4H8z"/>
+    <path d="M19.4 21.4h-4L17.8 13.6h4z"/><path d="M13.6 21.4h-4L12 13.6h4z"/>
+  </g>
+</symbol>
+<symbol id="di-number" viewBox="0 0 24 24">
+  <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none">
+    <path d="M9.2 3.6 6.6 17.4M15.6 3.6 13 17.4M4.4 8.4h14.4M3.2 12.8h14.4"/>
+  </g>
+  <circle fill="currentColor" cx="20.4" cy="19.4" r="2"/>
+</symbol>
+<symbol id="di-boolean" viewBox="0 0 24 24">
+  <rect fill="none" stroke="currentColor" stroke-width="2.4" x="1.7" y="6.4" width="20.6" height="11.2" rx="5.6"/>
+  <circle fill="currentColor" cx="16.6" cy="12" r="3.4"/>
+  <path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6.6 12h1.6"/>
+</symbol>
+<symbol id="di-null" viewBox="0 0 24 24">
+  <circle fill="none" stroke="currentColor" stroke-width="2.6" cx="12" cy="12" r="8.4"/>
+  <path stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M5.4 18.6 18.6 5.4"/>
+</symbol>
+<symbol id="di-array" viewBox="0 0 24 24">
+  <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M6.6 3.4H3.4v17.2h3.2M17.4 3.4h3.2v17.2h-3.2"/>
+  </g>
+  <g fill="currentColor">
+    <rect x="8.2" y="9.4" width="2.4" height="5.2" rx="1"/>
+    <rect x="11.9" y="9.4" width="2.4" height="5.2" rx="1"/>
+    <rect x="15.6" y="9.4" width="2.4" height="5.2" rx="1"/>
+  </g>
+</symbol>
+<symbol id="di-object" viewBox="0 0 24 24">
+  <g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none">
+    <path d="M8 3.5Q5 3.5 5 6.5V9.5Q5 12 2.6 12Q5 12 5 14.5V17.5Q5 20.5 8 20.5"/>
+    <path d="M16 3.5q3 0 3 3V9.5q0 2.5 2.4 2.5Q19 12 19 14.5V17.5q0 3-3 3"/>
+  </g>
+  <g fill="currentColor">
+    <rect x="8.9" y="8.3" width="6.4" height="2.9" rx="1.1"/>
+    <rect x="8.9" y="13.1" width="4" height="2.9" rx="1.1"/>
+  </g>
+</symbol>
+<symbol id="di-suspect" viewBox="0 0 40 32">
+  <g fill="none" stroke="var(--yellow)" stroke-width="2.4" stroke-linecap="round">
+    <path d="M8 8q-4 0-4 4v2q0 3-3 3 3 0 3 3v2q0 4 4 4"/>
+    <path d="M32 8q4 0 4 4v2q0 3 3 3-3 0-3 3v2q0 4-4 4"/>
+  </g>
+  <path fill="currentColor" d="M6 16C6 12 12 9 20 9s14 3 14 7c0 3-6 5-14 5S6 19 6 16Z"/>
+  <path fill="currentColor" d="M13 16C11 5 15 1 20 1s7 4 7 15Z"/>
+  <path fill="currentColor" d="M11 21h18v4q0 3-3 3H14q-3 0-3-3z"/>
+  <path fill="var(--yellow)" d="M13 22h6v3h-6zM21 22h6v3h-6z"/>
+</symbol>
+</defs></svg>
 </body>
 </html>
