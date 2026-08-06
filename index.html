@@ -319,10 +319,24 @@ nav .bounty .n{font-family:var(--ff-display);font-size:19px;color:var(--yellow);
 .host{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;}
 .host .mascot{width:116px;height:122px;margin-bottom:0;flex:none;}  /* arena: bust crop, just below the shoulders */
 .bubble{position:relative;background:var(--card);border:var(--edge);border-radius:6px;padding:10px 14px;max-width:290px;
-  font-family:var(--ff-type);font-size:13.5px;line-height:1.45;box-shadow:3px 3px 0 rgba(25,19,8,.25);}
+  font-family:var(--ff-type);font-size:13.5px;line-height:1.45;box-shadow:3px 3px 0 rgba(25,19,8,.25);
+  overflow-wrap:anywhere;}
 .bubble::after{content:"";position:absolute;left:-9px;top:20px;width:14px;height:14px;background:var(--card);
   border-left:var(--edge);border-bottom:var(--edge);transform:rotate(45deg);}
-@media(max-width:600px){.bubble{display:none;}}
+/* The taunt channel used to be `display:none` below 600px -- which also removed #question
+   from the accessibility tree, so a phone player lost every taunt visually AND aurally.
+   That is the best writing in the file and most of the audience never saw a word of it.
+   Below 600px the bubble stops trying to sit beside the mug shot and becomes a full-width
+   caption underneath it, tail pointing up at him. The mug shot gives back 21px of the
+   vertical budget so the arena does not grow. */
+@media(max-width:600px){
+  .host{flex-wrap:wrap;gap:6px;}
+  .host .mascot{width:96px;height:101px;}
+  .bubble{flex:1 1 100%;max-width:none;min-width:0;order:2;padding:7px 11px 8px;font-size:12px;line-height:1.4;
+    text-align:left;box-shadow:2px 2px 0 rgba(25,19,8,.25);}
+  .bubble::after{left:50%;margin-left:-7px;top:-8px;
+    border-left:var(--edge);border-top:var(--edge);border-bottom:none;}
+}
 
 .evbag{position:relative;background:var(--card);border:2px dashed var(--ink);border-radius:6px;min-height:96px;
   display:flex;align-items:center;justify-content:center;padding:16px 18px;margin:8px auto 12px;max-width:560px;
@@ -477,6 +491,19 @@ body.cb .abtn .cbsym{display:inline-block;}
 .toast .tt{font-family:var(--ff-type);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--red);}
 .toast .tn{font-family:var(--ff-display);font-size:15px;text-transform:uppercase;}
 .toast .td{font-family:var(--ff-type);font-size:11px;color:var(--ink-2);}
+/* MEASURED BUG: at 320px, with the answer grid scrolled into view, four stacked toasts
+   covered 81.8% of #valueCard during a live clock. A notification that hides the thing
+   you are being timed on is not a notification, it is a trap. Below 700px a toast is one
+   compact row, the stack is capped at two (toast() queues the rest), and the kicker moves
+   into the accessibility tree instead of onto the exhibit. Band: 62..394px -> 62..~150px. */
+@media(max-width:700px){
+  .toaster{top:56px;right:8px;gap:6px;max-width:min(290px,80vw);}
+  .toast{padding:6px 10px;gap:8px;box-shadow:3px 3px 0 rgba(0,0,0,.5);}
+  .toast .tic{font-size:16px;}
+  .toast .tt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+  .toast .tn{font-size:13px;line-height:1.15;}
+  .toast .td{font-size:10px;line-height:1.25;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+}
 
 /* modals */
 .modal{position:fixed;inset:0;z-index:88;background:rgba(10,8,6,.78);backdrop-filter:blur(4px);display:grid;place-items:center;padding:18px;overflow-y:auto;}
@@ -2145,6 +2172,95 @@ const TIERS={
 function typeOf(v){ if(v===null)return 'null'; if(Array.isArray(v))return 'array'; return typeof v; }
 let lastRaw='';
 function mkValue(raw){ const v=JSON.parse(raw); lastRaw=raw; return {raw:raw,value:v,type:typeOf(v)}; }
+
+/* ===================== DISGUISES: the trap inventory =====================
+   MEASURED: 75.5% of every day-4-and-later type round had no plausible alternative answer
+   at all, and the entire trap inventory of the game was NINE authored strings
+   ("42" "true" "null" "3.14" "-9" 1e3 "false" "0" "{}") which stopped growing at day 4.
+   The trap rate sat at 0.245 and never moved again for the rest of the game, endless
+   included. A six-button round where five options are absurd is easy at any clock speed.
+
+   A trap is a value whose SURFACE reading disagrees with its type: the only thing that can
+   make "name the outermost type" cost a player more than one glance. These are generated,
+   so the inventory never runs out, and every family below is a real bug somebody has
+   shipped. Deliberately NOT added to TIERS: DOSSIER_POOL is built from TIERS/BOSS/BROKEN,
+   so filedCount()/DOSSIER_POOL.length, the clearance ladder, the warrants and the
+   "grinding endless catalogues nothing new" guarantee all keep their exact meanings, and
+   nobody's 73/73 dossier silently becomes 73/140. seeRaw() already no-ops for any raw
+   outside DOSSIER_POOL, so generated exhibits file nothing, exactly as intended.
+
+   Every family declares its own TRUE type, and the weights are chosen so the injected
+   type distribution is FLATTER than the authored pool's (which is ~45% string). Otherwise
+   a rising trap rate would just hand the player a new free lunch: "always answer STRING".  */
+const DIS_KEYS=['id','ok','tag','tags','user','name','role','meta','env','ttl','row','job','key','list','flag','size','count','logs'];
+const DIS_WORDS=['admin','dev','ada','noir','beta','prod','main','temp','draft','audit'];
+function dInt(n){ return Math.floor(rnd()*n); }
+function dQ(s){ return JSON.stringify(String(s)); }
+/* --- families. f() returns a raw JSON text; hard:1 means "case 4 and later only", so the
+       school cases never serve a quoted structure. w = draw weight out of DIS_WSUM.
+       t = the true type, documentation only: the oracle is always JSON.parse. --- */
+const DIS_FAMILIES=[
+  {w:22,t:'string',f:()=>{ const r=rnd();                               /* a number in quotes */
+      if(r<0.30) return dQ(String(dInt(1000)));
+      if(r<0.45) return dQ('-'+(1+dInt(99)));
+      if(r<0.62) return dQ((rnd()*100).toFixed(2));
+      if(r<0.74) return dQ('0'+(100+dInt(900)));                        /* leading zero: an ID, not a number */
+      if(r<0.86) return dQ((1+dInt(9))+'e'+(1+dInt(5)));
+      return dQ(String(dInt(10))); }},
+  {w:13,t:'string',f:()=>dQ(rand(['true','false','True','False','TRUE','FALSE']))},
+  {w:13,t:'string',f:()=>dQ(rand(['null','NULL','Null','nil','None','none']))},
+  {w:16,t:'string',hard:1,f:()=>{ const r=rnd();                        /* a structure in quotes */
+      if(r<0.26) return dQ('[]');
+      if(r<0.46) return dQ('{}');
+      if(r<0.66) return dQ('['+dInt(9)+','+dInt(9)+']');
+      if(r<0.84) return dQ('{"'+rand(DIS_KEYS)+'":'+dInt(9)+'}');
+      return dQ('["'+rand(DIS_WORDS)+'"]'); }},
+  /* Deliberately NO honest-looking string family here. Every string this generator emits is
+     a disguise, because trapRate is bounded above by the share of rounds whose answer is
+     STRING -- traps are strings, that is a fact about JSON's grammar and not a choice -- and
+     an honest generated string would spend that budget for nothing. `""` and `" "` already
+     live in TIERS[2] and still turn up through the authored draw. */
+  {w:10,t:'number',f:()=>rand(['1e3','7e4','2e-3','3E-8','1e-7','5E2','6e0','1e1'])},
+  {w:8, t:'number',f:()=>{ const r=rnd();
+      if(r<0.24) return rand(['-0','-0.0','0.0','1.0','2.00']);
+      if(r<0.44) return '-0.00'+(1+dInt(9));
+      if(r<0.60) return String(9007199254740991+dInt(4));
+      if(r<0.78) return (rnd()*10).toFixed(5);
+      return String(-(1+dInt(999))); }},
+  {w:7, t:'array', f:()=>rand(['[]','[null]','[[]]','[{}]','[null,null]','["42"]','["true"]','["null"]','[[[]]]','[""]'])},
+  {w:6, t:'object',hard:1,f:()=>{ const r=rnd();
+      if(r<0.22) return '{}';
+      if(r<0.44) return '{"'+rand(DIS_KEYS)+'":null}';
+      if(r<0.62) return '{"0":"a","1":"b","length":2}';                 /* the most convincing non-array in JS */
+      if(r<0.78) return '{"true":false}';
+      if(r<0.90) return '{"":'+dInt(9)+'}';
+      return '{"'+rand(DIS_KEYS)+'":"{}"}'; }},
+  {w:2, t:'boolean',f:()=>rand(['true','false'])},
+  {w:1, t:'null',  f:()=>'null'}
+];
+const DIS_WSUM=DIS_FAMILIES.reduce((a,x)=>a+x.w,0);
+/* THE TRAP RATE. This is the difficulty dial the game did not have. Day 1 is still school
+   (0.06); by the last case of the campaign better than half of the type rounds make you
+   check the quotes instead of the glyph; endless pins it at the ceiling rather than
+   pinning the clock below reaction time. Endless days count 0.6 of a campaign day so a
+   cold-case run reaches the ceiling in a few cases and then stays a steady state. */
+const TRAP_BASE=0.06, TRAP_STEP=0.062, TRAP_MAX=0.62;
+function trapDay(l){ const d=Math.max(1,l||1); return state.endless ? campDays()+endlessDayNo(l)*0.6 : d; }
+function trapRate(l){ return Math.min(TRAP_MAX, TRAP_BASE + TRAP_STEP*(trapDay(l)-1)); }
+/* Always parseable: the family list is closed and hand-verified, but the try/catch and the
+   fallback are free and a generator that can return junk would hang a round. */
+function genDisguise(level){
+  const allowHard = trapDay(level)>=4;
+  for(let i=0;i<40;i++){
+    let n=rnd()*DIS_WSUM, fam=DIS_FAMILIES[0];
+    for(const x of DIS_FAMILIES){ n-=x.w; if(n<=0){ fam=x; break; } }
+    if(fam.hard && !allowHard) continue;
+    let raw; try{ raw=fam.f(); JSON.parse(raw); }catch(e){ continue; }
+    if(raw===lastRaw) continue;
+    return raw;
+  }
+  return '"42"';
+}
 function pickValue(level){
   /* A first-ever run opens on the quotes trap and its twin, back to back, because that is
      the single highest-value rule in the game and the only lesson worth spending the two
@@ -2161,7 +2277,26 @@ function pickValue(level){
     const want=DOSSIER_POOL.filter(r=>{ const e=DOS.e[r]; return (!e||e.s!==1) && r.length<40; });
     if(want.length && rnd()<0.6){ raw=want[Math.floor(rnd()*want.length)];
       try{ const v=JSON.parse(raw); lastRaw=raw; return {raw,value:v,type:typeOf(v)}; }catch(e){} } }
-  do{ const tier=bag[Math.floor(rnd()*bag.length)]; const arr=TIERS[tier]; raw=arr[Math.floor(rnd()*arr.length)]; tries++; }while(raw===lastRaw&&tries<8);
+  /* THE TRAP INJECTION. Never on the first round of a run (that one stays a clean, honest
+     type round -- it is a contract, and it is also the right way to open) and never on the
+     forced "42"/42 opening above. */
+  const tr = ((state.roundsPlayed|0)>1) ? trapRate(level) : 0;
+  if(tr>0 && rnd()<tr){ const g=genDisguise(level);
+    try{ const v=JSON.parse(g); lastRaw=g; return {raw:g,value:v,type:typeOf(v)}; }catch(e){} }
+  /* When we did NOT plant a trap, lean the authored draw away from strings by the same rate.
+     Traps are strings -- that is a fact about JSON, not a choice -- so a rising trap rate
+     would otherwise make STRING the right answer on well over half of all rounds, which is
+     just a different free lunch. This keeps the six buttons roughly equiprobable, which is
+     what makes each of them a real decision. Bounded: at most `tries` redraws. */
+  const skew=Math.min(0.92, tr*1.8);
+  for(;;){
+    const tier=bag[Math.floor(rnd()*bag.length)], arr=TIERS[tier];
+    raw=arr[Math.floor(rnd()*arr.length)]; tries++;
+    if(tries>=8) break;                                       /* hard bound, always terminates */
+    if(raw===lastRaw) continue;
+    if(skew>0 && raw.charAt(0)==='"' && rnd()<skew) continue;
+    break;
+  }
   lastRaw=raw; return {raw,value:JSON.parse(raw),type:typeOf(JSON.parse(raw))};
 }
 function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(rnd()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
@@ -2876,20 +3011,31 @@ if(window._bindCursor) window._bindCursor();
 })();
 
 /* ---- DIFFICULTY: time = base THINK budget (reading is paid for separately, see readBudget)
+        drop  = seconds of think budget removed per day
+        min   = the per-difficulty THINK FLOOR. Never scaled, never decayed. See thinkBudget().
         hint  = auto-eliminate 2 wrong buttons after N consecutive misses
         regen = life regen at day close: always / clean (<=1 miss) / none
-        mercy = +40% think budget after 2 consecutive misses ---- */
+        mercy = +40% think budget after 2 consecutive misses
+
+   `drop` was 0.16/0.20/0.28. Measured: across 280 played rounds at a fixed 900ms response
+   the clock timed out ZERO times, and a competent player had 3.2x-5.8x more time than they
+   needed for the whole ten-day campaign. The clock was never the difficulty. It is now being
+   asked to do even less, because trapRate() (see the value pool) adds a demand that actually
+   grows -- and two multiplied difficulty vectors is how you get unfair instead of hard. */
 const DIFF={
-  chill :{time:5.6, drop:0.16, min:2.60, lives:5, hint:1,  regen:'always', mercy:true,  heal:2, target:3 },
-  normal:{time:4.4, drop:0.20, min:1.90, lives:3, hint:2,  regen:'clean',  mercy:true,  heal:1, target:5 },
-  chaos :{time:3.2, drop:0.28, min:1.25, lives:2, hint:99, regen:'none',   mercy:false, heal:0, target:5 }
+  chill :{time:5.6, drop:0.10, min:2.70, lives:5, hint:1,  regen:'always', mercy:true,  heal:2, target:3 },
+  normal:{time:4.4, drop:0.12, min:2.35, lives:3, hint:2,  regen:'clean',  mercy:true,  heal:1, target:5 },
+  chaos :{time:3.2, drop:0.18, min:1.75, lives:2, hint:99, regen:'none',   mercy:false, heal:0, target:5 }
 };
 let diff='normal';   /* re-defaulted to 'chill' for first-timers once STATS is loaded */
 const DIFFC=()=>DIFF[diff]||DIFF.normal;
-/* clock */
-const HARD_FLOOR=1.0, READ_PER_CHAR=0.045, READ_PER_ITEM=0.18;
+/* clock. HARD_FLOOR is the absolute backstop: it is applied AFTER every perk, upgrade and
+   modifier, and it is never multiplied by anything. The per-difficulty floors (DIFF[].min)
+   sit above it; HARD_FLOOR exists to catch the one perk that shrinks the clock (shipfast,
+   x0.88) and any future stack of them. Below ~1.4s a six-way choice stops being a question
+   and becomes a reaction test, and a round that cannot be won by reasoning is a bug. */
+const HARD_FLOOR=1.45, READ_PER_CHAR=0.045, READ_PER_ITEM=0.18;
 const BOSS_TIME=1.15, ALT_TIME=1.25;
-const ENDLESS_DECAY=0.97, ENDLESS_FLOOR=0.06;
 const T_ESPRESSO=1.18, T_SHIPFAST=0.88, T_MACHINE=1.10;
 /* cadence */
 const CORRECT_PER_DAY=5, DRAFT_EVERY_DAYS=2, POWER_EVERY=4, ALT_PROB=0.30, ALT_FROM_DAY=2;
@@ -2944,7 +3090,7 @@ function setValue(raw,opts){
   opts=opts||{};
   /* never light a CREDIBLE-or-CORRUPTED round: colouring a syntax error gives the answer away */
   const lit = opts.lit!==false && (state.mode==='type'||state.mode==='boss'||state.mode==='count');
-  valueCard.innerHTML=EVTAG;
+  valueCard.innerHTML=evtag(opts.tag);
   const v=document.createElement('span'); v.className='v';
   if(lit){ const html=litJSON(raw); if(html){ v.innerHTML=html; if(v.textContent!==raw) v.textContent=raw; }
            else v.textContent=raw; }
@@ -2969,10 +3115,14 @@ function pointsToScore(pts){ if(reduced)return; const from=valueCard.getBounding
   setTimeout(()=>el.remove(),650); }
 /* static set-dressing, re-emitted by every existing valueCard write. Both extra nodes are
    SIBLINGS of .v and carry no text, so #valueCard>.v stays the raw JSON and nothing else. */
-const EVTAG='<span class="tag">Exhibit &mdash; seized value</span>'
-  +'<span class="dress" aria-hidden="true"></span>'
+const EVDRESS='<span class="dress" aria-hidden="true"></span>'
   +'<svg class="clip" viewBox="0 0 26 44" aria-hidden="true" focusable="false">'
   +'<path d="M8 40V10a5 5 0 0 1 10 0v26a3.4 3.4 0 0 1-6.8 0V14"/><path class="hi" d="M9.6 38V10.6"/></svg>';
+/* The tag is a SIBLING of .v, so it can carry the round's rule without ever contaminating
+   #valueCard>.v -- and unlike #question it has always been visible at 320px. Rounds whose
+   question is not "name the outermost type" say so here, in words, not in colour. */
+function evtag(label){ return '<span class="tag">'+(label||'Exhibit &mdash; seized value')+'</span>'+EVDRESS; }
+const EVTAG=evtag();
 
 /* ===================== VIBE TOOLS ===================== */
 const POWERS={
@@ -3031,9 +3181,32 @@ function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localSt
   let n=0; ACHGOT.forEach(id=>{ if(Object.prototype.hasOwnProperty.call(ACH,id)) n+=achCP(id); });
   if(n>0){ META.cp+=n; META.cl=clearanceFor(META.cp); }
   saveMeta(); if(n>0&&typeof reflectRank==='function') reflectRank(); })();
-function toast(a,label){ const t=document.createElement('div'); t.className='toast'; t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${label||'Case file'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`; $('toaster').appendChild(t);
-  if(reduced){ t.classList.add('in'); setTimeout(()=>t.remove(),2600); return; }
-  requestAnimationFrame(()=>t.classList.add('in')); setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(()=>t.remove(),450);},3400); }
+/* ===== TOASTS: capped, queued, and never on top of a live exhibit =====
+   Four of these used to stack unbounded down the right edge. Measured at 320px with the
+   answer grid in view: 81.8% of #valueCard hidden while the clock ran. Now the stack is
+   capped, the overflow waits its turn, and on a phone nothing is shown at all while a
+   round is live -- the queue drains the moment the verdict lands. The pump is on an
+   interval as well as on demand, so a queued toast can never be stranded. */
+const TOAST_LIFE=3400, TOAST_QMAX=6;
+let toastQ=[];
+function toastNarrow(){ try{ return matchMedia('(max-width:700px)').matches; }catch(e){ return innerWidth<=700; } }
+function toastCap(){ return toastNarrow()?2:3; }
+function toast(a,label){ toastQ.push({a:a,label:label}); if(toastQ.length>TOAST_QMAX) toastQ.shift(); pumpToasts(); }
+function pumpToasts(){
+  const host=$('toaster'); if(!host)return;
+  /* the exhibit outranks the notification, every time */
+  if(toastNarrow() && state && state.roundActive) return;
+  while(toastQ.length && host.children.length<toastCap()) showToast(toastQ.shift());
+}
+function showToast(q){
+  const a=q.a, t=document.createElement('div'); t.className='toast';
+  t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${q.label||'Case file'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`;
+  $('toaster').appendChild(t);
+  const kill=()=>{ t.remove(); pumpToasts(); };
+  if(reduced){ t.classList.add('in'); setTimeout(kill,2600); return; }
+  requestAnimationFrame(()=>t.classList.add('in'));
+  setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(kill,450);},TOAST_LIFE); }
+setInterval(pumpToasts,400);
 function renderMedals(){ const row=$('medalRow'); if(!row)return; row.innerHTML=''; Object.entries(ACH).forEach(([id,a])=>{ const s=document.createElement('span'); s.className='m'+(ACHGOT.has(id)?' got':''); s.textContent=a.ic; s.title=ACHGOT.has(id)?a.name+' — '+a.desc:'Locked'; row.appendChild(s); }); }
 
 /* ===================== DETECTIVE BOARD ===================== */
@@ -3074,15 +3247,24 @@ function setHUD(){ animateScore(state.score); $('level').textContent=state.level
    counter and by endless mode. Time perks are multiplicative and land BEFORE the
    floor, so they can no longer punch through it. */
 function endlessDayNo(l){ return state.endless ? Math.max(0,(l||1)-campDays()) : 0; }
-function endlessSqueeze(l){ return Math.max(ENDLESS_FLOOR, Math.pow(ENDLESS_DECAY, endlessDayNo(l))); }
 function readBudget(chars,items){ return READ_PER_CHAR*Math.max(0,chars||0) + READ_PER_ITEM*Math.max(0,items||0); }
-function thinkBudget(l){ const c=DIFFC(), sq=endlessSqueeze(l);
+/* THE FLOOR IS A FLOOR NOW.
+   It used to read `Math.max(HARD_FLOOR*sq, t)` where sq = endlessSqueeze(level) decayed
+   0.97^day down to ENDLESS_FLOOR=0.06 -- and the same sq also multiplied c.min. So the
+   "floor" was 1.000s at endless day 0, 0.545s at day 41, 0.306s at day 60 and 0.114s
+   asymptotically: an order of magnitude below human reaction time. That is not a hard
+   region, it is an unwinnable one, and it is where every long endless run died holding
+   the right answer. Both floors are now constants. Endless still tightens -- `time - day*drop`
+   keeps falling and pins at c.min around cold case 8 -- it just stops falling off a cliff.
+   Effective floor: chill 2.70s, normal 2.35s, chaos 1.75s, at every day from here to day
+   ten thousand, plus readBudget on top. ENG-C's ~2.60s target for a plain normal round. */
+function thinkBudget(l){ const c=DIFFC();
   if(modOn('graveyard')) l=(l||1)+6;             /* GRAVEYARD SHIFT: the clock thinks it is day seven */
-  let t=Math.max(c.min*sq, c.time-((l||1)-1)*c.drop);
+  let t=Math.max(c.min, c.time-((l||1)-1)*c.drop);
   if(perkOn('espresso')) t*=T_ESPRESSO;
   if(perkOn('shipfast')) t*=T_SHIPFAST;
   if(UPS.has('machine')) t*=T_MACHINE;
-  return Math.max(HARD_FLOOR*sq, t); }
+  return Math.max(HARD_FLOOR, t); }
 function timeForLevel(l){ return thinkBudget(l); }   /* kept: same name, think budget only */
 function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); }
 function dayTargetFor(l){ const t=(DIFFC().target!=null)?DIFFC().target:CORRECT_PER_DAY;
@@ -3169,39 +3351,148 @@ function buildValidRound(alt){
   alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(b.dataset.v,false)));
   if(window._bindCursor)window._bindCursor();
 }
+/* ===== SPOT THE LINEUP: near-miss decoys =====
+   MEASURED: 91.6% of spot rounds contained ZERO confusable decoy, and it could not do
+   better -- the authored pool holds no near-miss for `string` and none for `array` at all,
+   so the lineup was structurally incapable of being hard. 4,000 rounds, four buttons, and
+   in 92% of them the answer was the only candidate that could possibly be it.
+
+   The fix is a decoy generator, keyed on what the ANSWER looks like rather than on what it
+   is: pick the STRING out of `42 · "42" · 1e3 · -9` and you have to read the quotes on all
+   four, because every candidate has the same surface reading. That is the round this was
+   always dressed up as. `nearMiss` rises with the day; below it the old authored draw
+   still runs, so early cases stay legible.
+
+   Contract kept: exactly one candidate has type===altTarget (answerAlt scores on that),
+   all four raws are textually distinct, and the true type of every decoy is verified with
+   JSON.parse rather than asserted. */
+const SPOT_LOOKALIKE={
+  /* keyed by the SURFACE reading of the answer -> raws with the same surface reading.
+     `no` is the type each entry must not be used against (it IS that type). */
+  number :['42','7','-9','0','1e3','3.14','-0.001','100','13','1.5','2e-3','0.0','-42','"42"','"7"','"-9"','"0"','"3.14"','"1e3"','"007"','"0417"','"9"'],
+  boolean:['true','false','"true"','"false"','"True"','"FALSE"','"yes"','"no"'],
+  null   :['null','"null"','"NULL"','"nil"','"None"','"undefined"'],
+  array  :['[]','[1,2,3]','[null]','["a","b"]','[true,false]','[[1],[2]]','"[]"','"[1,2]"','"[\\"a\\"]"','"[null]"'],
+  object :['{}','{"a":1}','{"ok":true}','{"list":[1,2]}','{"x":{"y":1}}','"{}"','"{\\"id\\":1}"','"{\\"a\\":1}"'],
+  string :['"hello"','"cat"','"WOW"','"banana"','""','"json@example.com"','"hello world"','"2026-01-01"','"admin"','"dev"']
+};
+function spotSurface(raw){
+  const s=String(raw);
+  if(s.charAt(0)!=='"'){ if(s.charAt(0)==='[')return 'array'; if(s.charAt(0)==='{')return 'object';
+    if(s==='true'||s==='false')return 'boolean'; if(s==='null')return 'null'; return 'number'; }
+  let inner; try{ inner=JSON.parse(s); }catch(e){ return 'string'; }
+  if(/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(inner)) return 'number';
+  if(/^(true|false|yes|no)$/i.test(inner)) return 'boolean';
+  if(/^(null|nil|none|undefined|nan)$/i.test(inner)) return 'null';
+  if(/^\[/.test(inner)) return 'array';
+  if(/^\{/.test(inner)) return 'object';
+  return 'string';
+}
+function nearMissRate(l){ return Math.min(0.85, 0.20 + 0.075*(trapDay(l)-1)); }
 function buildSpotRound(alt){
-  const target=rand(['string','number','boolean','array','object']); state.altTarget=target;
+  const target=rand(['string','number','boolean','array','object','null']); state.altTarget=target;
   const pool=[]; [1,2,3].forEach(t=>TIERS[t].forEach(r=>pool.push(r)));
-  const typeFor=r=>typeOf(JSON.parse(r));
+  const typeFor=r=>{ try{ return typeOf(JSON.parse(r)); }catch(e){ return '?'; } };
   const matches=pool.filter(r=>typeFor(r)===target);
   const others=shuffle(pool.filter(r=>typeFor(r)!==target));
-  const correctRaw=rand(matches);
-  const distract=[]; const seen=new Set([target]);
-  for(const r of others){ if(distract.length>=3)break; const tt=typeFor(r); if(!seen.has(tt)||distract.length>=2){ distract.push(r); seen.add(tt); } }
+  const nm=rnd()<nearMissRate(state.level);
+  /* the answer: a disguised instance of the target when we are going for a near-miss lineup,
+     so that its surface reading is something OTHER than the target and the decoys can match it */
+  let correctRaw=rand(matches);
+  if(nm){ for(let i=0;i<30;i++){ const g=genDisguise(state.level);
+      if(typeFor(g)===target){ correctRaw=g; break; } } }
+  const distract=[];
+  if(nm){
+    const surf=spotSurface(correctRaw);
+    const bag=shuffle((Object.prototype.hasOwnProperty.call(SPOT_LOOKALIKE,surf)?SPOT_LOOKALIKE[surf]:[]).slice());
+    for(const r of bag){ if(distract.length>=3)break;
+      if(r===correctRaw||distract.indexOf(r)>=0) continue;
+      const tt=typeFor(r); if(tt==='?'||tt===target) continue;      /* never a second right answer */
+      if(spotSurface(r)!==surf) continue;                            /* must look like the answer */
+      distract.push(r); }
+  }
+  /* top up from the authored pool -- an easy instance is still a legal instance */
+  for(const r of others){ if(distract.length>=3)break;
+    if(r===correctRaw||distract.indexOf(r)>=0) continue; distract.push(r); }
+  /* four textually distinct buttons or the round does not ship. `others` is 30+ raws wide,
+     so this cannot spin, but the bound is free. */
+  for(let g=0; distract.length<3 && g<200; g++){ const r=rand(others);
+    if(r!==correctRaw && distract.indexOf(r)<0) distract.push(r); }
   while(distract.length<3) distract.push(rand(others));
-  const cands=shuffle([{raw:correctRaw,type:target},...distract.map(r=>({raw:r,type:typeFor(r)}))]);
+  const cands=shuffle([{raw:correctRaw,type:target},...distract.slice(0,3).map(r=>({raw:r,type:typeFor(r)}))]);
   state.altCands=cands; state.altCorrectIdx=cands.findIndex(c=>c.raw===correctRaw&&c.type===target);
-  state.shownChars=Math.round(cands.reduce((a,c)=>a+c.raw.length,0)*0.75); state.shownItems=0;
+  state.shownChars=Math.round(cands.reduce((a,c)=>a+c.raw.length,0)*(nm?1:0.75)); state.shownItems=0;
   valueCard.style.fontSize='clamp(18px,4.2vw,30px)';
-  valueCard.innerHTML=EVTAG+`<span class="v">Which one is the <b style="color:var(--t-${target})">${target.toUpperCase()}</b>?</span>`;
+  valueCard.innerHTML=evtag('Lineup &mdash; read all four')+`<span class="v">Which one is the <b style="color:var(--t-${target})">${target.toUpperCase()}</b>?</span>`;
   alt.className='altanswers grid';
   alt.innerHTML=cands.map((c,i)=>`<button class="altbtn pick" data-i="${i}"><span class="key">${i+1}</span><span class="mono">${esc(c.raw)}</span></button>`).join('');
   alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(parseInt(b.dataset.i,10),false)));
   if(window._bindCursor)window._bindCursor();
 }
 
+/* ===== COUNT THE HAUL: the option set used to leak the answer =====
+   MEASURED: options were drawn as `answer + {-2,-1,+1,+2}`, which makes the correct count
+   STRICTLY INTERIOR to the sorted four 100.0% of the time, and the second-smallest 60.1%
+   of the time. A player who never looked at the exhibit and always tapped option 2 scored
+   60% against a 25% blind guess -- and the round was granted ALT_TIME x1.25 plus a per-item
+   read budget for the privilege.
+
+   Two fixes. (1) The answer's RANK among the sorted options is drawn uniformly, extremes
+   included, so position carries no information. (2) The decoys stop being arithmetic
+   neighbours and become the other honest readings of the same exhibit: the total number of
+   leaves once you descend into the nested containers, and the number of commas. Now
+   "3 keys, but one of them holds a 4-element array" is a real question, and both wrong
+   answers on the grid are answers somebody actually gave.
+   Items capped at 8: counting to twelve is tedium, not thought. */
 function buildCountRound(alt){
-  const cnt=2+Math.floor(rnd()*5), isArr=rnd()<0.5; let raw;
-  if(isArr){ const it=[]; for(let i=0;i<cnt;i++) it.push(rnd()<0.5?String(Math.floor(rnd()*99)):'"'+String.fromCharCode(97+i)+'"'); raw='['+it.join(',')+']'; }
-  else { const pr=[]; for(let i=0;i<cnt;i++) pr.push('"'+String.fromCharCode(97+i)+'":'+Math.floor(rnd()*99)); raw='{'+pr.join(',')+'}'; }
+  const day=trapDay(state.level);
+  const cntMax=Math.min(8, 3+Math.floor(0.55*Math.max(0,day-1)));      /* day 1: 3, day 10: 8 */
+  const cnt=2+Math.floor(rnd()*Math.max(1,cntMax-1));
+  const isArr=rnd()<0.5;
+  /* nesting is what makes the leaf count and the comma count plausible instead of absurd */
+  const nestMax = day>=3 ? Math.min(2, 1+Math.floor((day-3)/4)) : 0;
+  const nestN = nestMax>0 ? Math.floor(rnd()*(nestMax+1)) : 0;
+  const nestAt=new Set(); while(nestAt.size<Math.min(nestN,cnt)) nestAt.add(Math.floor(rnd()*cnt));
+  let leaves=0, raw;
+  const kid=()=>{ const n=2+Math.floor(rnd()*2); leaves+=n;             /* 2..3 children */
+    const it=[]; for(let j=0;j<n;j++) it.push(String(Math.floor(rnd()*99)));
+    return rnd()<0.5 ? '['+it.join(',')+']' : '{'+it.map((v,j)=>'"'+String.fromCharCode(112+j)+'":'+v).join(',')+'}'; };
+  const parts=[];
+  for(let i=0;i<cnt;i++){
+    if(nestAt.has(i)) parts.push(isArr?kid():('"'+String.fromCharCode(97+i)+'":'+kid()));
+    else { leaves++; const leaf=rnd()<0.5?String(Math.floor(rnd()*99)):'"'+String.fromCharCode(97+i)+'"';
+      parts.push(isArr?leaf:('"'+String.fromCharCode(97+i)+'":'+leaf)); }
+  }
+  raw=(isArr?'[':'{')+parts.join(',')+(isArr?']':'}');
+  const commas=(raw.match(/,/g)||[]).length+1;
   state.altTarget='__ok';
-  const opts=new Set([cnt]); while(opts.size<4){ opts.add(Math.max(1,cnt+Math.floor(rnd()*5)-2)); }
-  const arr=shuffle([...opts]);
+  /* candidate decoys, most meaningful first, then arithmetic filler. Split by side so the
+     answer's rank can be placed exactly where we want it. */
+  const push=(arr2,v)=>{ v=Math.round(v); if(v>=1 && v!==cnt && arr2.indexOf(v)<0) arr2.push(v); };
+  const below=[], above=[];
+  push(above,leaves); push(above,commas);                 /* counted the leaves / counted the commas */
+  push(below,nestAt.size||1); push(below,cnt-1); push(below,cnt-2); push(below,cnt-3);
+  push(above,cnt+1); push(above,cnt+2); push(above,cnt+3); push(above,cnt+4);
+  /* `want` = how many decoys sit BELOW the answer, i.e. the answer's rank in the sorted
+     four. Drawn uniformly over 0..3 -- so the answer is the smallest option a quarter of
+     the time and the largest a quarter of the time -- then clamped to what this exhibit can
+     actually supply. Position is no longer a tell. */
+  let want=Math.floor(rnd()*4);
+  if(want>below.length) want=below.length;
+  if(3-want>above.length) want=3-above.length;
+  if(want<0) want=0;
+  const opts=[cnt];
+  for(let i=0;i<want && i<below.length;i++) opts.push(below[i]);
+  for(let i=0;opts.length<4 && i<above.length;i++) opts.push(above[i]);
+  for(let i=0;opts.length<4 && i<below.length;i++) if(opts.indexOf(below[i])<0) opts.push(below[i]);
+  let pad=cnt+5; while(opts.length<4){ if(opts.indexOf(pad)<0) opts.push(pad); pad++; }
+  const arr=shuffle(opts.slice(0,4));
   state.altCands=arr.map(v=>({raw:String(v),type:v===cnt?'__ok':'__no'}));
   state.altCorrectIdx=arr.indexOf(cnt);
-  state.shownChars=raw.length; state.shownItems=cnt;   /* counting is paid for per item */
-  valueCard.style.fontSize='clamp(15px,3.4vw,25px)';
-  setValue(raw);
+  state.altCountLeaves=leaves;
+  state.shownChars=raw.length; state.shownItems=Math.max(cnt,leaves);   /* every leaf read is paid for */
+  valueCard.style.fontSize= raw.length>26 ? 'clamp(12px,2.9vw,20px)' : 'clamp(15px,3.4vw,25px)';
+  setValue(raw,{tag:'Exhibit &mdash; count the TOP LEVEL only'});
   alt.className='altanswers grid';
   alt.innerHTML=arr.map((v,i)=>`<button class="altbtn pick" data-i="${i}"><span class="key">${i+1}</span><span class="mono">${v} ${isArr?'items':'keys'}</span></button>`).join('');
   alt.querySelectorAll('.altbtn').forEach(b=>b.addEventListener('click',()=>answerAlt(parseInt(b.dataset.i,10),false)));
@@ -3262,14 +3553,17 @@ function nextRound(){
     cueIn('type_'+state.altTarget,0.20);      /* unknown names are a no-op, so count rounds are safe */
   } else {
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
-    $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
+    /* the haul now nests, so what is being counted has to be stated -- in the banner, on the
+       exhibit tag and in say(). Three channels, all words, none of them a colour. */
+    $('question').innerHTML='&ldquo;Count the haul. <b>Top level only.</b> Miscount and I keep it.&rdquo;';
+    announceMode('🔢 COUNT THE TOP LEVEL');
   }
   say(state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
      :mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
      :mode==='boss'?'Deep cover round. Name the outermost type.'
      :mode==='valid'?'Credible or corrupted? Two choices.'
-     :mode==='spot'?('Pick the '+String(state.altTarget||'').toUpperCase()+' from four values.')
-     :'Count the items.');
+     :mode==='spot'?('Pick the '+String(state.altTarget||'').toUpperCase()+' from four values. Read all four.')
+     :'Count the top-level entries only. Nested items do not count.');
   const think=thinkBudget(state.level);
   const modeMult = mode==='boss' ? BOSS_TIME : (mode!=='type' ? ALT_TIME : 1);
   state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
@@ -3450,8 +3744,12 @@ function answerAlt(picked,timedOut){
     correctEl=alt.querySelector('.altbtn[data-i="'+state.altCorrectIdx+'"]');
     if(!timedOut && picked!=null) pickedEl=alt.querySelector('.altbtn[data-i="'+picked+'"]');
     const cr=state.altCands[state.altCorrectIdx];
+    /* the decoys are now the other honest readings of the same exhibit, so the verdict has
+       to name which reading was asked for -- otherwise a miss teaches nothing. */
+    const lv=state.altCountLeaves|0, top=parseInt(cr.raw,10)||0;
     flavorEl.innerHTML = state.mode==='count'
-      ? `“There were <b>${esc(cr.raw)}</b>. Counting is hard. I understand.”`
+      ? (lv>top ? `“There were <b>${esc(cr.raw)}</b> at the top level. <b>${lv}</b> if you climbed inside them. I asked about the top level.”`
+                : `“There were <b>${esc(cr.raw)}</b>. Counting is hard. I understand.”`)
       : `“The ${state.altTarget.toUpperCase()} was <b>${esc(cr.raw)}</b>.”`;
   }
   recordAns(null,correct);
