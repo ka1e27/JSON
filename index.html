@@ -663,6 +663,29 @@ body.cb .j-z{ text-decoration:line-through; }
 .rung .cost{font-family:var(--ff-mono);font-size:11px;font-weight:700;white-space:nowrap;}
 .arow{display:grid;grid-template-columns:auto 1fr auto;gap:9px;font-family:var(--ff-mono);font-size:11px;
   border-bottom:1px dashed rgba(25,19,8,.3);padding:6px 2px;}
+/* ---------- the desk: warrant board + case modifier chips ---------- */
+/* one column at every width on purpose: three pinned index cards, no rotation (a rotated
+   full-width card puts its corners outside the overlay and that is a horizontal overflow) */
+.wboard{display:grid;grid-template-columns:1fr;gap:9px;}
+.wr{position:relative;background:var(--card);border:2px solid var(--ink);border-radius:4px;padding:12px 13px 10px;
+  box-shadow:3px 3px 0 rgba(25,19,8,.28);display:grid;grid-template-columns:1fr auto;gap:6px 10px;
+  align-items:center;text-align:left;min-width:0;}
+.wr.done{border-color:var(--green);}
+.wr .wk{grid-column:1/-1;font-family:var(--ff-type);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--red);}
+.wr .wn{grid-column:1/-1;font-family:var(--ff-display);font-size:15px;line-height:1.15;text-transform:uppercase;
+  min-width:0;overflow-wrap:break-word;}
+.wr .wp{grid-column:1;grid-row:3;display:flex;align-items:center;gap:8px;min-width:0;
+  font-family:var(--ff-mono);font-size:10.5px;color:var(--ink-2);}
+.wr .wp .bar{flex:1 1 auto;min-width:20px;height:7px;background:rgba(25,19,8,.16);border-radius:99px;overflow:hidden;}
+.wr .wp .bar i{display:block;height:100%;background:var(--green);}
+.wclaim{grid-column:2;grid-row:3;font-family:var(--ff-type);font-size:11px;background:var(--card);border:2px solid var(--ink);
+  border-radius:99px;padding:5px 11px;box-shadow:2px 2px 0 rgba(25,19,8,.3);white-space:nowrap;}
+.wclaim.ready{background:var(--yellow);}
+.wclaim:disabled{opacity:.5;box-shadow:none;}
+.modchip[aria-pressed="true"]{background:var(--yellow);transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(25,19,8,.35);}
+.modchip .mm{font-family:var(--ff-mono);font-size:10px;opacity:.7;margin-left:5px;}
+.modmult{font-family:var(--ff-type);font-size:11px;line-height:1.5;color:var(--ink-2);margin-top:8px;}
+.modmult b{font-family:var(--ff-mono);color:var(--red);}
 .ptsfloat{ position:fixed; z-index:83; font-family:var(--ff-display); font-size:26px;
   color:var(--ti-string); -webkit-text-stroke:1.5px var(--ink); pointer-events:none; }
 /* reduced motion must remove MOTION, not the feedback itself: these rest at scale(0)/opacity:0 */
@@ -997,6 +1020,7 @@ body.cb .j-z{ text-decoration:line-through; }
           <div class="brieflines">
             <div class="briefrow"><span class="bk">Objective</span><span class="bv" id="briefObj">ID him 5 times.</span></div>
             <div class="briefrow"><span class="bk">Difficulty</span><span class="bv" id="briefDiff">Rookie</span></div>
+            <div class="briefrow hidden" id="briefModRow"><span class="bk">Conditions</span><span class="bv" id="briefMods"></span></div>
           </div>
           <div class="threat" id="briefThreat"></div>
           <button class="cbtn" id="briefBtn" data-magnetic>&#9654; Take the case</button>
@@ -1023,6 +1047,10 @@ body.cb .j-z{ text-decoration:line-through; }
           <div class="mbtns">
             <button class="cbtn yellow" id="endlessBtn" data-magnetic>&#9854; Cold cases (endless)</button>
             <button class="cbtn blue" id="winAgainBtn">&#8635; New investigation</button>
+          </div>
+          <div class="mbtns">
+            <button class="cbtn hidden" id="ngBtn">&#9646; Open the second file</button>
+            <button class="sharebtn" id="winDeskBtn">&#8592; Back to the desk</button>
           </div>
         </div>
 
@@ -1053,11 +1081,23 @@ body.cb .j-z{ text-decoration:line-through; }
             </div>
           </div>
           <button class="cbtn" id="startBtn" data-magnetic>&#9654; Open the case</button>
+          <!-- modifiers sit BELOW the start button on purpose: eight chips is eight rows at
+               320px, and above the button that pushes the only call to action off-screen -->
+          <div class="mgroup hidden" id="modGroup">
+            <span class="mglabel">Case modifiers</span>
+            <div class="menurow" id="modRow"></div>
+            <div class="modmult" id="modMult"></div>
+          </div>
+          <div class="mgroup hidden" id="warrantGroup">
+            <span class="mglabel" id="warrantLabel">Warrants</span>
+            <div class="wboard" id="warrantBoard"></div>
+          </div>
           <div class="mgroup">
             <span class="mglabel">More ways to investigate</span>
             <div class="menurow">
               <button class="diff" id="dailyBtn">&#128197; Daily case</button>
               <button class="diff" id="zenBtn">&#9784; Stakeout</button>
+              <button class="diff hidden" id="secondFileBtn">&#9646; The second file</button>
               <button class="diff" id="howBtn">&#10067; Briefing</button>
               <button class="diff" id="shopBtn">&#127912; IDE themes</button>
               <button class="diff" id="statsBtn">&#128202; Record</button>
@@ -1097,6 +1137,7 @@ body.cb .j-z{ text-decoration:line-through; }
           <div class="sharerow">
             <button class="sharebtn" id="bragBtn">&#128203; Copy brag</button>
             <button class="sharebtn" id="cardBtn">&#128444; Case card</button>
+            <button class="sharebtn" id="deskBtn">&#8592; Back to the desk</button>
           </div>
           <button class="cbtn yellow" id="againBtn" data-magnetic>&#8635; Reopen the case</button>
         </div>
@@ -1592,19 +1633,22 @@ const DOSSIER_POOL=(function(){ const q=new Set();
   return [...q]; })();
 const CLEARANCE=[
   {cp:0,  title:'Prompt Goblin',      unlocks:[]},
-  {cp:3,  title:'Accept-All Enjoyer', unlocks:['tells']},
+  {cp:3,  title:'Accept-All Enjoyer', unlocks:['tells','warrants']},
   {cp:9,  title:'Junior Detective',   unlocks:['archive']},
-  {cp:20, title:'Type Detective',     unlocks:['coldladder']},
+  {cp:20, title:'Type Detective',     unlocks:['coldladder','modifiers']},
   {cp:36, title:'Lead Detective',     unlocks:['hitrates']},
-  {cp:60, title:"JSON's Nemesis",     unlocks:['prestige']},
+  {cp:60, title:"JSON's Nemesis",     unlocks:['prestige','ngplus']},
   {cp:95, title:'Internal Affairs',   unlocks:['everything']}
 ];
 const UNLOCK_COPY={
   tells:{ic:'🔎',name:'Tells',desc:'Filed cards now explain the giveaway'},
+  warrants:{ic:'📌',name:'Warrant board',desc:'Three contracts on the desk. They pay in CP'},
   archive:{ic:'🗃️',name:'Archive',desc:'Your last 10 runs are kept on file'},
   coldladder:{ic:'❄️',name:'Cold cases',desc:'Endless favours disguises you have not filed'},
+  modifiers:{ic:'🚨',name:'Case modifiers',desc:'Make the case worse. Get paid more for it'},
   hitrates:{ic:'📈',name:'Hit rates',desc:'Per-disguise accuracy shown in the dossier'},
   prestige:{ic:'🎖️',name:'Internal Affairs',desc:'They are reviewing your approvals'},
+  ngplus:{ic:'🗂️',name:'The second file',desc:'He has read your record. He wants to discuss it'},
   everything:{ic:'🔑',name:'Full clearance',desc:'Nothing in the building is locked to you'}
 };
 /* corrupt-tolerant loaders: shape is validated, not merely parsed (a try/catch is not validation) */
@@ -1616,13 +1660,22 @@ function loadDossier(){ const def={v:1,e:{}};
       out.e[k]={c:Math.max(0,parseInt(v.c,10)||0),w:Math.max(0,parseInt(v.w,10)||0),
                 s:([0,1,2].indexOf(parseInt(v.s,10))>=0?parseInt(v.s,10):0),d:String(v.d||'').slice(0,10)}; });
     return out; }catch(e){ return def; } }
-function loadMeta(){ const def={v:1,cp:0,cl:0,arch:[],grand:false};
+function loadMeta(){ const def={v:1,cp:0,cl:0,arch:[],grand:false,mods:[],ng:0,closed:0,bp:0,days:1,last:''};
   try{ const r=JSON.parse(localStorage.getItem('jw_meta')||'null');
     if(!r||typeof r!=='object'||Array.isArray(r)) return def;
     return {v:1, cp:Math.max(0,parseInt(r.cp,10)||0), cl:Math.max(0,Math.min(CLEARANCE.length-1,parseInt(r.cl,10)||0)),
             arch:Array.isArray(r.arch)?r.arch.filter(a=>a&&typeof a==='object').slice(0,10):[],
-            grand:!!r.grand}; }catch(e){ return def; } }
+            grand:!!r.grand,
+            /* mods are validated against MODS at every read too -- a stored '__proto__'
+               would otherwise sail straight into MODS[id] and multiply by undefined */
+            mods:Array.isArray(r.mods)?r.mods.filter(x=>typeof x==='string').slice(0,3):[],
+            ng:Math.max(0,Math.min(99,parseInt(r.ng,10)||0)), closed:Math.max(0,Math.min(99,parseInt(r.closed,10)||0)),
+            bp:r.bp?1:0, days:Math.max(1,parseInt(r.days,10)||1), last:String(r.last||'').slice(0,10)};
+  }catch(e){ return def; } }
 let DOS=loadDossier(), META=loadMeta();
+/* days on the case: only ever counts up, never scolds you for a gap, never expires
+   anything. It is a career fact, not a streak you have to defend. */
+(function(){ const k=dailyKey(); if(META.last!==k){ META.days=(META.days|0)+(META.last?1:0)||1; META.last=k; saveMeta(); } })();
 function saveDossier(){ try{ localStorage.setItem('jw_dossier',JSON.stringify(DOS)); }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem('jw_meta',JSON.stringify(META)); }catch(e){} }
 function filedCount(){ let n=0; for(const k in DOS.e) if(DOS.e[k].s===1) n++; return n; }
@@ -1649,12 +1702,171 @@ function fileEvidence(){ let filed=0,recovered=0;
   (state.locker||[]).forEach(raw=>{ const e=DOS.e[raw]; if(!e||e.s===1)return;
     if(e.s===2) recovered++; e.s=1; e.d=dailyKey(); filed++; });
   state.locker=[];
-  if(filed){ saveDossier(); awardCP(filed+recovered,'filed'); }
+  if(filed){ saveDossier();
+    /* modifiers accelerate the ladder, capped at 2x so custody+understaffed+notools
+       cannot trivialise a currency whose whole job is to be un-farmable */
+    awardCP(Math.round((filed+recovered)*Math.min(2,modMult())),'filed');
+    track('filed',filed); if(recovered) track('recovered',recovered); }
   return {filed,recovered}; }
 function archiveRun(disp){ if(!has('archive'))return;
-  META.arch.unshift({d:dailyKey(),mode:(state.daily?'DAILY':state.zen?'STAKEOUT':'FIELD WORK'),
-    day:state.level,disp:disp,filed:(state.filedThisRun|0),sc:state.score});
+  META.arch.unshift({d:dailyKey(),mode:(state.ng?'SECOND FILE':state.daily?'DAILY':state.zen?'STAKEOUT':'FIELD WORK'),
+    day:state.level,disp:disp,filed:(state.filedThisRun|0),sc:state.score,
+    mods:(state.mods||[]).slice(0,3),mult:+modMult().toFixed(2)});
   META.arch=META.arch.slice(0,10); saveMeta(); }
+
+/* ===================== WARRANTS (directed contracts, honest cadence) =====================
+   Three slots: a daily, a weekly, and one standing warrant served from a pool. Every
+   warrant is (track-event, goal, CP) and nothing else -- there is no bespoke logic per
+   warrant, so adding one is one line. Warrants are pure OBSERVERS: they never touch
+   scoring, the clock, lives or round selection. If jw_warrants is garbage, track()
+   no-ops and the game is exactly the game it was.
+   Three cadence rules held on purpose: (1) nothing you EARNED expires -- a completed but
+   unclaimed warrant simply refuses to roll over until you sign it off, (2) there is no
+   countdown timer anywhere on the board, (3) missing a day costs nothing at all. */
+const WARRANTS={
+ d_clean3  :{t:'d',n:'Close 3 cases without touching a vibe tool',goal:3, cp:2,track:'dayClosedClean'},
+ d_streak8 :{t:'d',n:'Reach a ×8 streak',                        goal:8, cp:2,track:'streakPeak'},
+ d_file4   :{t:'d',n:'File 4 disguises',                           goal:4, cp:2,track:'filed'},
+ d_boss2   :{t:'d',n:'Blow his cover twice',                       goal:2, cp:2,track:'bossClean'},
+ d_days4   :{t:'d',n:'Close 4 cases',                              goal:4, cp:2,track:'dayClosed'},
+ w_file9   :{t:'w',n:'File 9 new disguises',                       goal:9, cp:6,track:'filed'},
+ w_days20  :{t:'w',n:'Close 20 cases',                             goal:20,cp:6,track:'dayClosed'},
+ w_recover6:{t:'w',n:'Recover 6 cold disguises',                   goal:6, cp:6,track:'recovered'},
+ s_allsix  :{t:'s',n:'ID all six disguises inside one case',       goal:1, cp:3,track:'sixInDay'},
+ s_cold5   :{t:'s',n:'Recover 5 cold disguises',                   goal:5, cp:3,track:'recovered'},
+ s_boss10  :{t:'s',n:'Blow his cover 10 times',                    goal:10,cp:3,track:'bossClean'},
+ s_file25  :{t:'s',n:'File 25 disguises',                          goal:25,cp:4,track:'filed'},
+ s_streak15:{t:'s',n:'Reach a ×15 streak',                       goal:15,cp:3,track:'streakPeak'},
+ s_under   :{t:'s',n:'Close a case UNDERSTAFFED',                  goal:1, cp:4,track:'modDayClose',arg:'understaffed',need:'modifiers'},
+ s_custody :{t:'s',n:'Close a case under CHAIN OF CUSTODY',        goal:1, cp:5,track:'modDayClose',arg:'custody',need:'modifiers'}
+};
+function weekKey(){ const d=new Date();
+  const on=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dn=on.getUTCDay()||7; on.setUTCDate(on.getUTCDate()+4-dn);
+  const y0=new Date(Date.UTC(on.getUTCFullYear(),0,1));
+  return on.getUTCFullYear()+'-W'+String(Math.ceil(((on-y0)/864e5+1)/7)).padStart(2,'0'); }
+function hashStr(s){ let h=2166136261; s=String(s); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function wdef(slot){ return (slot&&Object.prototype.hasOwnProperty.call(WARRANTS,slot.id))?WARRANTS[slot.id]:null; }
+function warrantIds(t){ return Object.keys(WARRANTS).filter(id=>WARRANTS[id].t===t&&(!WARRANTS[id].need||has(WARRANTS[id].need))); }
+function pickWarrant(t,seed,avoid){
+  let pool=warrantIds(t).filter(id=>(avoid||[]).indexOf(id)<0);
+  if(!pool.length) pool=warrantIds(t);            /* served the whole pool: recycle, never dead-end */
+  if(!pool.length) return '';
+  return pool[Math.floor(mulberry32(seed|0)()*pool.length)%pool.length]; }
+function loadWarrants(){
+  let r=null; try{ r=JSON.parse(localStorage.getItem('jw_warrants')||'null'); }catch(e){ r=null; }
+  if(!r||typeof r!=='object'||Array.isArray(r)) r={};
+  const clean=(o,t)=>{ if(!o||typeof o!=='object'||Array.isArray(o))return null;
+    const id=String(o.id||''); if(!Object.prototype.hasOwnProperty.call(WARRANTS,id)||WARRANTS[id].t!==t)return null;
+    return {k:String(o.k||'').slice(0,10),id:id,p:Math.max(0,parseInt(o.p,10)||0),done:o.done?1:0,claimed:o.claimed?1:0}; };
+  return {v:1,
+    seen:(Array.isArray(r.seen)?r.seen:[]).filter(x=>Object.prototype.hasOwnProperty.call(WARRANTS,String(x))).map(String).slice(0,40),
+    d:clean(r.d,'d'), w:clean(r.w,'w'), s:clean(r.s,'s')}; }
+function saveWarrants(){ try{ localStorage.setItem('jw_warrants',JSON.stringify(W)); }catch(e){} }
+function rollWarrants(){
+  const dk=dailyKey(), wk=weekKey();
+  const held=s=>!!(s&&s.done&&!s.claimed);        /* earned but unsigned: it waits for you */
+  if(!wdef(W.d) || (W.d.k!==dk && !held(W.d))) W.d={k:dk,id:pickWarrant('d',dailySeed()),p:0,done:0,claimed:0};
+  if(!wdef(W.w) || (W.w.k!==wk && !held(W.w))) W.w={k:wk,id:pickWarrant('w',hashStr(wk)),p:0,done:0,claimed:0};
+  if(!wdef(W.s) || (W.s.claimed && !held(W.s)))  W.s={k:'',id:pickWarrant('s',hashStr(dk+'s'),W.seen),p:0,done:0,claimed:0};
+  saveWarrants(); }
+let W=loadWarrants(); rollWarrants();
+/* THE single instrumentation point. One call site per event, many warrants. */
+function track(ev,n,arg){
+  if(!has('warrants'))return;
+  let served=false;
+  [W.d,W.w,W.s].forEach(slot=>{
+    if(!slot||slot.done)return; const def=wdef(slot); if(!def||def.track!==ev)return;
+    if(def.arg&&def.arg!==arg)return;
+    slot.p = (ev==='streakPeak') ? Math.max(slot.p|0,n|0) : (slot.p|0)+(n>0?n:1);
+    if(slot.p>=def.goal){ slot.done=1; served=true;
+      toast({ic:'📌',name:'Warrant served',desc:def.n},'Claim at the desk'); } });
+  saveWarrants(); if(served) renderWarrants(); }
+function claimWarrant(which){
+  const slot = which==='d'?W.d : which==='w'?W.w : W.s;
+  const def=wdef(slot); if(!def||!slot.done||slot.claimed)return;
+  slot.claimed=1;
+  if(which==='s' && W.seen.indexOf(slot.id)<0) W.seen.push(slot.id);
+  /* the claim button is about to be replaced by a disabled one, so hand focus onward
+     rather than dropping it on the floor */
+  const fromKbd=!!(document.activeElement&&document.activeElement.getAttribute&&document.activeElement.getAttribute('data-wclaim'));
+  saveWarrants(); awardCP(def.cp,'warrant'); rollWarrants(); renderWarrants(); confetti();
+  if(fromKbd){ const nx=document.querySelector('#warrantBoard .wclaim.ready')||$('startBtn');
+    if(nx){ try{ nx.focus({preventScroll:true}); }catch(e){} } }
+  toast({ic:'▩',name:'Warrant signed off',desc:'+'+def.cp+' CP into your clearance'},'Filed');
+  if(!muted){initAudio();[660,880,1180].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*80));} }
+function warrantsReady(){ return [W.d,W.w,W.s].filter(s=>wdef(s)&&s.done&&!s.claimed).length; }
+function renderWarrants(){
+  const grp=$('warrantGroup'), g=$('warrantBoard'); if(!grp||!g)return;
+  grp.classList.toggle('hidden',!has('warrants'));
+  if(!has('warrants')){ g.innerHTML=''; return; }
+  const notes={d:'new one tomorrow, no rush',w:'seven days wide on purpose',s:'served one at a time'};
+  const labels={d:'Daily',w:'Weekly',s:'Open'};
+  g.innerHTML=[['d',W.d],['w',W.w],['s',W.s]].map(([key,slot])=>{
+    const def=wdef(slot); if(!def)return '';
+    const p=Math.min(slot.p|0,def.goal), pct=Math.round(p/def.goal*100);
+    const can=slot.done&&!slot.claimed;
+    const act=slot.claimed?'✔ signed':can?'▩ claim +'+def.cp+' CP':'+'+def.cp+' CP';
+    return '<div class="wr'+(slot.done?' done':'')+'"><span class="pin tc" style="background:var(--red)"></span>'+
+      '<span class="wk">'+labels[key]+' warrant · '+notes[key]+'</span>'+
+      '<span class="wn">'+esc(def.n)+'</span>'+
+      '<span class="wp"><span class="bar"><i style="width:'+pct+'%"></i></span>'+p+'/'+def.goal+'</span>'+
+      '<button class="wclaim'+(can?' ready':'')+'" data-wclaim="'+key+'"'+(can?'':' disabled')+'>'+act+'</button></div>'; }).join('');
+  const rd=warrantsReady(), lb=$('warrantLabel');
+  if(lb) lb.textContent = rd? ('Warrants · '+rd+' ready to claim') : 'Warrants';
+  g.querySelectorAll('[data-wclaim]').forEach(b=>b.addEventListener('click',()=>claimWarrant(b.dataset.wclaim)));
+  if(window._bindCursor)window._bindCursor(); }
+
+/* ===================== CASE MODIFIERS (buy your own difficulty) =====================
+   Every modifier is a read of state.mods inside a function that already exists: no
+   scheduler, no new overlay, no new timer, and the heaviest change is a one-line early
+   return in penalize(). Every multiplier is > 1, so evidence still only ever goes up.
+   Modifiers are FIELD WORK ONLY -- the daily case has to stay comparable between players,
+   and the stakeout is the one mode whose whole point is that nothing is at stake. */
+const MODS={
+ graveyard   :{n:'Graveyard Shift',       m:1.35,d:'3AM from minute one. The clock thinks it is already day seven.'},
+ understaffed:{n:'Understaffed',          m:1.60,d:'Budget cuts. One life, no heals, and the union rep is on holiday.'},
+ notools     :{n:'No Requisition',        m:1.40,d:'Supply closet is locked. No vibe tools, all run, not even the free ones.'},
+ paperwork   :{n:'Buried in Paperwork',   m:1.50,d:'No time to requisition an edge. No perk drafts at all.'},
+ coldopen    :{n:'Cold Open',             m:1.25,d:'He is already running. Cases out of order, special rounds from day one.'},
+ everywhere  :{n:'Deep Cover Everywhere', m:1.30,d:'Everyone is a suspect. Deep cover every second case.'},
+ custody     :{n:'Chain of Custody',      m:2.20,d:'One wrong ID and the case is thrown out. Every life you own is ignored.'},
+ longcon     :{n:'The Long Con',          m:1.50,d:'Fifteen cases. He has the time. Five of them nobody asked for.'}
+};
+const MOD_MAX=3;
+function cleanMods(a){ return (Array.isArray(a)?a:[]).map(String)
+  .filter((id,i,arr)=>Object.prototype.hasOwnProperty.call(MODS,id)&&arr.indexOf(id)===i).slice(0,MOD_MAX); }
+function modOn(id){ return !!(state&&state.mods&&state.mods.indexOf(id)>=0); }
+function modMult(){ return cleanMods(state&&state.mods).reduce((a,id)=>a*MODS[id].m,1); }
+function selMult(){ return cleanMods(META.mods).reduce((a,id)=>a*MODS[id].m,1); }
+function modNames(list){ return cleanMods(list).map(id=>MODS[id].n.toUpperCase()).join(' · '); }
+function toggleMod(id){ if(!Object.prototype.hasOwnProperty.call(MODS,id))return;
+  const cur=cleanMods(META.mods), i=cur.indexOf(id);
+  if(i>=0) cur.splice(i,1);
+  else { if(cur.length>=MOD_MAX){ if(!muted){initAudio();beep(150,0.18,'sawtooth',0.05);} return; } cur.push(id); }
+  META.mods=cur; saveMeta();
+  /* renderMods() replaces the row wholesale, which throws away the focused chip.
+     Put focus back on the same chip, or a keyboard user is thrown to the top of the
+     document every time they toggle a condition. */
+  const ae=document.activeElement;
+  const keep=!!(ae&&ae.getAttribute&&ae.getAttribute('data-mod')===id);
+  renderMods();
+  if(keep){ const b=document.querySelector('#modRow [data-mod="'+id+'"]'); if(b){ try{ b.focus({preventScroll:true}); }catch(e){} } }
+  if(!muted){initAudio();beep(i>=0?420:640,0.06,'square',0.04);} }
+function renderMods(){
+  const grp=$('modGroup'), row=$('modRow'); if(!grp||!row)return;
+  grp.classList.toggle('hidden',!has('modifiers'));
+  if(!has('modifiers')){ row.innerHTML=''; return; }
+  const cur=cleanMods(META.mods);
+  row.innerHTML=Object.keys(MODS).map(id=>{ const m=MODS[id], on=cur.indexOf(id)>=0;
+    return '<button class="diff modchip" data-mod="'+id+'" aria-pressed="'+(on?'true':'false')+'" title="'+esc(m.d)+'">'+
+      esc(m.n)+'<span class="mm">×'+String(m.m.toFixed(2)).replace(/0$/,'')+'</span></button>'; }).join('');
+  const mm=$('modMult');
+  if(mm) mm.innerHTML = cur.length
+    ? ('Evidence <b>×'+selMult().toFixed(2)+'</b> · '+cur.length+' of '+MOD_MAX+' selected · field work only, and they stick between runs.')
+    : ('Pick up to '+MOD_MAX+'. They make the case worse and the evidence worth more. Nothing here is mandatory.');
+  row.querySelectorAll('[data-mod]').forEach(b=>b.addEventListener('click',()=>toggleMod(b.dataset.mod)));
+  if(window._bindCursor)window._bindCursor(); }
 /* ===================== CAMPAIGN ===================== */
 const CAMPAIGN_DAYS=10;
 const CASES=[
@@ -1699,8 +1911,62 @@ const CASES=[
   memo:"<b>Det. Console.log:</b> I have logged all of it since 2019. Nobody has ever scrolled up.",
   obj:"Then read something. Anything."}
 ];
+/* Five files that only exist under THE LONG CON. They sit BEFORE the finale, never
+   instead of it -- fifteen cases that end on case 10 would be a worse ending, not a
+   longer game. */
+const CASES_X=[
+ {n:"The Retro That Never Ended",
+  t:"“Four hours. Nobody said anything. The board still says the three things it said in March.”",
+  memo:"<b>Capt. Kanban:</b> I have booked a retro about the retro. Same room. Bring the same notes.",
+  obj:"Stay awake."},
+ {n:"Zero Open Tickets",
+  t:"“Your board is empty because I closed everything. Nothing is fixed. But the board is empty.”",
+  memo:"<b>Lint, forensics:</b> 214 tickets closed in one minute by a user called <i>automation</i>. That is not a user.",
+  obj:"The board is a lie."},
+ {n:"The Rewrite",
+  t:"“You are rewriting it in a new framework. I have already been ported. I helped.”",
+  memo:"<b>The intern:</b> the new one is 40% faster and has all the same bugs, but typed.",
+  obj:"Same bugs, new syntax."},
+ {n:"On-Call",
+  t:"“Page at 4:02. Page at 4:07. Page at 4:11. I am not doing anything, I just like the sound.”",
+  memo:"<b>Det. Console.log:</b> every alert body is the string <i>undefined</i>. Every single one. For a year.",
+  obj:"Acknowledge nothing."},
+ {n:"The Handover Document",
+  t:"“They asked you to write down how it works. You wrote down how to start it.”",
+  memo:"<b>Mr. Parse, Esq.:</b> my client has read the handover document and would like it entered as evidence for the defence.",
+  obj:"Document one thing."}
+];
+/* NEW GAME+ -- the same ten cases, read back to you by somebody with your file open.
+   {worst} / {games} / {filed} / {total} come out of records you have been keeping all along. */
+const CASES_NG=[
+ "“You closed this one. I reopened it. Same comma, same nine hundred customers, same cheap tent.”",
+ "“I have your file now. It is mostly the word <b>undefined</b> and one apology to a customer called test test.”",
+ "“It still works on your machine. I checked. It is the same machine. You never did get another one.”",
+ "“3:47 AM, again. This is case {games} for you. I can see the number from here.”",
+ "“1.2 gigabytes, and now a folder inside it called <b>old</b>. You moved me. You did not delete me.”",
+ "“Accept-all forty-seven times, and once more to open this briefing. That is forty-eight.”",
+ "“That 2013 snippet has a comment on it now. The comment says <b>do not touch</b>. You touched it.”",
+ "“Status page green, prod down. Your record says <b>{worst}</b>. I am not even hiding any more.”",
+ "“You kept both of me. Then you resolved that conflict by keeping both of those. There are four of me.”",
+ "“Name every costume I own. You have written down <b>{filed} of {total}</b>. Then read the last exhibit. Please. Read it.”"
+];
+CASES_NG.forEach((t,i)=>{ if(CASES[i]) CASES[i].t2=t; });
 const DIFFWORD=['Rookie','Routine','Warm','Personal','Spicy','Awkward','Lawyered','Closed','Unhinged','FINAL'];
-function caseFor(d){ return CASES[Math.min(d,CAMPAIGN_DAYS)-1]||CASES[CAMPAIGN_DAYS-1]; }
+function allCases(){ return CASES.concat(CASES_X); }
+function campDays(){ return (state&&state.campaignDays)||CAMPAIGN_DAYS; }
+/* case order is data, not a rail: COLD OPEN shuffles cases 1..9 and THE LONG CON splices
+   the five extra files in, but index 9 (the finale) is always last. */
+function buildCaseOrder(mods){
+  mods=cleanMods(mods);
+  let mid=[]; for(let i=0;i<CAMPAIGN_DAYS-1;i++) mid.push(i);
+  if(mods.indexOf('longcon')>=0) for(let i=0;i<CASES_X.length;i++) mid.push(CAMPAIGN_DAYS+i);
+  if(mods.indexOf('coldopen')>=0) mid=shuffle(mid);
+  return mid.concat([CAMPAIGN_DAYS-1]); }
+function caseFor(d){
+  const ord=state&&state.caseOrder;
+  if(Array.isArray(ord)&&ord.length){ const all=allCases();
+    return all[ord[Math.min(Math.max(1,d|0),ord.length)-1]]||all[CAMPAIGN_DAYS-1]; }
+  return CASES[Math.min(d,CAMPAIGN_DAYS)-1]||CASES[CAMPAIGN_DAYS-1]; }
 
 /* ===================== PERKS (per run) ===================== */
 const PERKS={
@@ -1726,7 +1992,10 @@ function applyPerk(id){ state.perkSet[id]=true;
 function renderPerkChips(){ const el=$('perkChips'); if(!el)return; const ids=Object.keys(state.perkSet||{});
   el.innerHTML=ids.map(id=>`<span class="pc" title="${PERKS[id].d}"><span class="i">${PERKS[id].ic}</span>${PERKS[id].n}</span>`).join(''); }
 function showPerkDraft(cb){
-  const pool=Object.keys(PERKS).filter(id=>!state.perkSet[id]);
+  /* never offer a card the run has already made inert -- a dead perk in a draft of three
+     is a lie, and UNDERSTAFFED / NO REQUISITION each kill two of them outright */
+  const dead=[].concat(modOn('understaffed')?['legacy','standup']:[], modOn('notools')?['deps']:[]);
+  const pool=Object.keys(PERKS).filter(id=>!state.perkSet[id]&&dead.indexOf(id)<0);
   if(!pool.length){ cb(); return; }
   const pick=shuffle(pool.slice()).slice(0, UPS.has('insider')?4:3);
   const host=$('perkCards'); host.innerHTML='';
@@ -1743,15 +2012,28 @@ function showPerkDraft(cb){
   if(window._bindCursor)window._bindCursor();
   host._auto=setTimeout(()=>{ if(host._done)return; host._done=1; $('draftOverlay').classList.add('hidden'); applyPerk(rand(pick)); cb(); },20000);
 }
+/* he has read your file, so the threat lines quote it back at you */
+function worstType(){ let id='',pc=101;
+  ['string','number','boolean','null','array','object'].forEach(t=>{
+    const p=Object.prototype.hasOwnProperty.call(STATS.perType,t)?STATS.perType[t]:null;
+    if(!p||(p.a|0)<4)return; const v=Math.round(p.c/p.a*100); if(v<pc){ pc=v; id=t; } });
+  return id?(id.toUpperCase()+', '+pc+'% lifetime'):'all six of them, eventually'; }
+function ngThreat(t){ return String(t)
+  .replace(/\{worst\}/g,worstType()).replace(/\{games\}/g,String(STATS.games|0))
+  .replace(/\{filed\}/g,String(filedCount())).replace(/\{total\}/g,String(DOSSIER_POOL.length)); }
 function showBriefing(day,cb,fast){
   const c=caseFor(day);
-  $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+CAMPAIGN_DAYS;
+  $('briefNo').textContent = state.endless ? 'Cold case '+day : 'Case '+day+' of '+campDays();
   $('briefName').textContent=c.n;
   $('briefObj').textContent='ID him '+(state.dayTarget||CORRECT_PER_DAY)+' times. '+(c.obj||'Close the file.')
     +(day===1&&!state.endless?' Training case: your first '+TRAINING_MISSES+' misses are coached, not fatal.':'');
   $('briefDiff').textContent=state.endless?'Beyond the file':(DIFFWORD[Math.min(day,10)-1]||'Hostile');
-  $('briefThreat').innerHTML=c.t+(c.memo?'<br><br>'+c.memo:'');
-  const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+CAMPAIGN_DAYS)+' \u00b7 '+c.n;
+  const threat=(state.ng&&c.t2)?ngThreat(c.t2):c.t;
+  $('briefThreat').innerHTML=threat+(c.memo?'<br><br>'+c.memo:'');
+  const mods=cleanMods(state.mods), mrow=$('briefModRow');
+  if(mrow){ mrow.classList.toggle('hidden',!mods.length);
+    if(mods.length) $('briefMods').innerHTML=esc(modNames(mods))+' &mdash; evidence &times;'+modMult().toFixed(2); }
+  const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+campDays())+' \u00b7 '+c.n;
   const ov=$('briefOverlay'), btn=$('briefBtn'); let done=false;
   const go=()=>{ if(done)return; done=true; clearTimeout(ov._auto); ov.classList.add('hidden'); cb(); };
   btn.onclick=go; ov.classList.remove('hidden');
@@ -1760,9 +2042,11 @@ function showBriefing(day,cb,fast){
   ov._auto=setTimeout(go, reduced?200:(fast?1800:3400));
 }
 function dayStartEffects(){ state.duckUsed=false;
+  state.dayUsedPower=false; state.daySeen={};      /* per-case warrant bookkeeping */
   if(perkOn('deps')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); } }
 /* perk drafts every 2nd day (was every day => 9 of 12 perks per run, i.e. no build at all) */
 function startDay(){ const go=()=>{ showBriefing(state.level,()=>{ dayStartEffects(); nextRound(); }); };
+  if(modOn('paperwork')){ go(); return; }          /* BURIED IN PAPERWORK: no edge, ever */
   if(((state.level-1)%DRAFT_EVERY_DAYS)===0) showPerkDraft(go); else go(); }
 
 /* ===================== PERMANENT UPGRADES ===================== */
@@ -1816,6 +2100,21 @@ function finalizeClout(won){
   if(won) run+=CLOUT_WIN;
   state.coins=Math.min(CLOUT_RUN_CAP,Math.max(CLOUT_RUN_FLOOR,run));
   return state.coins; }
+/* the second file has its own ending, because the last exhibit was different */
+const EPILOGUES_NG=[
+ "The last evidence bag had <b>your own record</b> in it, and you called it an <b>Object</b>, because that is what it was: a name, a case count, an accuracy, and one boolean you should probably look at. He does not resist. In the van he says the quiet part &mdash; <b>a big nested thing is still just one value</b> &mdash; and you already knew that, and you read it twice anyway.",
+ "You book him a second time, same room, same lawyer, still him. Console.log hands you the arrest transcript and you <b>scroll up</b>. Four thousand one hundred and eighty-two lines of your own approvals, and at the very top, alone on line 1, <span class=\"mono\">{}</span>. Everybody in this building was a data format. You are just the one who filed the paperwork.",
+ "Case closed, again, by a detective whose accuracy he can quote from memory. They give you a second medal and put the first one in a folder called <b>old</b>. On the way out he asks whether you ever did read the transcript. You say you read the last line. He says that is the same thing you said last time, and he is not wrong, and he never was."
+];
+/* The last value in the game is your own record, and the answer is Object. The initials
+   come out of localStorage -- i.e. out of the hands of whatever else has written there --
+   so they are sanitised down to three characters before they get near the evidence bag. */
+function selfValue(){
+  const who=String(localStorage.getItem('jw_initials')||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU';
+  const acc=STATS.answered?Math.round(STATS.correct/STATS.answered*100)/100:0;
+  return JSON.stringify({detective:who,cases:STATS.games|0,accuracy:acc,filed:filedCount(),clearance:META.cl|0,still_trusts_json:true}); }
+function selfFile(){ const raw=selfValue(); let v; try{ v=JSON.parse(raw); }catch(e){ v={}; }
+  return {raw:raw,value:v,type:typeOf(v)}; }
 function runXP(){ return Math.min(XP_CAP_PER_RUN, Math.floor(state.score/XP_DIV)); }
 function winGame(){
   state.playing=false; state.roundActive=false; state.paused=false;
@@ -1824,15 +2123,25 @@ function winGame(){
   if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
   unlock('caught');
   { const f=fileEvidence(); if(f.filed) state.filedThisRun=(state.filedThisRun|0)+f.filed; }
-  archiveRun('CLOSED'); awardCP(5,'campaign closed');
+  archiveRun('CLOSED');
+  /* closing the campaign pays ONCE per tier -- it used to pay 5 CP every single win,
+     which is exactly the farm the whole clearance ladder is built to not be */
+  { const lvl=(state.ngTier|0)+1;
+    if((META.closed|0)<lvl){ META.closed=lvl; saveMeta(); awardCP(5,'first close at this tier'); }
+    if(state.ng){ META.ng=Math.max(META.ng|0,state.ngTier|0); saveMeta(); } }
   if(qualifiesLB(state.score)){ const nm=(localStorage.getItem('jw_initials')||'YOU'); const lb=getLB();
     lb.push({name:nm,score:state.score}); lb.sort((a,b)=>b.score-a.score);
     localStorage.setItem('jw_lb',JSON.stringify(lb.slice(0,5))); renderLB(-1); }
   if(state.daily){ const dk=dailyKey(); const d=getDaily(); const best=(d.d===dk)?d.best:0;
     localStorage.setItem('jw_daily',JSON.stringify({d:dk,best:Math.max(best,state.score)})); reflectDaily(); }
   $('winScore').textContent=state.score; $('winCombo').textContent='×'+(1+state.bestCombo); $('winClout').textContent=runCoins;
-  $('winEpi').innerHTML=rand(EPILOGUES);
+  $('winEpi').innerHTML=state.ng?rand(EPILOGUES_NG):rand(EPILOGUES);
+  { const st=document.querySelector('#winOverlay .stamp');
+    if(st) st.textContent = state.ng ? ('Second file closed · tier '+(state.ngTier|0)) : 'Case closed'; }
   localStorage.setItem('jw_won','1');
+  reflectSecondFile();
+  { const nb=$('ngBtn'), nx=(META.ng|0)+1;
+    if(nb){ nb.classList.toggle('hidden',!has('ngplus')); nb.innerHTML='▦ Open the '+(nx>1?('file #'+nx):'second file'); } }
   mascot.className='mascot';
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
   document.querySelector('.stat.combo').classList.remove('fire'); timerBar.classList.remove('frozen');
@@ -1843,7 +2152,7 @@ function winGame(){
 $('endlessBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); state.playing=true; state.endless=true;
   state.lives=Math.max(1,state.lives); state.dayCorrect=0; state.dayTarget=dayTargetFor(state.level); state.graceUsed=TRAINING_MISSES;
   setHUD(); startDay(); });
-$('winAgainBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); runMode={daily:false,zen:false}; startGame(); });
+$('winAgainBtn').addEventListener('click',()=>{ $('winOverlay').classList.add('hidden'); runMode={daily:false,zen:false,ng:false}; startGame(); });
 
 /* ===================== GAME ===================== */
 const TYPES=[
@@ -1917,6 +2226,7 @@ const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,str
   coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
   mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
   perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,locker:[],filedThisRun:0,
+  mods:[],ng:false,ngTier:0,campaignDays:CAMPAIGN_DAYS,caseOrder:null,dayUsedPower:false,daySeen:null,selfFile:false,selfServed:false,
   dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
@@ -1993,17 +2303,19 @@ Object.entries(POWERS).forEach(([id,p])=>{ const b=document.createElement('butto
 function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid,n=state.powers[id];
   const okMode = id!=='fifty' || state.mode==='type' || state.mode==='boss';
   const okLife = id!=='life' || state.lives<state.maxLives;
-  b.querySelector('.cnt').textContent=n; b.disabled=!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode && okLife);
+  b.querySelector('.cnt').textContent=n; b.disabled=modOn('notools')||!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode && okLife);
   b.classList.toggle('armed', id==='double'&&state.doubleArmed); }); }
-function grantPower(id){ if(!POWERS[id])return; if(state.powers[id]>=(TOOL_CAPS[id]||99))return;   /* no hoarding */
+function grantPower(id){ if(modOn('notools'))return;      /* NO REQUISITION: the closet is locked */
+  if(!POWERS[id])return; if(state.powers[id]>=(TOOL_CAPS[id]||99))return;   /* no hoarding */
   state.powers[id]++; const p=POWERS[id]; toast({ic:p.ic,name:p.name,desc:'Vibe tool acquired!'},'New tool'); if(!muted){initAudio();beep(680,0.06,'triangle',0.05);setTimeout(()=>beep(1020,0.09,'triangle',0.05),70);} renderPowers(); }
-function usePower(id){ if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
+function usePower(id){ if(modOn('notools'))return;
+  if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
   if(id==='life'){ if(state.lives>=state.maxLives)return; state.powers[id]--; state.lives=Math.min(state.maxLives,state.lives+1); }   /* heals, never raises the cap */
   else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen'); }
   else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
   else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
-  state.usedAnyPower=true; unlock('powerup'); bark('tool_'+id); if(!muted){initAudio();beep(800,0.09,'triangle',0.05);} setHUD(); }
+  state.usedAnyPower=true; state.dayUsedPower=true; unlock('powerup'); bark('tool_'+id); if(!muted){initAudio();beep(800,0.09,'triangle',0.05);} setHUD(); }
 
 /* ===================== CASE FILES (achievements) ===================== */
 const ACH={
@@ -2021,7 +2333,18 @@ const ACH={
   caught :{ic:'🚔',name:'Case closed',desc:'Catch JSON at the end of the campaign'}
 };
 let ACHGOT; try{ ACHGOT=new Set(JSON.parse(localStorage.getItem('jw_ach')||'[]')); }catch(e){ ACHGOT=new Set(); }
-function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); awardCP(1,'case file'); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
+/* the 12 case files are the tutorial for the CP economy: 28 CP in total, which lands a
+   completionist at exactly clearance 3 (case modifiers) and not one rung further. */
+const ACH_CP={firstblood:1,powerup:1,combo5:1, level5:2,hoarder:2,sharp:2,boss:2,
+  combo10:3,level8:3,perfect:3,grand:3, caught:5};
+function achCP(id){ return Object.prototype.hasOwnProperty.call(ACH_CP,id)?ACH_CP[id]:1; }
+function unlock(id){ if(!ACH[id]||ACHGOT.has(id))return; ACHGOT.add(id); localStorage.setItem('jw_ach',JSON.stringify([...ACHGOT])); awardCP(achCP(id),'case file'); toast(ACH[id],'Case file'); renderMedals(); if(!muted){initAudio();[830,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.12,'triangle',0.05),i*90));} }
+/* one-time, silent back-pay: case files earned before the ladder existed still count.
+   Runs after ACH_CP exists (META loads far earlier), and never runs twice. */
+(function backpayCP(){ if(META.bp) return; META.bp=1;
+  let n=0; ACHGOT.forEach(id=>{ if(Object.prototype.hasOwnProperty.call(ACH,id)) n+=achCP(id); });
+  if(n>0){ META.cp+=n; META.cl=clearanceFor(META.cp); }
+  saveMeta(); if(n>0&&typeof reflectRank==='function') reflectRank(); })();
 function toast(a,label){ const t=document.createElement('div'); t.className='toast'; t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${label||'Case file'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`; $('toaster').appendChild(t);
   if(reduced){ t.classList.add('in'); setTimeout(()=>t.remove(),2600); return; }
   requestAnimationFrame(()=>t.classList.add('in')); setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(()=>t.remove(),450);},3400); }
@@ -2051,10 +2374,11 @@ function setHUD(){ animateScore(state.score); $('level').textContent=state.level
    (never scaled by difficulty) and only the *thinking* margin is squeezed by the day
    counter and by endless mode. Time perks are multiplicative and land BEFORE the
    floor, so they can no longer punch through it. */
-function endlessDayNo(l){ return state.endless ? Math.max(0,(l||1)-CAMPAIGN_DAYS) : 0; }
+function endlessDayNo(l){ return state.endless ? Math.max(0,(l||1)-campDays()) : 0; }
 function endlessSqueeze(l){ return Math.max(ENDLESS_FLOOR, Math.pow(ENDLESS_DECAY, endlessDayNo(l))); }
 function readBudget(chars,items){ return READ_PER_CHAR*Math.max(0,chars||0) + READ_PER_ITEM*Math.max(0,items||0); }
 function thinkBudget(l){ const c=DIFFC(), sq=endlessSqueeze(l);
+  if(modOn('graveyard')) l=(l||1)+6;             /* GRAVEYARD SHIFT: the clock thinks it is day seven */
   let t=Math.max(c.min*sq, c.time-((l||1)-1)*c.drop);
   if(perkOn('espresso')) t*=T_ESPRESSO;
   if(perkOn('shipfast')) t*=T_SHIPFAST;
@@ -2064,7 +2388,7 @@ function timeForLevel(l){ return thinkBudget(l); }   /* kept: same name, think b
 function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); }
 function dayTargetFor(l){ const t=(DIFFC().target!=null)?DIFFC().target:CORRECT_PER_DAY;
   return t + (state.endless ? Math.floor(endlessDayNo(l)/3) : 0); }
-function bossEveryNow(){ return state.endless ? 3 : BOSS_EVERY; }
+function bossEveryNow(){ return modOn('everywhere') ? 2 : (state.endless ? 3 : BOSS_EVERY); }
 function runCountdown(done){ if(reduced){done();return;} const el=$('countdown'); const seq=['3','2','1','GO!']; let i=0;
   (function step(){ if(i>=seq.length){el.classList.remove('show');done();return;} el.textContent=seq[i]; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); beep(340+i*130,0.12,'square',0.04); i++; setTimeout(step,640); })(); }
 
@@ -2073,11 +2397,19 @@ function startGame(){
   if(musicPref && !musicOn) startMusic();
   seedRng = runMode.daily ? mulberry32(dailySeed()) : null;
   const cfg=DIFF[diff];
-  const baseLives=cfg.lives+(UPS.has('union')?1:0);
+  /* MODIFIERS are field work only: the daily has to stay comparable and the stakeout is
+     the one mode whose entire point is that nothing is at stake. NG+ tiers 2 and up add
+     their own conditions on top, deterministically, so the run is still legible. */
+  let mods = (has('modifiers')&&!runMode.daily&&!runMode.zen) ? cleanMods(META.mods) : [];
+  const ngTier = runMode.ng ? (META.ng|0)+1 : 0;
+  if(ngTier>1) ['everywhere','graveyard','custody'].slice(0,ngTier-1).forEach(id=>{ if(mods.indexOf(id)<0&&mods.length<MOD_MAX) mods.push(id); });
+  const baseLives = (mods.indexOf('understaffed')>=0) ? 1 : cfg.lives+(UPS.has('union')?1:0);
   Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:baseLives,maxLives:baseLives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
     perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
+    mods:mods,ng:!!runMode.ng,ngTier:ngTier,campaignDays:(mods.indexOf('longcon')>=0?15:CAMPAIGN_DAYS),
+    caseOrder:buildCaseOrder(mods),dayUsedPower:false,daySeen:{},selfServed:false,selfFile:false,
     dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{},locker:[],filedThisRun:0});
   state.dayTarget=dayTargetFor(1);   /* difficulty-scoped from Case 1, not just from day 2 */
   $('pauseOverlay').classList.add('hidden');
@@ -2154,9 +2486,17 @@ function buildCountRound(alt){
 function nextRound(){
   if(!state.playing)return;
   let mode='type';
+  const altFrom = modOn('coldopen') ? 1 : ALT_FROM_DAY;   /* COLD OPEN: he is already running */
   if(state.bossPending){ mode='boss'; state.bossPending=false; }
-  else if(state.level>=ALT_FROM_DAY && !state.lastWasAlt && rnd()<altProbFor(state.level)){ mode=rand(['valid','spot','count']); }
+  else if(state.level>=altFrom && !state.lastWasAlt && rnd()<altProbFor(state.level)){ mode=rand(['valid','spot','count']); }
   if((state.roundsPlayed|0)===0) mode='type';   // contract: first round of a run is always a type round
+  /* THE SECOND FILE closes on the last ID of the last case, and the evidence bag has your
+     own record in it. It rides the boss round path exactly, so nothing else has to know.
+     Guarded by roundsPlayed>0, so the first-round clamp above is still the last word. */
+  state.selfFile=false;
+  if(state.ng && !state.selfServed && !state.endless && (state.roundsPlayed|0)>0
+     && state.level>=campDays() && (state.dayCorrect|0)>=(state.dayTarget||CORRECT_PER_DAY)-1){
+    mode='boss'; state.selfFile=true; state.selfServed=true; }
   state.roundsPlayed=(state.roundsPlayed|0)+1;
   state.lastWasAlt=(mode!=='type'&&mode!=='boss');
   state.mode=mode;
@@ -2167,11 +2507,13 @@ function nextRound(){
   state.shownChars=0; state.shownItems=0;
   if(mode==='type'||mode==='boss'){
     answers.classList.remove('hidden'); alt.classList.add('hidden');
-    if(mode==='boss'){ state.current=pickBoss(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
+    if(state.selfFile){ state.current=selfFile(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
+    else if(mode==='boss'){ state.current=pickBoss(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
     else state.current=pickValue(state.level);
     const raw=state.current.raw, long=raw.length>18;
     state.shownChars=raw.length;
-    valueCard.style.fontSize = long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
+    valueCard.style.fontSize = state.selfFile ? 'clamp(11px,2.5vw,17px)'   /* the only four-line value in the game */
+      : long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
     setValue(raw);
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
     if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
@@ -2181,8 +2523,12 @@ function nextRound(){
       const wr=shuffle([...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.classList.contains('eliminated')));
       wr.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;});
     }
-    $('question').innerHTML = mode==='boss' ? rand(BOSS_TAUNTS) : taunt();
-    if(mode==='boss'){ bark('boss'); } if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
+    $('question').innerHTML = state.selfFile
+      ? '&ldquo;Last exhibit. This one came out of <b>your</b> desk. Name it.&rdquo;'
+      : mode==='boss' ? rand(BOSS_TAUNTS) : taunt();
+    if(mode==='boss'){ bark('boss'); }
+    if(state.selfFile) announceMode('🗂️ THE FILE ON YOU',true);
+    else if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
   } else if(mode==='valid'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildValidRound(alt);
     $('question').innerHTML='&ldquo;Is this testimony real, or did I forge it?&rdquo;'; announceMode('🔍 CREDIBLE or CORRUPTED?');
@@ -2193,7 +2539,8 @@ function nextRound(){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildCountRound(alt);
     $('question').innerHTML='&ldquo;Count the haul. Miscount and I keep it.&rdquo;'; announceMode('🔢 COUNT THE HAUL');
   }
-  say(mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
+  say(state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
+     :mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
      :mode==='boss'?'Deep cover round. Name the outermost type.'
      :mode==='valid'?'Credible or corrupted? Two choices.'
      :mode==='spot'?('Pick the '+String(state.altTarget||'').toUpperCase()+' from four values.')
@@ -2229,7 +2576,8 @@ function awardCorrect(mult){
   if(perkOn('copypaste')) evBonus+=EV_COPYPASTE;
   if(perkOn('shipfast'))  evBonus+=EV_SHIPFAST;
   if(UPS.has('lawyer'))   evBonus+=EV_LAWYER;
-  let pts=Math.round((100+timeBonus)*comboMult*(mult||1)*(1+evBonus));
+  /* modMult() is >= 1 by construction (every MODS[].m > 1), so evidence never goes down */
+  let pts=Math.round((100+timeBonus)*comboMult*(mult||1)*(1+evBonus)*modMult());
   const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
   state.score+=pts; state.streak++; state.correct++;
   state.bestCombo=Math.max(state.bestCombo,state.streak);
@@ -2241,6 +2589,7 @@ function awardCorrect(mult){
   if(state.score>=1000)unlock('grand'); if(state.coins>=50)unlock('hoarder');
   if(state.streak>0 && state.streak%POWER_EVERY===0){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
   state.coldRun=0;
+  track('streakPeak',state.streak);
   state.dayCorrect=(state.dayCorrect|0)+1;
   if(state.dayCorrect>=(state.dayTarget||CORRECT_PER_DAY)){
     state.dayCorrect=0;
@@ -2257,12 +2606,24 @@ function awardCorrect(mult){
       setTimeout(()=>showFeedback('AIRTIGHT! +'+bonus,false),260); bark('perfectDay'); }
     state.levelWrong=0; state.graceUsed=TRAINING_MISSES;   /* training case is Case 1 only */
     state.dayTarget=dayTargetFor(state.level);
+    /* warrants observe the close; they never alter it */
+    track('dayClosed',1);
+    if(!state.dayUsedPower) track('dayClosedClean',1);
+    cleanMods(state.mods).forEach(id=>track('modDayClose',1,id));
     if(state.level%bossEveryNow()===0) state.bossPending=true;
-    if(!state.endless && state.level>CAMPAIGN_DAYS) state.pendingWin=true; else state.pendingAdvance=true;
+    if(!state.endless && state.level>campDays()) state.pendingWin=true; else state.pendingAdvance=true;
   }
   return {pts,doubled};
 }
 function penalize(){
+  /* CHAIN OF CUSTODY: one wrong ID and the case is thrown out. Deliberately the FIRST
+     thing here, above the training case, the duck, the vibes and the stakeout, because
+     the whole point of the modifier is that it ignores every life source you own.
+     finishRound() already routes lives<=0 to gameOver(), so this is not a new death path. */
+  if(modOn('custody')){
+    state.lives=0; state.streak=0; state.levelWrong++; state.doubleArmed=false; state.lastCoached=false;
+    toast({ic:'⚖️',name:'Case thrown out',desc:'Chain of custody broken. That is the run.'},'Inadmissible');
+    return; }
   let saved=false, why='', coached=false;
   /* TRAINING CASE — Case 1 only, and only for the first TRAINING_MISSES misses of the run.
      Hard-bounded on purpose: after that, misses are fatal again and game over is reachable. */
@@ -2300,9 +2661,14 @@ function answer(id){
   const correctBtn=answersHost.querySelector('.abtn.'+cur.type);
   const art=/^[aeiou]/i.test(cur.type)?'an':'a';
   flavorEl.innerHTML=flavorFor(cur.value)+`  <b>&mdash; he was ${art} ${cur.type.toUpperCase()}.</b>`;
+  if(state.selfFile) flavorEl.innerHTML='&ldquo;A name, a case count, an accuracy and one boolean you have been avoiding. '+
+    'All of it in <b>one pair of braces.</b>&rdquo;  <b>&mdash; it was an OBJECT. It was always going to be an OBJECT.</b>';
   if(correct){
+    state.daySeen=state.daySeen||{};
+    if(!Object.prototype.hasOwnProperty.call(state.daySeen,cur.type)){ state.daySeen[cur.type]=1;
+      if(Object.keys(state.daySeen).length>=6) track('sixInDay',1); }
     const {pts,doubled}=awardCorrect(boss?BOSS_EV:1);
-    if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; }
+    if(boss){ unlock('boss'); state.coins+=CLOUT_BOSS; track('bossClean',1); }
     correctBtn.classList.add('correct'); mascot.classList.add('happy'); sCorrect(); vibrate(30);
     stampVerdict(true, cur.type.toUpperCase()); pointsToScore(pts+(doubled?pts:0));
     if(boss) showFeedback('COVER BLOWN! +'+pts+(doubled?'!!':''),false);
@@ -2405,8 +2771,10 @@ function gameOver(){
   const s=state.score, rank = s>=4000?"JSON'S NEMESIS": s>=2000?'LEAD DETECTIVE': s>=850?'TYPE DETECTIVE': s>=300?'ACCEPT-ALL ENJOYER':'PROMPT GOBLIN';
   $('rankBadge').textContent='🏅 '+rank;
   const acc = state.answered?Math.round(state.correct/state.answered*100):0;
-  const modeTag = state.daily?'Daily case · ':state.zen?'Stakeout · ':'';
-  $('runSum').innerHTML=`${modeTag}Accuracy <b>${acc}%</b> · <b>${state.correct}</b> IDs · +<b>${runCoins}</b> clout`;
+  const modeTag = state.ng?'Second file · ':state.daily?'Daily case · ':state.zen?'Stakeout · ':'';
+  const mods=cleanMods(state.mods);
+  $('runSum').innerHTML=`${modeTag}Accuracy <b>${acc}%</b> · <b>${state.correct}</b> IDs · +<b>${runCoins}</b> clout`
+    +(mods.length?`<br><b>${esc(modNames(mods))}</b> &mdash; evidence &times;${modMult().toFixed(2)}`:'');
   $('overQuip').textContent=rand(OVER_QUIPS);
   mascot.className='mascot'; sOver(); vibrate([80,50,80,50,120]);
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show'); document.querySelector('.stat.combo').classList.remove('fire');
@@ -2443,7 +2811,7 @@ function saveScore(){
 $('saveScoreBtn').addEventListener('click',saveScore);
 $('initialsInp').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){e.preventDefault();saveScore();} });
 
-$('startBtn').addEventListener('click',()=>{ runMode={daily:false,zen:false}; startGame(); });
+$('startBtn').addEventListener('click',()=>{ runMode={daily:false,zen:false,ng:false}; startGame(); });
 $('againBtn').addEventListener('click',startGame);
 addEventListener('keydown',e=>{
   if(e.target&&(e.target.id==='initialsInp'||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
@@ -2454,7 +2822,7 @@ addEventListener('keydown',e=>{
        fires while keydown bubbles, i.e. before the button's synthetic click, so without
        this guard the start shortcut swallowed every menu button for keyboard users. */
     const onCtl = e.target && (e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='INPUT');
-    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();runMode={daily:false,zen:false};startGame();}
+    if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('startOverlay').classList.contains('hidden')){e.preventDefault();runMode={daily:false,zen:false,ng:false};startGame();}
     if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();}
     return; }
   if(state.paused)return;
@@ -2557,9 +2925,14 @@ function renderDossier(){
       '<span><span class="ti">'+r.title+'</span><span class="un">'+(r.unlocks.length?r.unlocks.map(u=>UNLOCK_COPY[u]?UNLOCK_COPY[u].name:u).join(' \u00b7 '):'the badge, such as it is')+'</span></span>'+
       '<span class="cost">'+(on?'\u2713':r.cp+' CP')+'</span></div>'; }).join('');
   const a=$('dosArchive');
-  if(!has('archive')) a.innerHTML='<div class="dosbar">Archive unlocks at clearance 2.</div>';
-  else if(!META.arch.length) a.innerHTML='<div class="dosbar">No runs on file yet.</div>';
-  else a.innerHTML=META.arch.map(r=>'<div class="arow"><span>'+esc(r.d)+'</span><span>'+esc(r.mode)+' \u00b7 day '+(r.day|0)+' \u00b7 '+esc(r.disp||'')+'</span><span>+'+(r.filed|0)+' filed</span></div>').join('');
+  const career='<div class="dosbar"><b>'+(META.days|0)+'</b> day'+((META.days|0)===1?'':'s')+' on the case \u00b7 '+
+    (META.ng|0)+' second file'+((META.ng|0)===1?'':'s')+' closed</div>';
+  if(!has('archive')) a.innerHTML=career+'<div class="dosbar">Archive unlocks at clearance 2.</div>';
+  else if(!META.arch.length) a.innerHTML=career+'<div class="dosbar">No runs on file yet.</div>';
+  else a.innerHTML=career+META.arch.map(r=>{ const md=cleanMods(r.mods);
+      return '<div class="arow"><span>'+esc(r.d)+'</span><span>'+esc(r.mode)+' \u00b7 day '+(r.day|0)+' \u00b7 '+esc(r.disp||'')+
+        (md.length?' \u00b7 '+esc(modNames(md))+' \u00d7'+(parseFloat(r.mult)||1).toFixed(2):'')+
+        '</span><span>+'+(r.filed|0)+' filed</span></div>'; }).join('');
 }
 document.querySelectorAll('[data-dtab]').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('[data-dtab]').forEach(x=>x.classList.toggle('on',x===t));
@@ -2610,9 +2983,33 @@ document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=>{ if(e.target===m){ m.classList.add('hidden'); _releaseModal(); } }));
 
 /* ===================== RUN MODES ===================== */
-let runMode={daily:false,zen:false};
-$('dailyBtn').addEventListener('click',()=>{ runMode={daily:true,zen:false}; startGame(); });
-$('zenBtn').addEventListener('click',()=>{ runMode={daily:false,zen:true}; startGame(); });
+let runMode={daily:false,zen:false,ng:false};
+$('dailyBtn').addEventListener('click',()=>{ runMode={daily:false,zen:false,ng:false}; runMode.daily=true; startGame(); });
+$('zenBtn').addEventListener('click',()=>{ runMode={daily:false,zen:true,ng:false}; startGame(); });
+/* THE DESK. Warrants are claimed here, so there has to be a way back to it that is not
+   "reload the page" -- both end-of-run overlays now offer one. #startOverlay is the
+   overlay the game boots into, so showing it again is the state the file already ships in. */
+function backToDesk(){
+  if(state.playing){ state.playing=false; state.roundActive=false; }
+  $('overOverlay').classList.add('hidden'); $('winOverlay').classList.add('hidden');
+  $('pauseOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
+  $('initialsBox').classList.add('hidden');
+  rollWarrants(); renderWarrants(); renderMods(); reflectSecondFile(); reflectRank();
+  $('startOverlay').classList.remove('hidden');
+  try{ $('startBtn').focus({preventScroll:true}); }catch(e){}
+  if(!muted){initAudio();beep(380,0.07,'square',0.04);} }
+$('deskBtn').addEventListener('click',backToDesk);
+$('winDeskBtn').addEventListener('click',backToDesk);
+/* NEW GAME+ -- the second file. Needs the clearance AND an actual win on record. */
+function canSecondFile(){ let won=false; try{ won=localStorage.getItem('jw_won')==='1'; }catch(e){}
+  return has('ngplus') && won; }
+function reflectSecondFile(){ const b=$('secondFileBtn'); if(!b)return;
+  const ok=canSecondFile(); b.classList.toggle('hidden',!ok);
+  if(ok){ const nx=(META.ng|0)+1; b.innerHTML='▦ '+(nx>1?('File #'+nx):'The second file'); } }
+function startSecondFile(){ if(!canSecondFile())return;
+  runMode={daily:false,zen:false,ng:true}; startGame(); }
+$('secondFileBtn').addEventListener('click',startSecondFile);
+$('ngBtn').addEventListener('click',startSecondFile);
 
 /* ===================== PAUSE ===================== */
 function pauseGame(){ if(!state.playing||state.paused||!state.roundActive)return; state.paused=true;
@@ -2656,6 +3053,7 @@ $('cardBtn').addEventListener('click',()=>{ try{ const url=drawScoreCard(); cons
   const b=$('cardBtn'); b.classList.add('ok'); b.textContent='✔ Saved!'; setTimeout(()=>{b.classList.remove('ok');b.innerHTML='🖼 Case card';},1800); }catch(e){} });
 
 renderMedals(); renderLB(-1); setHUD(); reflectRank();
+renderWarrants(); renderMods(); reflectSecondFile();
 </script>
 <!-- ============ ART SPRITE: the suspect's paint servers + six disguise marks + the sigil ============ -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
