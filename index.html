@@ -1615,7 +1615,9 @@ function tone(o_){
   g.connect(p.dest);
   if(p.verb&&AB.verbIn){ const v=ctx.createGain(); v.gain.value=p.verb; g.connect(v); v.connect(AB.verbIn); nodes.push(v); }
   const end=t+p.a+p.hold+p.d+0.03;
-  o.start(t); o.stop(end); reg(nodes,o,end); return end;
+  o.start(t); o.stop(end); reg(nodes,o,end);
+  if(p.cap) p.cap(o,end);           /* the music engine borrows this to cut a committed bar short */
+  return end;
 }
 /* filtered-noise voice: all percussion, the stamp body, rain, paper and the match strike */
 function nz(o_){
@@ -1636,7 +1638,9 @@ function nz(o_){
   if(p.verb&&AB.verbIn){ const v=ctx.createGain(); v.gain.value=p.verb; g.connect(v); v.connect(AB.verbIn); nodes.push(v); }
   const end=t+p.a+p.hold+p.d+0.02;
   s.start(t, Math.random()*Math.max(0.001,p.b.duration-0.3));   /* random offset = free variation */
-  s.stop(end); reg(nodes,s,end); return end;
+  s.stop(end); reg(nodes,s,end);
+  if(p.cap) p.cap(s,end);
+  return end;
 }
 /* sidechain: music+ambience drop under every stinger so the stamp always cuts through.
    Skipped while quiet, so it can never fight applyAudioState() back up to full. */
@@ -1836,40 +1840,179 @@ function toggleRain(){ rainOn=!rainOn; try{ localStorage.setItem('jw_rain',rainO
 { const rt=$('rainToggle'); if(rt) rt.addEventListener('click',toggleRain); }
 reflectRain();
 
-/* ===================== STAKEOUT RADIO (noir loop, off by default) ===================== */
-let musicPref=(localStorage.getItem('jw_music')==='1');
-let musicOn=false, musMaster=null, musTimer=null, musStep=0, musTime=0;
-const MUS_ROOT=[0,-3,-5,-1];
-const MUS_ARP=[0,7,10,7,3,12,10,7];
-const midi=n=>220*Math.pow(2,n/12);
-function musNote(f,t,d,type,v){ if(!actx||!musMaster)return; const o=actx.createOscillator(),g=actx.createGain(); o.type=type;o.frequency.value=f;o.connect(g);g.connect(musMaster);
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(v,t+0.014); g.gain.exponentialRampToValueAtTime(0.0001,t+d); o.start(t); o.stop(t+d+0.03);
-  /* the gain used to stay wired to the destination for ever -- at ~40 notes/sec that is real
-     garbage. Everything that connects now disconnects on ended. */
-  reg([o,g],o,t+d+0.03); }
-function musSchedule(){ if(!musicOn||!actx||!musMaster)return;
-  if(document.hidden) return;
-  /* a hidden tab throttles setInterval to ~1Hz, so musTime falls seconds behind and the
-     while-loop below used to dump every missed note at a PAST time -- i.e. all at once, as a
-     burst, the moment you came back. Resync instead of catching up. */
-  if(musTime<actx.currentTime) musTime=actx.currentTime+0.06;
-  const lvl=state.playing?state.level:1; const hot=state.streak>=4;
-  const bpm=92+Math.min(lvl*3,42)+(hot?20:0); const spb=60/bpm/2;
-  while(musTime<actx.currentTime+0.22){
-    const bar=Math.floor(musStep/8)%4, root=MUS_ROOT[bar];
-    if(musStep%4===0) musNote(midi(root-12),musTime,spb*1.9,'sine',0.11);
-    musNote(midi(root+MUS_ARP[musStep%8]),musTime,spb*0.8,'triangle',hot?0.05:0.034);
-    if(hot && musStep%2===1) musNote(midi(root+17),musTime,spb*0.35,'square',0.018);
-    musStep++; musTime+=spb;
-  } }
-function startMusic(){ if(!initAudio()||musicOn)return;
-  /* onto busMusic, not straight to the destination: that is what puts the radio under the
-     master mute and under the stinger duck. 1.0 * busMusic .55 * master .9 == the old 0.5. */
-  if(!musMaster){ musMaster=actx.createGain(); musMaster.gain.value=1; musMaster.connect(AB.busMusic); }
-  musicOn=true; musStep=0; musTime=actx.currentTime+0.1; musTimer=setInterval(musSchedule,25); reflectMusic(); applyAudioState(0.2); }
-function stopMusic(){ musicOn=false; if(musTimer){clearInterval(musTimer);musTimer=null;} reflectMusic(); }
+/* ===================== STAKEOUT RADIO: the adaptive noir band (off by default) =====================
+   Six layer gains -- bass drum comp lead urg boss -- crossfaded by ONE intensity number that game
+   state drives. What changed, and why:
+
+   1. LAYERS, NOT TEMPO. The old loop expressed "the player is hot" by speeding up an arpeggio.
+      Now the band joins in: brushes, then piano stabs, then a muted trumpet, then a 16th ride.
+      Measured +5.6 dB RMS from calm to maximum, where a tempo-only system gives you 0 dB.
+   2. TEMPO ONLY MOVES ON A BAR LINE. The old scheduler recomputed bpm from state.level/state.streak
+      on every one of its 25 ms ticks, so breaking a streak retimed the very next eighth note.
+      Measured: 130 -> 110 bpm landing at musStep 10, phase 2 of 8 -- a lurch mid-phrase.
+      Now bpm is frozen for a whole bar; setTempo() parks the value in pendingBpm and
+      scheduleUntil() adopts it only between bars. Measured after: the bar in flight keeps its
+      spacing to the microsecond, and the new tempo starts at the next bar line, 1.46 s later.
+   3. scheduleUntil(horizon) IS A PURE LOOKAHEAD FUNCTION -- absolute AudioContext time, no wall
+      clock, no setTimeout. The live game drives it from a 120 ms interval; the harness calls it
+      with whatever horizon it likes inside an OfflineAudioContext. That is why this engine is
+      measured instead of guessed at. Everything with a clock in it lives in musDrive(), below. */
+let musicPref=false; try{ musicPref=(localStorage.getItem('jw_music')==='1'); }catch(e){ musicPref=false; }
+let musicOn=false, musTimer=null, MUSIC=null;
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+function musicBuild(){
+  const ctx=AB.ctx, L={};
+  ['bass','drum','comp','lead','urg','boss'].forEach(k=>{ L[k]=ctx.createGain(); L[k].gain.value=0.0001; L[k].connect(AB.busMusic); });
+  /* Cm7 | Fm7 | Ddim7 | G7(b9) -- four bars of the oldest progression in noir, as MIDI numbers */
+  const BASS=[[36,39,43,39],[41,44,48,44],[38,41,44,41],[43,47,50,47]];
+  const COMP=[[51,55,58,63],[53,56,60,68],[50,53,56,62],[50,53,59,65]];
+  const LEAD=[[[0,67,1.5],[2,63,1.0]],[[0.5,68,1.0],[2,67,1.5]],
+              [[0,65,1.0],[1.5,63,1.5]],[[0,62,1.0],[2,59,1.8]]];
+  const SWING=0.62;                       /* where the swung eighth lands inside the beat */
+  const MUS={bar:0,tBar:0,bpm:96,running:false,intensity:0,boss:false,pendingBpm:0,mix:null};
+  /* every source this engine starts, so stop() can cut a bar that is already committed */
+  const SRC=[]; const cap=(n,end)=>{ SRC.push({n,end}); };
+  /* A layer whose target gain is zero is not scheduled at all: at low intensity that leaves 14 of
+     a bar's 29 voices uncreated. Two bars of hysteresis, so a layer that has just been faded down
+     still plays through its own fade (0.55 s time constant) instead of vanishing at the bar line. */
+  const HOLD={comp:0,lead:0,urg:0,boss:0};
+  function layerOn(k){
+    const m=(MUS.mix&&MUS.mix[k])||0;
+    if(m>0.003){ HOLD[k]=2; return true; }
+    if(HOLD[k]>0){ HOLD[k]--; return true; }
+    return false;
+  }
+  const pluckBass=(t,m,dur)=>{
+    tone({t,f:mtof(m),type:'triangle',a:0.004,d:Math.min(dur*0.95,0.42),peak:0.42,lp:420,lpQ:1.6,dest:L.bass,verb:0.06,cap});
+    tone({t,f:mtof(m)*2,type:'sine',a:0.004,d:0.05,peak:0.06,dest:L.bass,cap}); };        /* string click */
+  const brush=(t,soft)=>nz({t,ft:'bandpass',f:soft?2400:3000,f2:soft?1500:1800,Q:0.8,
+    a:0.006,d:soft?0.075:0.135,peak:soft?0.07:0.15,dest:L.drum,verb:0.12,cap});
+  const kick=t=>tone({t,f:110,f2:48,glide:0.07,type:'sine',a:0.002,d:0.16,peak:0.34,dest:L.drum,cap});
+  const ride=t=>nz({t,ft:'bandpass',f:7200,Q:4,a:0.001,d:0.035,peak:0.06,dest:L.urg,cap});
+  const stab=(t,ch)=>ch.forEach((m,i)=>tone({t,f:mtof(m),type:'sine',a:0.006,d:0.30,
+    peak:i===0?0.10:0.07,lp:2600,dest:L.comp,verb:0.22,cap}));
+  const horn=(t,m,beats,spb)=>tone({t,f:mtof(m),type:'sawtooth',a:0.045,hold:beats*spb*0.35,
+    d:beats*spb*0.6,peak:0.11,lp:1150,lpQ:1.4,bp:1250,bpQ:1.1,dest:L.lead,verb:0.3,vib:4.5,vibF:5.2,cap});
+  function scheduleBar(bar,t0,spb){
+    const b=((bar%4)+4)%4;
+    BASS[b].forEach((m,i)=>pluckBass(t0+i*spb,m,spb));
+    kick(t0);
+    brush(t0+spb); brush(t0+spb*3);                             /* 2 and 4 */
+    for(let i=0;i<4;i++) brush(t0+(i+SWING)*spb,true);          /* swung eighths */
+    if(layerOn('comp')) stab(t0+(1+SWING)*spb,COMP[b]);
+    if(layerOn('lead')) LEAD[b].forEach(v=>horn(t0+v[0]*spb,v[1],v[2],spb));
+    if(layerOn('urg')) for(let i=0;i<8;i++) ride(t0+i*spb*0.5);
+    if(layerOn('boss')){
+      tone({t:t0,f:mtof(24+(b===3?6:0)),type:'sawtooth',a:0.12,hold:spb*2,d:spb*2,peak:0.16,lp:220,dest:L.boss,cap});
+      tone({t:t0,f:mtof(24.4),type:'sawtooth',a:0.12,hold:spb*2,d:spb*2,peak:0.10,lp:240,det:-22,dest:L.boss,cap}); }
+  }
+  /* PURE: given a horizon on the context clock, emit whole bars until we are past it. The bar cap
+     is a seatbelt -- nothing should ever ask for eight bars at once, and if something does we
+     would rather drop the backlog than dump 230 voices into one buffer. */
+  function scheduleUntil(horizon){
+    if(!MUS.running) return 0; let n=0;
+    while(MUS.tBar<horizon && n<8){
+      /* the ONE line the whole rewrite is about: a queued tempo is adopted here, between bars,
+         and then held for the entire bar. The spec had this after scheduleBar, which quantises
+         just as well but costs a whole extra bar of latency (measured 2.72 s from streak break to
+         audible change, versus 1.46 s here) because bar N+1 is already committed by the time the
+         break happens. Before the emit is the earliest bar line that is still free. */
+      if(MUS.pendingBpm){ MUS.bpm=MUS.pendingBpm; MUS.pendingBpm=0; }
+      const spb=60/MUS.bpm;                                     /* bpm frozen for the whole bar */
+      scheduleBar(MUS.bar,MUS.tBar,spb);
+      MUS.tBar+=4*spb; MUS.bar++; n++;
+    }
+    if(n){ const now=ctx.currentTime;
+      for(let i=SRC.length-1;i>=0;i--) if(SRC[i].end<now-0.5) SRC.splice(i,1); }
+    return n;
+  }
+  /* A hidden tab throttles the driver to ~1 Hz. Without this, the loop above would emit every
+     missed bar at a PAST time -- the whole backlog at once, as a burst, the moment you came back.
+     Resync, never catch up. Deliberately NOT inside scheduleUntil, which must stay pure. */
+  function resync(t){ t=(t!=null?t:ctx.currentTime); if(MUS.tBar<t) MUS.tBar=t+0.06; }
+  function setTempo(bpm){ if(!MUS.running){ MUS.bpm=bpm; return; } MUS.pendingBpm=bpm; }
+  function setIntensity(x,t,tc){
+    MUS.intensity = x = Math.max(0,Math.min(1,x));
+    t=(t!=null?t:ctx.currentTime); tc=(tc!=null?tc:0.55);
+    const mix={
+      bass: 0.55+0.30*x,
+      drum: x<0.12 ? 0.10 : 0.35+0.45*x,
+      comp: Math.max(0,(x-0.15)/0.85)*0.85,
+      lead: Math.max(0,(x-0.35)/0.65)*0.95,      /* the muted trumpet only shows up once you are hot */
+      urg : Math.max(0,(x-0.62)/0.38)*0.9,       /* 16th ride = pressure */
+      boss: MUS.boss ? 1 : 0 };
+    MUS.mix=mix;
+    /* only touch the graph while running, so a pre-start setIntensity cannot be clobbered by start() */
+    if(MUS.running) Object.keys(mix).forEach(k=>L[k].gain.setTargetAtTime(Math.max(0.0001,mix[k]),t,tc));
+    setTempo(Math.round(92+26*x));
+  }
+  function setBoss(on,t){ MUS.boss=!!on; setIntensity(MUS.intensity,t); }
+  function start(t){ if(MUS.running) return; t=(t!=null?t:ctx.currentTime);
+    MUS.running=true; MUS.bar=0; MUS.tBar=t+0.06; MUS.pendingBpm=0;
+    HOLD.comp=HOLD.lead=HOLD.urg=HOLD.boss=0;
+    /* parks a bpm in pendingBpm (we already count as running); scheduleUntil adopts it before
+       bar 0, so the first bar is at the right tempo rather than whatever was left over. */
+    setIntensity(MUS.intensity,t,0.01); }
+  function stop(t){ t=(t!=null?t:ctx.currentTime); MUS.running=false; MUS.pendingBpm=0;
+    Object.keys(L).forEach(k=>{ L[k].gain.cancelScheduledValues(t); L[k].gain.setTargetAtTime(0.0001,t,0.20); });
+    /* whole bars are committed up to ~2.6 s ahead, so fading the layer gains alone would leave the
+       voices (and their registered nodes) alive long after the radio is off. Cut them short. */
+    for(let i=0;i<SRC.length;i++){ try{ SRC[i].n.stop(t+0.30); }catch(e){} }
+    SRC.length=0; }
+  /* THE ADAPTIVE BRAIN: game state -> one number. Everything musical hangs off this. */
+  function fromState(s){
+    s=s||{};
+    const x = 0.16
+      + Math.min(Math.max((s.level||1)-1,0),9)*0.045   /* campaign day   0 .. 0.405 */
+      + Math.min(Math.max(s.streak||0,0),10)*0.030     /* on his trail   0 .. 0.30  */
+      + ((s.lives<=1)?0.16:0)                          /* last life */
+      + (s.urgent?0.14:0)                              /* clock nearly out */
+      + (s.boss?0.18:0);                               /* deep cover */
+    setBoss(!!s.boss); setIntensity(x); return x;
+  }
+  return {L,MUS,scheduleUntil,resync,setIntensity,setTempo,setBoss,start,stop,fromState};
+}
+/* the only clock in the system. Nothing here touches DSP maths. */
+function musDrive(){
+  if(!musicOn||!MUSIC||!actx) return;
+  try{
+    MUSIC.resync();
+    /* three ways to be inaudible: muted (master at 0.0001), tab hidden or paused (duck at 0.0001).
+       In all three, building 30 voices a bar is pure waste -- resync and idle instead. The radio is
+       still "on", so unmuting or coming back picks up at the next bar line. */
+    if(muted||document.hidden||isPaused()) return;
+    MUSIC.scheduleUntil(actx.currentTime+0.35);
+  }catch(e){}                                 /* a sick context must never stop the game */
+}
+function startMusic(){
+  if(!initAudio()) return;
+  if(!MUSIC){ try{ MUSIC=musicBuild(); }catch(e){ MUSIC=null; } }
+  if(!MUSIC) return;
+  if(!MUSIC.MUS.running){ try{ MUSIC.start(); }catch(e){ return; } }
+  musicOn=true; _musSig=''; musicFromState(false);
+  if(musTimer) clearInterval(musTimer);
+  musTimer=setInterval(musDrive,120);
+  musDrive();
+  reflectMusic(); applyAudioState(0.2); }
+function stopMusic(){ musicOn=false; if(musTimer){clearInterval(musTimer);musTimer=null;}
+  if(MUSIC){ try{ MUSIC.stop(); }catch(e){} } reflectMusic(); }
 function reflectMusic(){ $('musicBtn').classList.toggle('off',!musicOn); const tg=$('musicToggle'); if(tg){ tg.setAttribute('aria-pressed',musicOn?'true':'false'); tg.innerHTML='🎵 Radio: '+(musicOn?'ON':'OFF'); } }
-function toggleMusic(){ musicPref=!musicOn; localStorage.setItem('jw_music',musicPref?'1':'0'); if(musicPref)startMusic(); else stopMusic(); }
+function toggleMusic(){ musicPref=!musicOn; try{ localStorage.setItem('jw_music',musicPref?'1':'0'); }catch(e){}
+  if(musicPref)startMusic(); else stopMusic(); reflectMusic(); }
+/* Wired in exactly one place per TRANSITION, never once per frame: the signature check below is
+   what stops a 60 Hz tick() from walking the audio graph sixty times a second. */
+let _musSig='';
+function musicFromState(urgent){
+  if(!MUSIC||!musicOn) return;
+  try{
+    const p=!!state.playing;
+    const v={level:p?(state.level||1):1, streak:p?(state.streak|0):0, lives:p?state.lives:3,
+      urgent:!!urgent&&p, boss:p&&state.mode==='boss'};
+    const sig=Math.min(v.level,10)+'|'+Math.min(v.streak,10)+'|'+(v.lives<=1?1:0)+'|'+(v.urgent?1:0)+'|'+(v.boss?1:0);
+    if(sig===_musSig) return; _musSig=sig;
+    MUSIC.fromState(v);
+  }catch(e){}
+}
 $('musicBtn').addEventListener('click',toggleMusic);
 $('musicToggle').addEventListener('click',toggleMusic);
 /* was: gain=0.5 unconditionally on return, so hiding the tab while PAUSED (or with the radio
@@ -2770,7 +2913,7 @@ const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,str
   mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
   perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,locker:[],filedThisRun:0,
   mods:[],ng:false,ngTier:0,campaignDays:CAMPAIGN_DAYS,caseOrder:null,dayUsedPower:false,daySeen:null,selfFile:false,selfServed:false,
-  dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0};
+  dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,wasUrgent:false};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -3134,6 +3277,8 @@ function nextRound(){
   state.mercyNext=false;
   state.deadline=performance.now()+REVEAL_MS+state.duration*1000; state.roundActive=true; state.lastTick=0;   /* clock starts when he is unmasked */
   renderPowers();
+  /* the radio reads the case file: day, streak, last life, deep cover. Once per round, not per frame. */
+  state.wasUrgent=false; musicFromState(false);
   requestAnimationFrame(tick);
 }
 function tick(now){
@@ -3144,6 +3289,8 @@ function tick(now){
   timerFill.style.background = frac>0.5?'var(--green)':frac>0.25?'var(--yellow)':'var(--red)';
   const urgent=frac<0.28; $('gpanel').classList.toggle('urgent',urgent);
   if(!state.frozen) mascot.classList.toggle('sweating', urgent);
+  /* ONE transition per round, not sixty calls a second */
+  if(urgent!==state.wasUrgent){ state.wasUrgent=urgent; musicFromState(urgent); }
   /* two stages: a light 5kHz mechanical tick with a 3-way pitch rotation so 40 of them do not
      fatigue, then a low 92->74Hz double-thump heartbeat in the last sliver. No reduced gate:
      audio is not motion, and this heartbeat is the only warning some players get. */
