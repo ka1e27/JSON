@@ -2577,6 +2577,331 @@ const BROKEN=[
   {raw:'[1,,2]',   why:'empty slot in the array.'},
   {raw:'{"a" 1}',  why:'missing colon.'}
 ];
+/* ===================== WAVE 16: THE FORGERY LAB =====================
+   MEASURED over a live 130-round campaign: `valid` rounds were 21 of 130 (16%) of all play,
+   and every one of them drew its corrupted side from the twelve authored strings above. A
+   sixth of the game was a dozen strings you memorise in one sitting -- and worse, all twelve
+   are OBVIOUSLY mangled, so the round could be won without reading a character: a bot that
+   answers CORRUPTED whenever it sees a stray quote, a `True`, a `,,` or a `//` scored 100%
+   on the authored pair. That is not a JSON round, that is a strangeness detector.
+
+   Both sides are generated now, and both go through the same oracle: JSON.parse. There is
+   no table of rules deciding what is legal -- the engine decides, at generation, every
+   time. A candidate that disagrees with its own label is thrown away and redrawn, so a
+   "corrupted" exhibit that happens to parse (an unwinnable round) cannot ship.
+
+   The second half of the fix is that the CREDIBLE side is allowed to look terrifying:
+   {"a":"//not a comment"}, a doubled backslash, {"":1}, -0, 1E+5, {"a":"[1,,2]"}. Every
+   alarm bell the corrupted side rings, the credible side rings too -- inside quotes, where
+   it is just characters. You have to parse. Looking is not enough any more.
+
+   Cases 1-2 keep the authored twelve at better than half the draw, because those twelve ARE
+   the taxonomy and school is where you learn it. Case 3 retires them and the tiers open up.
+
+   NOT added to DOSSIER_POOL: BROKEN is untouched, so the pool is still exactly 73 and
+   nobody's clearance ladder moves. Generated exhibits file nothing -- answerAlt has never
+   passed a raw to recordAns, so no valid round has ever filed anything anyway. */
+const CJ_KEYS=['id','ok','tag','user','name','role','meta','env','ttl','row','job','key','list','size','count','a','b','n','s','x','y'];
+const CJ_ODDKEYS=['','a.b','0','1','true','null','a b','a,b','A','id-2','_','ok'];
+const CJ_WORDS=['admin','dev','ada','noir','beta','prod','main','temp','draft','audit','ok','x',''];
+/* Bodies that are ALREADY legal escaped JSON string content. Every one is legal between
+   quotes and every one looks like a syntax error from across the room. This array is the
+   single most important thing in the wave: it is what stops "looks weird" from working. */
+const CJ_ALARM=['True','None','undefined','NaN','01','+1','.5','1e','0x1f','1,2','[1,,2]','{a:1}','nul',
+  ',',',,','::','\\n','\\t','\\"','\\\\','\\/','\\u0041','\\u00e9','a\\nb','c:\\\\tmp','1.2.3','2e3e4','\\u0027'];
+/* The subset that survives a reader who correctly ignores string CONTENT and still counts
+   brackets, hunts for // and spots a stray apostrophe. These are the bodies that make the
+   two sides indistinguishable to everything short of walking the grammar. */
+const CJ_SCARY=['}','{',']','[','//x','/*x*/','//','/*','x//y','}}','{[',"it's","don't","'x'",'{\\"a\\":1'];
+/* Legal-but-alarming whole documents. Hand-written, machine-verified at generation like
+   everything else here -- the list is a source of candidates, never a source of truth. */
+const CJ_LEGAL=[
+ '{"a":"A"}','{"a":1e-3}','{"a":-0}','{"a":1E+5}','{"":1}','{"a":[]}','{"a":{}}','[[]]','[{}]','[[[0]]]',
+ '{"a.b":1}','{"a b":2}','{"a,b":3}','{"0":1}','{"true":false}','{"null":null}','{"":""}',
+ '{"a":"a\\nb"}','{"a":"a\\tb"}','{"a":"say \\"hi\\""}','{"a":"c:\\\\tmp"}','{"a":"a\\/b"}',
+ '{"a":"\\u0041"}','{"a":"\\u00e9"}','{"a":"\\\\n"}','{"a":"//x"}','{"a":"/*x*/"}',
+ '{"a":"True"}','{"a":"undefined"}','{"a":"NaN"}','{"a":"nul"}','{"a":"01"}','{"a":"+1"}','{"a":".5"}',
+ '{"a":"[1,,2]"}','{"a":"{b:1}"}','{"a":",,"}','{"a":"}"}',"{\"a\":\"'x'\"}",
+ '[0.5]','[-0.0]','[1e0]','["",""]','[0,-0]','{"n":0}','{"s":" "}','{"a":[[1]]}','{"a":{"b":{}}}',
+ '{"a":1,"b":[2,{"c":3}]}','[true,null,false]','[9e-9]','[1E-7]','[0]','{"e":1e1}'
+];
+function cjNum(hard){
+  if(!hard){ const r=rnd();
+    if(r<0.55) return String(1+dInt(99));
+    if(r<0.75) return String(dInt(10));
+    if(r<0.90) return '-'+(1+dInt(9));
+    return (rnd()*10).toFixed(1); }
+  return rand(['0','-0','1e-3','1E+5','0.5','2e3','-0.0','1.0','9e-9','0.001','1e0','1E-7','-42','3.75','123456','7']);
+}
+function cjStr(alarm){ const r=rnd();
+  if(r<alarm) return '"'+rand(rnd()<0.45?CJ_SCARY:CJ_ALARM)+'"';
+  if(r<alarm+(1-alarm)*0.7) return dQ(rand(CJ_WORDS));
+  return dQ(String(dInt(100)));
+}
+function cjDoc(depth,hard,alarm){
+  if(depth<=0){ const r=rnd();
+    if(r<0.44) return cjStr(alarm||0);
+    if(r<0.76) return cjNum(hard);
+    return rand(['true','false','null']); }
+  const r=rnd();
+  if(r<0.07) return rnd()<0.5?'[]':'{}';
+  if(r<0.56){ const n=1+dInt(depth>=2?2:3), ks=[];
+    for(let g=0;g<14&&ks.length<n;g++){ const k=(hard&&rnd()<0.30)?rand(CJ_ODDKEYS):rand(CJ_KEYS);
+      if(ks.indexOf(k)<0) ks.push(k); }
+    if(!ks.length) ks.push('a');
+    return '{'+ks.map(k=>dQ(k)+':'+cjDoc(depth-1,hard,alarm)).join(',')+'}'; }
+  const m=1+dInt(3), it=[];
+  for(let i=0;i<m;i++) it.push(cjDoc(depth-1,hard,alarm));
+  return '['+it.join(',')+']';
+}
+/* The site index. Input is always a document this file just generated and JSON.parse
+   accepted, so the scan can be a plain left-to-right walk: no error paths, no ambiguity
+   about what is inside a string and what is structure. Corruptions address sites, never
+   raw offsets, which is what keeps "exactly one corruption" true. */
+function cjScan(raw){
+  const S={commas:[],colons:[],strings:[],numbers:[],lits:[],opens:[],closes:[]};
+  for(let i=0;i<raw.length;i++){
+    const c=raw.charAt(i);
+    if(c==='"'){ let j=i+1;
+      while(j<raw.length){ const d=raw.charAt(j); if(d==='\\'){ j+=2; continue; } j++; if(d==='"') break; }
+      let k=j; while(k<raw.length && raw.charAt(k)===' ') k++;
+      S.strings.push({i:i,j:j,key:raw.charAt(k)===':'}); i=j-1; continue; }
+    if(c===','){ S.commas.push(i); continue; }
+    if(c===':'){ S.colons.push(i); continue; }
+    if(c==='{'||c==='['){ S.opens.push({i:i,ch:c}); continue; }
+    if(c==='}'||c===']'){ S.closes.push({i:i,ch:c}); continue; }
+    if(c==='-'||(c>='0'&&c<='9')){ let j=i+1;
+      while(j<raw.length && '0123456789eE+-.'.indexOf(raw.charAt(j))>=0) j++;
+      S.numbers.push({i:i,j:j}); i=j-1; continue; }
+    const m=/^(true|false|null)/.exec(raw.slice(i));
+    if(m){ S.lits.push({i:i,j:i+m[0].length,t:m[0]}); i+=m[0].length-1; }
+  }
+  return S;
+}
+function cjValues(raw,S){ const out=[];
+  S.strings.forEach(s=>{ if(!s.key) out.push({i:s.i,j:s.j}); });
+  S.numbers.forEach(n=>out.push({i:n.i,j:n.j}));
+  S.lits.forEach(l=>out.push({i:l.i,j:l.j}));
+  return out; }
+/* THE TAXONOMY, tiered. t:0 is the crude "that is not a value at all" family and it is
+   retired from case 5 -- by then a corruption you can spot from the shape of the string is
+   not evidence, it is a gift. t:3 corruptions are single characters in plausible places.
+   `why` is the lesson the verdict prints; it is documentation, and the ORACLE IS JSON.PARSE. */
+const CJ_BREAKS=[
+ {t:1,w:9,why:'a trailing comma before the close.',f:(r,S)=>{ if(!S.closes.length)return null;
+    const c=rand(S.closes); return r.slice(0,c.i)+','+r.slice(c.i); }},
+ {t:1,w:9,why:'a missing comma between entries.',f:(r,S)=>{ if(!S.commas.length)return null; const i=rand(S.commas);
+    const wordish=/[-\w.]/, sep=(wordish.test(r.charAt(i-1))&&wordish.test(r.charAt(i+1)))?' ':(rnd()<0.5?'':' ');
+    return r.slice(0,i)+sep+r.slice(i+1); }},
+ {t:1,w:6,why:'an empty slot: two commas in a row.',f:(r,S)=>{ if(!S.commas.length)return null;
+    const i=rand(S.commas); return r.slice(0,i)+',,'+r.slice(i+1); }},
+ {t:1,w:9,why:'an unquoted key. Keys are strings, always.',f:(r,S)=>{ const ks=S.strings.filter(s=>s.key);
+    if(!ks.length)return null; const s=rand(ks), inner=r.slice(s.i+1,s.j-1);
+    if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(inner))return null;
+    return r.slice(0,s.i)+inner+r.slice(s.j); }},
+ {t:1,w:8,why:'single quotes. JSON only knows double.',f:(r,S)=>{ if(!S.strings.length)return null;
+    const s=rand(S.strings), inner=r.slice(s.i+1,s.j-1);
+    if(/[\\]/.test(inner)||inner.indexOf("'")>=0)return null;
+    return r.slice(0,s.i)+"'"+inner+"'"+r.slice(s.j); }},
+ {t:1,w:6,why:'the colon is missing.',f:(r,S)=>{ if(!S.colons.length)return null;
+    const i=rand(S.colons); return r.slice(0,i)+(rnd()<0.5?' ':'')+r.slice(i+1); }},
+ {t:1,w:6,why:'a closing bracket never arrived.',f:(r,S)=>{ if(!S.closes.length)return null;
+    const c=rand(S.closes); return r.slice(0,c.i)+r.slice(c.i+1); }},
+ {t:1,w:8,why:'JSON keywords are lowercase: true, false, null.',f:(r,S)=>{ if(!S.lits.length)return null;
+    const l=rand(S.lits), rep = l.t==='null' ? rand(['Null','NULL','None','nul','nill','nil'])
+      : l.t==='true' ? rand(['True','TRUE','Yes','yes']) : rand(['False','FALSE','No','no']);
+    return r.slice(0,l.i)+rep+r.slice(l.j); }},
+ {t:0,w:4,why:'that is not a value at all.',f:()=>rand([',','-','+','.','[','{',']','}','::',':','01','.5','1.',
+    '1e','+1','0x1f','nul','True','None','NaN','undefined','[,]','{,}','{:}','[1,,2]','[1 2]','{a:1}',"'x'",'""" '])},
+ {t:2,w:8,why:'the brackets do not match.',f:(r,S)=>{ if(!S.closes.length)return null;
+    const c=rand(S.closes); return r.slice(0,c.i)+(c.ch===']'?'}':']')+r.slice(c.i+1); }},
+ {t:2,w:6,why:'one closing brace too many.',f:(r,S)=>{ if(!S.closes.length)return null;
+    return r+S.closes[S.closes.length-1].ch; }},
+ {t:2,w:9,why:'that string is never closed.',f:(r,S)=>{ if(!S.strings.length)return null;
+    const s=rand(S.strings); return r.slice(0,s.j-1)+r.slice(s.j); }},
+ {t:2,w:7,why:'undefined and NaN are JavaScript, not JSON.',f:(r,S)=>{ const v=cjValues(r,S);
+    if(!v.length)return null; const x=rand(v);
+    return r.slice(0,x.i)+rand(['undefined','NaN','Infinity','-Infinity','None','void 0'])+r.slice(x.j); }},
+ {t:2,w:11,why:'that is not a legal JSON number.',f:(r,S)=>{ if(!S.numbers.length)return null;
+    const n=rand(S.numbers), cur=r.slice(n.i,n.j), abs=cur.replace('-',''), b=rnd();
+    const rep = b<0.34 ? '0'+abs : b<0.50 ? '+'+abs : b<0.62 ? abs+'.' : b<0.74 ? '.'+abs
+              : b<0.84 ? abs+'e' : b<0.92 ? '0x'+(1+dInt(9)) : '--'+abs;
+    return r.slice(0,n.i)+rep+r.slice(n.j); }},
+ {t:2,w:6,why:'garbage after the value ends.',f:(r,S)=>{ if(!S.closes.length)return null;
+    return r+rand([';','}',']',',','1','.','"x"',': 1',')','//']); }},
+ {t:3,w:7,why:'comments are JSON5. JSON has none.',f:(r,S)=>{ if(rnd()<0.5) return r+' //'+rand(['ok','fixme','todo','see PR']);
+    if(!S.colons.length) return null; const i=rand(S.colons);
+    return r.slice(0,i+1)+'/*'+rand(['x','?','tbd'])+'*/'+r.slice(i+1); }},
+ {t:3,w:8,why:'that backslash escape is not legal JSON.',f:(r,S)=>{ if(!S.strings.length)return null;
+    const s=rand(S.strings);
+    return r.slice(0,s.j-1)+rand(['\\q','\\x41','\\u12','\\u00','\\a','\\e','\\ ','\\0','\\u2'])+r.slice(s.j-1); }},
+ /* NEWLINE ONLY, never a raw tab. A raw tab inside a string is just as illegal, and it is
+    also visually identical to a raw SPACE inside a string -- which is perfectly legal and is
+    in CJ_LEGAL as {"s":" "}. That pair would be unanswerable by eye, so it does not ship.
+    A real line break is unmistakable: .v is white-space:pre-wrap, so it breaks the line. */
+ {t:3,w:9,why:'a raw line break inside a string. It has to be an escape.',f:(r,S)=>{ if(!S.strings.length)return null;
+    const s=rand(S.strings);
+    return rnd()<0.5 ? r.slice(0,s.i+1)+'\n'+r.slice(s.i+1) : r.slice(0,s.j-1)+'\n'+r.slice(s.j-1); }},
+ {t:3,w:8,why:'an unescaped quote closes the string early.',f:(r,S)=>{
+    const cand=S.strings.filter(s=>s.j-s.i>=4 && r.slice(s.i+1,s.j-1).indexOf('\\')<0);
+    if(!cand.length)return null; const s=rand(cand);
+    const k=s.i+2+dInt(s.j-s.i-3);
+    return r.slice(0,k)+'"'+r.slice(k); }},
+ {t:3,w:5,why:'the key is not a string.',f:(r,S)=>{ const ks=S.strings.filter(s=>s.key);
+    if(!ks.length)return null; const s=rand(ks);
+    return r.slice(0,s.i)+rand(['1','0','true','null','_k','x','2.5'])+r.slice(s.j); }},
+ {t:3,w:4,why:'two colons.',f:(r,S)=>{ if(!S.colons.length)return null;
+    const i=rand(S.colons); return r.slice(0,i)+'::'+r.slice(i+1); }},
+ {t:3,w:5,why:'a comma right after the open bracket.',f:(r,S)=>{ if(!S.opens.length)return null;
+    const o=rand(S.opens); return r.slice(0,o.i+1)+','+r.slice(o.i+1); }},
+ {t:3,w:5,why:'nothing after the colon.',f:(r,S)=>{ const vs=cjValues(r,S);
+    if(!vs.length)return null; const x=rand(vs); return r.slice(0,x.i)+r.slice(x.j); }}
+];
+/* ===== THE STEALTH TABLE — the part that actually makes the round hard =====
+   MEASURED with a purely surface-level bot (twelve eyeball rules: stray apostrophe, a
+   `True`, `,,`, `//`, an odd number of quote characters, unbalanced bracket COUNTS, a raw
+   control character, a gap between two tokens, a dangling dot, a dead exponent) the table
+   above is 92% legible without parsing, because most of the classic taxonomy leaves a
+   visible scar. These nine do not. Every one of them is ONE character in a place a real
+   serialiser puts one, and every one of them is invisible to all twelve rules:
+
+     {"a":1"b":2}   {"a"1}      [1,2}      {"s":"x\u12"}     {"n":2e3e4}
+     {1:2}          {"a":1},    {"a",1}    [1:2]
+
+   To answer these you have to walk the string. That is the whole point of the round, and it
+   is what the authored twelve never once asked for. `stealthRate` ramps them in from case 4
+   so school still gets scars it can see. */
+const CJ_STEALTH=[
+ {why:'a missing comma between entries.',f:(r,S)=>{
+    const wordish=/[-\w.]/, cs=S.commas.filter(i=>!(wordish.test(r.charAt(i-1))&&wordish.test(r.charAt(i+1))));
+    if(!cs.length)return null; const i=rand(cs); return r.slice(0,i)+r.slice(i+1); }},
+ {why:'the colon is missing.',f:(r,S)=>{ if(!S.colons.length)return null;
+    const i=rand(S.colons); return r.slice(0,i)+r.slice(i+1); }},
+ {why:'the brackets do not match.',f:(r,S)=>{ if(!S.closes.length)return null;
+    const c=rand(S.closes); return r.slice(0,c.i)+(c.ch===']'?'}':']')+r.slice(c.i+1); }},
+ {why:'a \\u escape needs exactly four hex digits.',f:(r,S)=>{ if(!S.strings.length)return null;
+    const s=rand(S.strings); return r.slice(0,s.j-1)+rand(['\\u12','\\u0','\\u00','\\u1','\\uab','\\u4e'])+r.slice(s.j-1); }},
+ {why:'that number has two exponents.',f:(r,S)=>{ if(!S.numbers.length)return null;
+    const n=rand(S.numbers), abs=r.slice(n.i,n.j).replace('-','');
+    return r.slice(0,n.i)+abs+'e'+(1+dInt(9))+'e'+(1+dInt(9))+r.slice(n.j); }},
+ {why:'that number has two decimal points.',f:(r,S)=>{ const ns=S.numbers.filter(n=>r.slice(n.i,n.j).indexOf('.')>=0);
+    if(!ns.length)return null; const n=rand(ns), abs=r.slice(n.i,n.j).replace('-','');
+    return r.slice(0,n.i)+abs+'.'+(1+dInt(9))+r.slice(n.j); }},
+ {why:'the key is not a string. Bare digits are not a key.',f:(r,S)=>{ const ks=S.strings.filter(s=>s.key);
+    if(!ks.length)return null; const s=rand(ks);
+    return r.slice(0,s.i)+rand(['1','0','2','7','12','9'])+r.slice(s.j); }},
+ {why:'a trailing comma after the whole value.',f:(r,S)=>{ if(!S.closes.length)return null; return r+','; }},
+ {why:'a comma where the colon should be.',f:(r,S)=>{ if(!S.colons.length)return null;
+    const i=rand(S.colons); return r.slice(0,i)+','+r.slice(i+1); }},
+ {why:'a colon where the comma should be.',f:(r,S)=>{ if(!S.commas.length)return null;
+    const i=rand(S.commas); return r.slice(0,i)+':'+r.slice(i+1); }}
+];
+/* WHITESPACE IS INSIGNIFICANT IN JSON, and that fact was doing nothing for this round.
+   A surface reader's single best rule is "two tokens with a gap between them" -- it catches a
+   missing comma and a missing colon at a glance. Pretty-printed spacing after a structural
+   comma or colon is perfectly legal and defeats that rule outright, so it is applied to BOTH
+   sides at the SAME rate and BEFORE the oracle runs. (Adding whitespace at a legal position
+   cannot turn a syntax error into a valid document -- the token stream is unchanged -- but
+   the oracle still checks, because the oracle always checks.) */
+function cjSpace(raw){
+  const S=cjScan(raw), after=[], before=[];
+  S.commas.concat(S.colons).forEach(i=>{
+    const r=rnd();
+    if(r<0.62) after.push(i);              /* {"a": 1} */
+    else if(r<0.82) before.push(i); });    /* {"a" : 1} -- also legal, and the only spacing that
+                                              puts a gap on the CREDIBLE side of the round too */
+  let out=raw;
+  after.concat(before.map(i=>-i-1)).sort((a,b)=>Math.abs(b)-Math.abs(a)).forEach(k=>{
+    const i=k<0?(-k-1):k, at=k<0?i:i+1;
+    out=out.slice(0,at)+' '+out.slice(at); });
+  return out;
+}
+function cjSpaceRate(d){ return d<4?0:0.42; }
+let cjLast='';
+function cjDepth(d){ if(d<3) return 1; if(d<5) return rnd()<0.6?1:2; return rnd()<0.45?1:(rnd()<0.78?2:3); }
+function cjCap(d){ return d<3?26:(d<6?42:58); }
+/* The two dials that keep the surface signal UNINFORMATIVE, which is the only definition of
+   "you have to parse" that survives contact with a bot. stealthRate is the share of
+   corruptions that leave no visible scar; alarmRate is the share of credible exhibits that
+   wear one anyway. They ramp together, on purpose: if only one of them moved, the round
+   would just flip which lazy heuristic wins. */
+function cjStealthRate(d){ return Math.max(0, Math.min(0.84, (d-3)*0.19)); }
+function cjAlarmRate(d){ return Math.max(0.10, Math.min(0.80, 0.10+(d-2)*0.13)); }
+/* THE ORACLE, both directions. Nothing leaves either of these two functions without the
+   engine having agreed with the label. The bounded loop plus a verified fallback means a
+   bad run of draws costs microseconds, never a hung round. */
+function genCorrupt(level){
+  const d=trapDay(level), tmax=(d<3?1:(d<5?2:3));
+  /* school keeps the authored taxonomy at better than half the draw: those twelve strings
+     ARE the lesson, and case 2 is where this round shape first appears. */
+  if(d<3 && rnd()<0.55){ const b=rand(BROKEN); cjLast=b.raw; return {raw:b.raw,why:b.why}; }
+  const fams=CJ_BREAKS.filter(x=>x.t<=tmax && (d<5 || x.t>0));
+  const wsum=fams.reduce((a,x)=>a+x.w,0), hard=d>=3, cap=cjCap(d);
+  const alarm=cjAlarmRate(d);
+  /* decided ONCE, not per attempt: several stealth corruptions need a site the document may
+     not have (a number with a decimal point, a string to truncate an escape inside), and
+     re-rolling the coin every attempt quietly halved the stealth share. It falls back to the
+     loud table after 60 attempts so the loop still cannot spin. */
+  const wantStealth = rnd()<cjStealthRate(d);
+  const spacey=rnd()<cjSpaceRate(d);
+  for(let i=0;i<90;i++){
+    let base=cjDoc(cjDepth(d),hard,alarm);
+    if(spacey) base=cjSpace(base);
+    if(base.length>cap-2) continue;
+    let fam;
+    if(wantStealth && i<60) fam=rand(CJ_STEALTH);
+    else { let n=rnd()*wsum; fam=fams[0]; for(const x of fams){ n-=x.w; if(n<=0){ fam=x; break; } } }
+    let out; try{ out=fam.f(base,cjScan(base)); }catch(e){ continue; }
+    if(!out || out.length>cap+4) continue;
+    let parses=true; try{ JSON.parse(out); }catch(e){ parses=false; }
+    if(parses) continue;                       /* it disagrees with its label: not evidence */
+    if(out===cjLast) continue;
+    cjLast=out; return {raw:out,why:fam.why};
+  }
+  const b=rand(BROKEN); cjLast=b.raw; return {raw:b.raw,why:b.why};
+}
+function genCredible(level){
+  const d=trapDay(level), hard=d>=3, cap=cjCap(d), alarm=cjAlarmRate(d);
+  const spacey=rnd()<cjSpaceRate(d);      /* same dial, same rate, decided the same way */
+  for(let i=0;i<90;i++){
+    let raw; const r=rnd();
+    /* SAME base distribution as genCorrupt, deliberately: the corrupted side is this doc
+       plus one broken character, so if the credible side drew from anywhere else the base
+       document itself would leak the answer. CJ_LEGAL is a garnish, not the draw. */
+    if(d<3 && r<0.42) raw=pickValidRaw(level);
+    else if(r<(d<3?0.60:0.16)) raw=rand(CJ_LEGAL);
+    else raw=cjDoc(cjDepth(d),hard,alarm);
+    if(spacey) raw=cjSpace(raw);
+    if(raw.length>cap) continue;
+    let ok=true; try{ JSON.parse(raw); }catch(e){ ok=false; }
+    if(!ok) continue;                          /* it disagrees with its label: not evidence */
+    if(raw===cjLast) continue;
+    cjLast=raw; return {raw:raw,why:cjWhyLegal(raw)};
+  }
+  return {raw:'{"a":1}',why:'every quote, comma and bracket is exactly where it should be.'};
+}
+/* The credible verdict has to teach too, or the alarming-but-legal side is just a trick.
+   Reads the exhibit back through cjScan and names the thing that scared you. */
+function cjWhyLegal(raw){
+  const S=cjScan(raw);
+  for(const s of S.strings){ const b=raw.slice(s.i+1,s.j-1);
+    if(/\\u[0-9a-fA-F]{4}/.test(b)) return 'a \\u escape with four hex digits is one legal character.';
+    if(/\\\\/.test(b))              return 'a doubled backslash is one legal backslash.';
+    if(/\\"/.test(b))               return 'an escaped quote does not end the string.';
+    if(/\\[ntr]/.test(b))           return 'an escaped newline is two characters and both are legal.';
+    if(/\\\//.test(b))              return 'escaping a forward slash is pointless, and legal.';
+    if(/(True|None|undefined|NaN|Infinity|nul|0x|,,|\/\/|\/\*|[{}[\]])/.test(b)
+       ||/^[+.]/.test(b)||/^0[0-9]/.test(b)||b.charAt(0)==="'")
+      return 'the alarming part is inside the quotes, so it is just characters.'; }
+  for(const s of S.strings){ if(!s.key) continue; const b=raw.slice(s.i+1,s.j-1);
+    if(b==='') return 'the empty string is a perfectly legal key.';
+    if(/[^A-Za-z0-9_]/.test(b)||/^[0-9]/.test(b)) return 'a key may hold any characters at all -- spaces, dots, commas.'; }
+  for(const n of S.numbers){ const t=raw.slice(n.i,n.j);
+    if(/^-0(\.0*)?$/.test(t)) return 'negative zero is a legal JSON number.';
+    if(/[eE]/.test(t))        return 'exponent notation is a legal JSON number.'; }
+  if(/\[\]|\{\}/.test(raw)) return 'an empty array or object is a complete, legal value.';
+  return 'every quote, comma and bracket is exactly where it should be.';
+}
 const TAUNT_TIERS=[
  [ "\u201cSix disguises. One of them is me. Off you go.\u201d",
    "\u201cName me. You have the entire internet and a robot.\u201d",
@@ -3819,13 +4144,27 @@ function announceMode(txt,boss){ if(!txt)return; const el=$('modeBanner'); el.te
   cue('mode',null,!!boss); }
 
 function buildValidRound(alt){
-  const useValid=rnd()<0.5; let raw,reason='';
-  if(useValid){ raw=pickValidRaw(state.level); state.altAnswer='valid'; }
-  else { const b=rand(BROKEN); raw=b.raw; reason=b.why; state.altAnswer='broken'; }
-  state.altReason=reason;
+  /* WAVE 16: both sides come out of the forgery lab now, and both were run past JSON.parse
+     before they got here. The exhibit is still NOT parseable on the corrupted half -- that is
+     the round, and the verification gate skips any round whose .v does not parse. */
+  const useValid=rnd()<0.5;
+  const c = useValid ? genCredible(state.level) : genCorrupt(state.level);
+  const raw=c.raw;
+  state.altAnswer = useValid ? 'valid' : 'broken';
+  state.altReason = c.why||'';
+  /* Kept so answerAlt can FILE it. The 12 authored forgeries are members of DOSSIER_POOL and
+     were therefore advertised as collectable, but answerAlt called recordAns with no raw, so
+     no CREDIBLE-or-CORRUPTED round had ever filed anything: 73 on the label, 61 reachable.
+     seeRaw() no-ops for any raw outside the pool, so the generated forgeries -- tens of
+     thousands of them -- still cannot pad the collection. It stays finite at 73. */
+  state.altRaw = raw;
   state.shownChars=raw.length; state.shownItems=0;
-  const long=raw.length>16;
-  valueCard.style.fontSize = long ? 'clamp(18px,4.2vw,28px)' : 'clamp(26px,6vw,44px)';
+  /* three steps, not two: a generated exhibit runs to ~58 characters and can carry a raw line
+     break, so the old two-step ramp overflowed 320px. Measured across 400 generated exhibits
+     at every breakpoint. */
+  valueCard.style.fontSize = raw.length>34 ? 'clamp(12px,2.7vw,19px)'
+                           : raw.length>16 ? 'clamp(16px,3.5vw,26px)'
+                           : 'clamp(26px,6vw,44px)';
   setValue(raw);
   alt.className='altanswers two';
   alt.innerHTML=`<button class="altbtn valid" data-v="valid"><span class="key">1</span>Credible<span class="ex mono">parses clean</span></button>`+
@@ -4082,7 +4421,10 @@ function nextRound(){
      :state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
      :mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
      :mode==='boss'?'Deep cover round. Name the outermost type.'
-     :mode==='valid'?'Credible or corrupted? Two choices.'
+     /* the exhibit is read out here for the same reason every other shape reads it out: it is
+        the only channel a screen-reader user has, and the corrupted half is now generated and
+        long. .v is guaranteed by the buildValidRound() call four lines up. */
+     :mode==='valid'?('Credible or corrupted? Two choices. The exhibit is '+((valueCard.querySelector('.v')||{}).textContent||''))
      :mode==='spot'?('Pick the '+String(state.altTarget||'').toUpperCase()+' from four values. Read all four.')
      :'Count the top-level entries only. Nested items do not count.');
   const think=thinkBudget(state.level);
@@ -4419,7 +4761,11 @@ function answerAlt(picked,timedOut){
     correct = !timedOut && picked===state.altAnswer;
     correctEl=alt.querySelector('.altbtn[data-v="'+state.altAnswer+'"]');
     if(!timedOut) pickedEl=alt.querySelector('.altbtn[data-v="'+picked+'"]');
-    flavorEl.innerHTML = state.altAnswer==='valid' ? "“That one parses clean — <b>credible testimony.</b>” ✅"
+    /* the credible verdict names the thing that scared you, for the same reason the corrupted
+       one names the break: half the round is now legal-but-alarming, and "correct" teaches
+       nothing if it does not say WHY {"a":"[1,,2]"} was fine. */
+    flavorEl.innerHTML = state.altAnswer==='valid'
+      ? `“That one parses clean — <b>credible testimony.</b>${state.altReason?' '+esc(state.altReason):''}” ✅`
       : `“Forged — <b>corrupted:</b> ${esc(state.altReason)}” ❌`;
   } else {
     correct = !timedOut && picked!=null && state.altCands[picked] && state.altCands[picked].type===state.altTarget;
@@ -4434,7 +4780,8 @@ function answerAlt(picked,timedOut){
                 : `“There were <b>${esc(cr.raw)}</b>. Counting is hard. I understand.”`)
       : `“The ${state.altTarget.toUpperCase()} was <b>${esc(cr.raw)}</b>.”`;
   }
-  recordAns(null,correct);
+  /* a forgery you correctly called is evidence you have seen it, same as any other disguise */
+  recordAns(null,correct, state.mode==='valid' ? state.altRaw : undefined);
   if(correct){
     const {pts,doubled}=awardCorrect(ALT_EV);
     unlock('sharp');
