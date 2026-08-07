@@ -609,6 +609,49 @@ footer{margin-top:40px;border-top:1px solid rgba(240,230,205,.18);background:rgb
 .perkchips .pc{font-family:var(--ff-type);font-size:10.5px;background:var(--card);border:2px solid var(--ink);border-radius:99px;
   padding:3px 9px;box-shadow:2px 2px 0 rgba(25,19,8,.25);}
 .perkchips .pc .i{margin-right:4px;}
+.perkchips .pc.ang{background:var(--yellow);}
+
+/* ---------- WAVE 14: the hunch, the angle, one more question ----------
+   THE HUNCH's chip hangs off the bottom-right of the evidence bag, mirroring .tag at the
+   top-left. Two reasons, both measured:
+     1. It is position:absolute, so it costs ZERO layout. It cannot reflow the answer grid
+        mid-round, and display:none when unoffered means it is not even in the box model.
+     2. It has to be WHERE THE EYE IS. The first version lived in #powtray and at 320x640 --
+        with the game's own scrollIntoView({block:'center'}) -- it sat below the fold, i.e. an
+        affordance nobody would ever discover. The evidence bag is the one element that is
+        on screen at every breakpoint, which is exactly why .tag carries the seal countdown. */
+.hunchchip{display:none;position:absolute;right:12px;bottom:-14px;z-index:8;align-items:center;gap:5px;
+  font-family:var(--ff-type);font-size:10px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;
+  background:var(--yellow);color:var(--ink);border:2px solid var(--red);border-radius:99px;
+  padding:3px 10px;box-shadow:2px 2px 0 var(--ink);max-width:calc(100% - 24px);
+  transition:transform .1s var(--ease),background .18s;}
+.hunchchip.on{display:inline-flex;}
+.hunchchip .pk{background:var(--red);color:#fff;border-radius:3px;font-family:var(--ff-mono);font-weight:700;
+  font-size:8.5px;letter-spacing:0;padding:1px 4px;}
+.hunchchip:not(:disabled):hover{transform:translate(-1px,-1px);}
+.hunchchip.called{background:var(--red);color:#fff;border-color:var(--ink);opacity:1;}
+.hunchchip.called .pk{background:var(--paper-2);color:var(--ink);}
+
+/* THE LINEUP reuses the .diff pill pattern from the start overlay rather than inventing a
+   surface: three pills that wrap, inside the briefing that was already on screen. */
+.anglewrap{width:100%;max-width:520px;}
+.anglerow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.angle{font-family:var(--ff-type);font-size:12px;background:var(--card);border:2px solid var(--ink);border-radius:99px;
+  padding:7px 13px;box-shadow:2px 2px 0 rgba(25,19,8,.3);display:inline-flex;align-items:center;gap:6px;
+  transition:transform .1s var(--ease),background .2s;max-width:100%;}
+.angle:hover{transform:translate(-1px,-1px);background:var(--yellow);}
+.angle.hot{border-color:var(--red);}
+.angle .am{font-family:var(--ff-mono);font-size:9.5px;opacity:.72;}
+.anglenote{font-family:var(--ff-type);font-size:11px;line-height:1.5;color:var(--ink-2);margin-top:9px;}
+.anglenote b{color:var(--ink);}
+
+/* the rubber stamp from the victory panel, rotated the other way, because this is the
+   opposite of a victory and it is still going in the file */
+.cbwrap .stamp{font-family:var(--ff-type);font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--red);
+  border:3px solid var(--red);padding:5px 15px;transform:rotate(5deg);border-radius:4px;max-width:100%;}
+.cbwrap .cbline{max-width:42ch;}
+.cbstake{font-family:var(--ff-mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;
+  background:var(--red);color:#fff;border-radius:99px;padding:4px 12px;max-width:100%;}
 
 .winwrap .stamp{font-family:var(--ff-type);font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--red);
   border:3px solid var(--red);padding:5px 16px;transform:rotate(-6deg);border-radius:4px;}
@@ -1210,7 +1253,24 @@ details.mgroup>.menurow{margin-top:9px;}
             <div class="briefrow hidden" id="briefModRow"><span class="bk">Conditions</span><span class="bv" id="briefMods"></span></div>
           </div>
           <div class="threat" id="briefThreat"></div>
+          <!-- THE LINEUP: three angles on the same case. Hidden on Case 1 (the on-ramp), and
+               auto-resolves to ROUTINE on the briefing's existing timeout, so it can never
+               block an automated player or a distracted one. -->
+          <div class="anglewrap hidden" id="angleWrap">
+            <span class="mglabel">Pick your angle</span>
+            <div class="anglerow" id="angleRow"></div>
+            <div class="anglenote" id="angleNote"></div>
+          </div>
           <button class="cbtn" id="briefBtn" data-magnetic>&#9654; Take the case</button>
+        </div>
+
+        <!-- ONE MORE QUESTION -->
+        <div class="overlay hidden cbwrap" id="cbOverlay">
+          <div class="stamp">Case reopened</div>
+          <div class="caseno" id="cbKicker">03:52 AM &middot; he is enjoying this</div>
+          <div class="big">One more <span class="r">question</span></div>
+          <p class="cbline" id="cbLine"></p>
+          <span class="cbstake">&#10084; one life back &middot; one time only &middot; no lawyer</span>
         </div>
 
         <!-- PERK DRAFT -->
@@ -2294,7 +2354,9 @@ const DIS_WSUM=DIS_FAMILIES.reduce((a,x)=>a+x.w,0);
    cold-case run reaches the ceiling in a few cases and then stays a steady state. */
 const TRAP_BASE=0.06, TRAP_STEP=0.062, TRAP_MAX=0.62;
 function trapDay(l){ const d=Math.max(1,l||1); return state.endless ? campDays()+endlessDayNo(l)*0.6 : d; }
-function trapRate(l){ return Math.min(TRAP_MAX, TRAP_BASE + TRAP_STEP*(trapDay(l)-1)); }
+/* the angle rides ON TOP of the day curve and gets its own ceiling, so a career-ending case
+   on day 10 is meaner than any case that existed before this wave without ever reaching 1.0 */
+function trapRate(l){ return Math.min(0.86, Math.min(TRAP_MAX, TRAP_BASE + TRAP_STEP*(trapDay(l)-1)) + angC().trap); }
 /* Always parseable: the family list is closed and hand-verified, but the try/catch and the
    fallback are free and a generator that can return junk would hang a round. */
 function genDisguise(level){
@@ -2997,7 +3059,13 @@ function applyPerk(id){ state.perkSet[id]=true;
   toast({ic:PERKS[id].ic,name:PERKS[id].n,desc:PERKS[id].tag},'Perk acquired');
   renderPerkChips(); setHUD(); }
 function renderPerkChips(){ const el=$('perkChips'); if(!el)return; const ids=Object.keys(state.perkSet||{});
-  el.innerHTML=ids.map(id=>`<span class="pc" title="${PERKS[id].d}"><span class="i">${PERKS[id].ic}</span>${PERKS[id].n}</span>`).join(''); }
+  /* the angle you took is a fact about the case you are in, so it lives with the other run
+     facts. Words and a number, never a colour -- the .ang class only tints an already-legible chip. */
+  const aid=(state.angle&&Object.prototype.hasOwnProperty.call(ANGLES,state.angle))?state.angle:'routine';
+  const ang=(state.playing && aid!=='routine')
+    ? `<span class="pc ang" title="${esc(ANGLES[aid].d)}"><span class="i">${ANGLES[aid].ic}</span>${esc(ANGLES[aid].n)} &times;${ANGLES[aid].m.toFixed(2)}</span>`
+    : '';
+  el.innerHTML=ang+ids.map(id=>`<span class="pc" title="${PERKS[id].d}"><span class="i">${PERKS[id].ic}</span>${PERKS[id].n}</span>`).join(''); }
 function showPerkDraft(cb){
   /* never offer a card the run has already made inert -- a dead perk in a draft of three
      is a lie, and UNDERSTAFFED / NO REQUISITION each kill two of them outright */
@@ -3043,11 +3111,48 @@ function showBriefing(day,cb,fast){
     if(mods.length) $('briefMods').innerHTML=esc(modNames(mods))+' &mdash; evidence &times;'+modMult().toFixed(2); }
   const ch=$('caseHint'); if(ch) ch.textContent=(state.endless?'Cold case '+day:'Case '+day+' of '+campDays())+' \u00b7 '+c.n;
   const ov=$('briefOverlay'), btn=$('briefBtn'); let done=false;
-  const go=()=>{ if(done)return; done=true; clearTimeout(ov._auto); ov.classList.add('hidden'); cb(); };
-  btn.onclick=go; ov.classList.remove('hidden');
+  /* ---- THE LINEUP ----
+     Every case except the first offers three angles on itself. The angle is committed inside
+     go(), which is ALSO the timeout path and the button path, so there is exactly one way for a
+     case to start and it always ends with an angle set. Default 'routine' = every knob at 1.00,
+     i.e. bit-for-bit the pre-wave-14 game, which is what a bot that never clicks gets. */
+  const go=(id)=>{ if(done)return; done=true; clearTimeout(ov._auto);
+    state.angle=(id&&Object.prototype.hasOwnProperty.call(ANGLES,id))?id:'routine';
+    renderPerkChips();
+    if(state.angle!=='routine'){
+      announceMode((state.angle==='career'?'☠️ CAREER-ENDING · ×':'🚬 AWKWARD · ×')+angC().m.toFixed(2), state.angle==='career');
+      say('Angle taken: '+ANGLES[state.angle].n+'. Evidence times '+angC().m.toFixed(2)+', and a shorter clock.');
+    }
+    ov.classList.add('hidden'); cb(); };
+  const wrap=$('angleWrap'), row=$('angleRow');
+  /* case 1 is the on-ramp and the first-round contract, so it never offers an angle */
+  const lineup = day>1 || !!state.endless;
+  state.angle='routine';
+  if(wrap){ wrap.classList.toggle('hidden',!lineup); }
+  if(btn) btn.classList.toggle('hidden',!!lineup);
+  if(lineup && row){
+    row.innerHTML='';
+    ANGLE_ORDER.forEach(id=>{ const a=ANGLES[id];
+      const b=document.createElement('button'); b.type='button';
+      b.className='angle'+(id==='career'?' hot':'');
+      b.innerHTML=a.ic+' '+a.n+'<span class="am">&times;'+a.m.toFixed(2)+'</span>';
+      b.title=a.d; b.setAttribute('aria-label',a.n+', evidence times '+a.m.toFixed(2)+'. '+a.d.replace(/<[^>]*>/g,''));
+      b.addEventListener('click',()=>go(id));
+      b.addEventListener('pointerenter',cueHover);
+      row.appendChild(b); });
+    const note=$('angleNote');
+    if(note) note.innerHTML='Same suspect, three ways to work him. Bigger multiplier, shorter clock, better disguises. '
+      +'<b>Do nothing and you take the routine one.</b>';
+  }
+  btn.onclick=()=>go('routine'); ov.classList.remove('hidden');
   try{ $('gpanel').scrollIntoView({behavior:reduced?'auto':'smooth',block:'center'}); }catch(e){}
   cue('paper');
-  ov._auto=setTimeout(go, reduced?200:(fast?1800:3400));
+  if(window._bindCursor)window._bindCursor();
+  /* NEVER BLOCKS. Three pills need longer to read than one button, so the lineup gets 6.2s --
+     and then takes ROUTINE for you, exactly as if you had pressed the old button.
+     Reduced motion does NOT shorten it: the pre-existing 200ms path exists to skip an
+     animation, and a decision is not an animation. Removing motion never removes a choice. */
+  ov._auto=setTimeout(()=>go('routine'), lineup?6200:(reduced?200:(fast?1800:3400)));
 }
 function dayStartEffects(){ state.duckUsed=false;
   state.dayUsedPower=false; state.daySeen={};      /* per-case warrant bookkeeping */
@@ -3126,6 +3231,10 @@ function selfFile(){ const raw=selfValue(); let v; try{ v=JSON.parse(raw); }catc
 function runXP(){ return Math.min(XP_CAP_PER_RUN, Math.floor(state.score/XP_DIV)); }
 function winGame(){
   state.playing=false; state.roundActive=false; state.paused=false; state.won=true;
+  /* gameOver() and winGame() have drifted apart in this file before. Both exits clear the same
+     three WAVE 14 fields, in the same order, for the same reason. */
+  state.comebackLive=false; state.hunchOn=false; state.hunchCalled=false; hunchReflect();
+  $('cbOverlay').classList.add('hidden');
   const runCoins=finalizeClout(true);
   wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
   if(state.score>HI){ HI=state.score; localStorage.setItem('jw_hi',HI); $('navHi').textContent=HI; }
@@ -3218,6 +3327,31 @@ const DIFF={
 };
 let diff='normal';   /* re-defaulted to 'chill' for first-timers once STATS is loaded */
 const DIFFC=()=>DIFF[diff]||DIFF.normal;
+
+/* ===================== THE LINEUP: PICK YOUR ANGLE =====================
+   The cheapest difficulty in game design is the one the player chooses. Difficulty selection
+   happens once, before you know anything; this happens ten times, when you know exactly how
+   the run is going and exactly how greedy you feel. Weak players take ROUTINE. Strong players
+   get greedy on case 8 with one heart left, and that is the whole design.
+
+   It is folded INTO the case briefing rather than shown before it, because a surface in front
+   of a surface is a pacing tax, and the briefing was already a beat the player sits through.
+
+   GATE CONTRACT: the briefing's existing auto-timeout resolves to ROUTINE, whose every knob
+   is 1.00 / +0.00. An automated player that never clicks plays exactly the game it played
+   before this wave, and case 1 is never offered an angle at all. */
+const ANGLES={
+  routine:{n:'Routine',      ic:'&#128196;',m:1.00,clock:1.00,trap:0.00,path:0.00,seal:0.00,
+    d:'By the book. He is already bored of you.'},
+  awkward:{n:'Awkward',      ic:'&#128684;',m:1.50,clock:0.84,trap:0.10,path:0.05,seal:0.08,
+    d:'Shorter clock, better costumes. He starts trying.'},
+  career :{n:'Career-ending',ic:'&#9760;&#65039;',m:2.20,clock:0.68,trap:0.20,path:0.10,seal:0.16,
+    d:'Two thirds of the clock and every trick he owns. Somebody is losing a badge.'}
+};
+const ANGLE_ORDER=['routine','awkward','career'];
+function angC(){ const id=state&&state.angle;
+  return (id&&Object.prototype.hasOwnProperty.call(ANGLES,id))?ANGLES[id]:ANGLES.routine; }
+function angMult(){ return angC().m; }
 /* clock. HARD_FLOOR is the absolute backstop: it is applied AFTER every perk, upgrade and
    modifier, and it is never multiplied by anything. The per-difficulty floors (DIFF[].min)
    sit above it; HARD_FLOOR exists to catch the one perk that shrinks the clock (shipfast,
@@ -3239,7 +3373,10 @@ const CORRECT_PER_DAY=5, DRAFT_EVERY_DAYS=2, POWER_EVERY=4, ALT_PROB=0.30, ALT_F
    progress is bounded: expected rounds per ID is at most 1/(1-0.28) = 1.39. */
 const PATH_FROM_DAY=3, PATH_MAX_RATE=0.28, PATH_PER_SEG=0.12;
 function pathRateFor(l){ const d=trapDay(l); if(d<PATH_FROM_DAY) return 0;
-  return Math.max(0,Math.min(PATH_MAX_RATE, 0.10+0.040*(d-PATH_FROM_DAY))); }
+  /* the PATH_MAX_RATE bound is what makes a type-only player able to finish a campaign, so the
+     angle bonus is added OUTSIDE it and capped separately: ROUTINE (the only angle a bot ever
+     lands on, because it is the timeout default) is bit-for-bit the old expression. */
+  return Math.max(0,Math.min(PATH_MAX_RATE, 0.10+0.040*(d-PATH_FROM_DAY))) + angC().path; }
 /* the marquee pairing: from day 6 half the deep-cover rounds are a path through a value
    that then seals. That is the difficulty the boss art has always been advertising. */
 function bossPathRate(l){ return trapDay(l)>=6 ? 0.5 : 0; }
@@ -3255,6 +3392,17 @@ const XP_DIV=10, XP_CAP_PER_RUN=3000;
 const TOOL_CAPS={freeze:2,fifty:99,double:99,life:2};
 const STREAK_INSURANCE_FROM=5, STREAK_INSURANCE_TO=3, MERCY_CLOCK_BONUS=0.40;
 const TRAINING_MISSES=2;   /* Case 1 only, and only twice per run — game over stays reachable */
+/* ===== THE HUNCH =====
+   The one decision the player makes DURING a round. It costs zero pacing: no prompt, no
+   modal, no confirmation. Ignoring it is the default and is completely free.
+   The window is deliberately the GREEN half of the clock, which means you have to bet before
+   you have finished reading the exhibit. A wager you can place after you already know the
+   answer is not a wager, it is a tip jar. */
+const HUNCH_FROM=3, HUNCH_MULT=2, HUNCH_CLOCK=0.65, HUNCH_FLOOR=0.7, HUNCH_WINDOW=0.5;
+/* ===== ONE MORE QUESTION =====
+   Hard bound: state.comebackUsed is set the INSTANT the offer is made, never cleared inside a
+   run, and only ever written to false by startGame(). There is no path that loops. */
+const COMEBACK_FROM_DAY=2, COMEBACK_CLOCK=1.55, COMEBACK_BEAT=1900;
 const TELLS={string:'quotes around it → String. Even "42".',number:'no quotes, just digits → Number.',
   boolean:'bare true / false → Boolean.',null:'bare null → Null. "null" is a String.',
   array:'square brackets [ ] → Array.',object:'curly braces { } → Object.'};
@@ -3264,7 +3412,8 @@ const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,str
   perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,locker:[],filedThisRun:0,
   mods:[],ng:false,ngTier:0,campaignDays:CAMPAIGN_DAYS,caseOrder:null,dayUsedPower:false,daySeen:null,selfFile:false,selfServed:false,
   dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,wasUrgent:false,
-  pathQ:null,lastWasPath:false,sealArmed:false,sealed:false,sealAt:0,sealWin:0,sealShown:0,sealSeen:0};
+  pathQ:null,lastWasPath:false,sealArmed:false,sealed:false,sealAt:0,sealWin:0,sealShown:0,sealSeen:0,
+  angle:'routine',hunchOn:false,hunchCalled:false,hunchWon:0,hunchLost:0,comebackUsed:false,comebackLive:false,comebackWon:false};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -3336,8 +3485,8 @@ function sealChanceFor(mode,chars,l){
      branch existed: the seal fired ONCE in 130 rounds, because ordinary type values have a
      median length of 6 and bosses are rare -- a mechanic nobody ever sees is not a mechanic.
      Safe for the gate: a path miss goes through penalizeSoft(), so it costs no life. */
-  if(state.pathQ) return d>=SEAL_PATH_FROM_DAY ? SEAL_PATH_RATE : 0;
-  return Math.max(0,Math.min(SEAL_MAX_RATE, 0.08+0.045*(d-5)));  /* long type rounds from day 4-5 */
+  if(state.pathQ) return d>=SEAL_PATH_FROM_DAY ? SEAL_PATH_RATE+angC().seal : 0;
+  return Math.max(0,Math.min(SEAL_MAX_RATE, 0.08+0.045*(d-5)))+angC().seal;  /* long type rounds from day 4-5 */
 }
 /* The window scales with the value, exactly like readBudget, because a longer exhibit
    genuinely takes longer to read -- that is the honest part. What it does NOT do is hand
@@ -3409,7 +3558,52 @@ const powtray=$('powtray');
 Object.entries(POWERS).forEach(([id,p])=>{ const b=document.createElement('button'); b.className='powbtn'; b.dataset.pid=id; b.disabled=true; b.title=p.name+' — '+p.desc;
   b.innerHTML=`<span class="pk">${p.key.toUpperCase()}</span><span class="cnt">0</span><span class="ic">${p.ic}</span>${p.name}`;
   b.addEventListener('click',()=>usePower(id)); powtray.appendChild(b); });
-function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid,n=state.powers[id];
+/* THE HUNCH's chip. It is parented to #valueCard, which several round builders rewrite wholesale
+   (setValue, buildSpotRound, buildCountRound), so hunchOffer() re-adopts it every frame -- one
+   property comparison, and it means no future writer of valueCard.innerHTML can delete the
+   affordance by accident. It is a SIBLING of .v and carries no text inside it, exactly like
+   .tag, .cap, .dress and the .vstamp that stampVerdict() already appends here. */
+const hunchBtn=document.createElement('button');
+hunchBtn.className='hunchchip'; hunchBtn.id='hunchBtn'; hunchBtn.type='button';
+hunchBtn.title='Call it — double this round’s evidence, on a shorter clock. A miss burns the streak outright.';
+hunchBtn.addEventListener('click',()=>callHunch());
+hunchBtn.addEventListener('pointerenter',cueHover);
+valueCard.appendChild(hunchBtn);
+function hunchReflect(){
+  if(hunchBtn.parentNode!==valueCard) valueCard.appendChild(hunchBtn);
+  const on=!!state.hunchOn, called=!!state.hunchCalled;
+  hunchBtn.classList.toggle('on', on||called);
+  hunchBtn.classList.toggle('called', called);
+  hunchBtn.disabled=called;
+  hunchBtn.innerHTML = called
+    ? '<span class="pk">&#10003;</span>Hunch &times;2'
+    : '<span class="pk">SPACE</span>Call it &times;2';
+  hunchBtn.setAttribute('aria-label', called
+    ? 'Hunch called. Double evidence this round, shorter clock.'
+    : 'Call it. Optional: press space to double this round’s evidence on a shorter clock.');
+}
+function hunchOffer(on){
+  if(hunchBtn.parentNode!==valueCard) valueCard.appendChild(hunchBtn);
+  if(!!state.hunchOn===!!on) return; state.hunchOn=!!on; hunchReflect();
+  if(on) say('Hunch available. Press space to double this round’s evidence on a shorter clock.'); }
+function callHunch(){
+  if(!state.playing||state.paused||!state.roundActive) return;
+  if(state.hunchCalled||!state.hunchOn) return;
+  state.hunchCalled=true; state.hunchOn=false; hunchReflect();
+  /* the price is taken out of the clock you have left, not out of a life. Under a coffee break
+     the clock is held in frozenRemain, so cut that instead or the freeze eats the wager. */
+  if(state.frozen) state.frozenRemain=Math.max(HUNCH_FLOOR*1000, state.frozenRemain*HUNCH_CLOCK);
+  else { const remain=Math.max(0,state.deadline-performance.now());
+         state.deadline=performance.now()+Math.max(HUNCH_FLOOR*1000, remain*HUNCH_CLOCK); }
+  announceMode('🎲 HUNCH CALLED · ×2');
+  cue('power'); cueIn('tickhot',0.16,1); vibrate([18,26,18]);
+  const m=$('mascot'); if(m){ m.classList.remove('shake'); void m.offsetWidth; m.classList.add('shake');
+    setTimeout(()=>m.classList.remove('shake'),380); }
+  say('Hunch called. Double evidence, less clock. Answer.');
+}
+function renderPowers(){ document.querySelectorAll('.powbtn').forEach(b=>{ const id=b.dataset.pid;
+  if(!id||!Object.prototype.hasOwnProperty.call(POWERS,id)) return;   /* a .powbtn with no data-pid owns no tool; never index state.powers with it */
+  const n=state.powers[id];
   const okMode = id!=='fifty' || state.mode==='type' || state.mode==='boss';
   const okLife = id!=='life' || state.lives<state.maxLives;
   b.querySelector('.cnt').textContent=n; b.disabled=modOn('notools')||!(state.playing && n>0 && (id==='life'||state.roundActive) && okMode && okLife);
@@ -3538,6 +3732,7 @@ function thinkBudget(l){ const c=DIFFC();
   if(perkOn('espresso')) t*=T_ESPRESSO;
   if(perkOn('shipfast')) t*=T_SHIPFAST;
   if(UPS.has('machine')) t*=T_MACHINE;
+  t*=angC().clock;                               /* THE LINEUP: your own greed, priced in seconds */
   return Math.max(HARD_FLOOR, t); }
 function timeForLevel(l){ return thinkBudget(l); }   /* kept: same name, think budget only */
 function altProbFor(l){ return Math.min(0.55, ALT_PROB + 0.02*endlessDayNo(l)); }
@@ -3589,6 +3784,9 @@ function startGame(){
     caseOrder:buildCaseOrder(mods),dayUsedPower:false,daySeen:{},selfServed:false,selfFile:false,
     dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,miss:{},locker:[],filedThisRun:0,
     seed:runSeed,rival:(ch&&ch.rival)?ch:null,won:false,lastMissRaw:'',lastMissType:'',
+    /* WAVE 14. comebackUsed is written false HERE and nowhere else in the codebase — that is
+       the entire guarantee that the run cannot be extended twice. */
+    angle:'routine',hunchOn:false,hunchCalled:false,hunchWon:0,hunchLost:0,comebackUsed:false,comebackLive:false,comebackWon:false,
     /* a first-ever run gets the forced "42"/42 opening and no countdown. A daily or a
        challenge run never does, because both of those have to be identical for everybody. */
     firstEver:(STATS.games===0 && !runMode.daily && !ch)});
@@ -3602,6 +3800,7 @@ function startGame(){
   valueCard.innerHTML=EVTAG+'<span class="v">?</span>'; flavorEl.textContent=''; timerFill.style.width='100%';
   valueCard.classList.remove('sealed','sealing','pathq');
   $('winOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
+  $('cbOverlay').classList.add('hidden'); hunchReflect();
   setHUD(); renderPowers(); renderPerkChips();
   if(UPS.has('intern')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
   if(runMode.zen) bark('zenStart'); else if(runMode.daily) bark('dailyStart');
@@ -3778,14 +3977,19 @@ function nextRound(){
   if(!state.playing)return;
   let mode='type';
   const altFrom = modOn('coldopen') ? 1 : ALT_FROM_DAY;   /* COLD OPEN: he is already running */
-  if(state.bossPending){ mode='boss'; state.bossPending=false; }
+  /* ONE MORE QUESTION rides the ordinary type-round path so nothing downstream has to learn
+     about it: no alt shape, no deep cover, no landlord, no seal, no file-on-you. He said one
+     question, not one gauntlet — and a deep-cover round that was already queued stays queued,
+     because the comeback is not allowed to eat content either. */
+  if(state.comebackLive){ mode='type'; }
+  else if(state.bossPending){ mode='boss'; state.bossPending=false; }
   else if(state.level>=altFrom && !state.lastWasAlt && rnd()<altProbFor(state.level)){ mode=rand(['valid','spot','count']); }
   if((state.roundsPlayed|0)===0) mode='type';   // contract: first round of a run is always a type round
   /* THE SECOND FILE closes on the last ID of the last case, and the evidence bag has your
      own record in it. It rides the boss round path exactly, so nothing else has to know.
      Guarded by roundsPlayed>0, so the first-round clamp above is still the last word. */
   state.selfFile=false;
-  if(state.ng && !state.selfServed && !state.endless && (state.roundsPlayed|0)>0
+  if(!state.comebackLive && state.ng && !state.selfServed && !state.endless && (state.roundsPlayed|0)>0
      && state.level>=campDays() && (state.dayCorrect|0)>=(state.dayTarget||CORRECT_PER_DAY)-1){
     mode='boss'; state.selfFile=true; state.selfServed=true; }
   state.roundsPlayed=(state.roundsPlayed|0)+1;
@@ -3794,6 +3998,8 @@ function nextRound(){
   /* ---- WAVE 13: every round starts unsealed and un-warranted. Both shapes are opt-in
      per round, and both are cleared here so no state can leak across a round boundary. ---- */
   state.pathQ=null; state.sealArmed=false; state.sealed=false; state.sealShown=0;
+  /* WAVE 14: the wager is per-round and never leaks across a boundary either. */
+  state.hunchCalled=false; state.hunchOn=false; hunchReflect();
   valueCard.classList.remove('sealed','sealing');
   flavorEl.textContent=''; mascot.className='mascot talk';
   state.frozen=false; timerBar.classList.remove('frozen');
@@ -3808,7 +4014,7 @@ function nextRound(){
        COLD OPEN) so an automated type-only player has a clean day 1 either way. */
     const pathFrom = modOn('coldopen') ? 2 : PATH_FROM_DAY;
     let wantPath=false;
-    if(!state.selfFile && (state.roundsPlayed|0)>1 && !state.lastWasPath && state.level>=pathFrom
+    if(!state.comebackLive && !state.selfFile && (state.roundsPlayed|0)>1 && !state.lastWasPath && state.level>=pathFrom
        && !(state.firstEver && (state.answered|0)<2)){
       wantPath = rnd() < (mode==='boss' ? bossPathRate(state.level) : pathRateFor(state.level));
     }
@@ -3829,19 +4035,25 @@ function nextRound(){
       : long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
     setValue(raw, state.pathQ ? {tag:'Exhibit &mdash; type AT THE PATH', cap:state.pathQ.label} : undefined);
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
-    if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
+    /* ONE MORE QUESTION gets no help at all. He offered one question; he did not offer to
+       narrow it down, and a comeback you win by elimination is not a comeback. Measured: with
+       the cold hint live it was a 4-way at 1.55x clock, i.e. very nearly free. */
+    if(!state.comebackLive && perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
       const pick=wr[Math.floor(rnd()*wr.length)]; if(pick){pick.classList.add('eliminated');pick.disabled=true;} }
     /* cold hint — guaranteed by difficulty, not drafted. Always leaves >=2 wrong buttons live. */
-    if((state.coldRun|0) >= (DIFFC().hint||99)){
+    if(!state.comebackLive && (state.coldRun|0) >= (DIFFC().hint||99)){
       const wr=shuffle([...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.classList.contains('eliminated')));
       wr.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;});
     }
-    $('question').innerHTML = state.selfFile
+    $('question').innerHTML = state.comebackLive
+      ? '&ldquo;Take all the time you want. I have all night and you have <b>one heart</b>.&rdquo;'
+      : state.selfFile
       ? '&ldquo;Last exhibit. This one came out of <b>your</b> desk. Name it.&rdquo;'
       : state.pathQ ? '&ldquo;Naming the box it came in does not count. I asked about the <b>tenant</b>.&rdquo;'
       : mode==='boss' ? rand(BOSS_TAUNTS) : taunt();
     if(mode==='boss'){ bark('boss'); }
-    if(state.selfFile) announceMode('🗂️ THE FILE ON YOU',true);
+    if(state.comebackLive) announceMode('☠️ ONE MORE QUESTION',true);
+    else if(state.selfFile) announceMode('🗂️ THE FILE ON YOU',true);
     else if(mode==='boss') announceMode(state.pathQ?'🕶️ DEEP COVER · FOLLOW THE PATH':'🕶️ DEEP COVER',true);
     else if(state.pathQ) announceMode('🔎 FOLLOW THE PATH');
   } else if(mode==='valid'){
@@ -3858,7 +4070,8 @@ function nextRound(){
     $('question').innerHTML='&ldquo;Count the haul. <b>Top level only.</b> Miscount and I keep it.&rdquo;';
     announceMode('🔢 COUNT THE TOP LEVEL');
   }
-  say(state.pathQ?('Follow the path: '+pqSpeak(state.pathQ.seg)+'. Name the type at the end of it, not the type of the exhibit. The exhibit is '+state.current.raw)
+  say(state.comebackLive?('One more question. Name the disguise or the run ends. The exhibit is '+state.current.raw)
+     :state.pathQ?('Follow the path: '+pqSpeak(state.pathQ.seg)+'. Name the type at the end of it, not the type of the exhibit. The exhibit is '+state.current.raw)
      :state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
      :mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
      :mode==='boss'?'Deep cover round. Name the outermost type.'
@@ -3870,12 +4083,15 @@ function nextRound(){
   state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
                    + (state.pathQ ? PATH_PER_SEG*state.pathQ.seg.length : 0)   /* walking the path is paid for, per segment */
                    + (state.mercyNext ? think*MERCY_CLOCK_BONUS : 0);
+  /* he is showing off, not executing you: the comeback exhibit is drawn from exactly the pool
+     this case would have drawn from anyway, and gets half again as long to look at it. */
+  if(state.comebackLive) state.duration*=COMEBACK_CLOCK;
   state.mercyNext=false;
   state.deadline=performance.now()+REVEAL_MS+state.duration*1000; state.roundActive=true; state.lastTick=0;   /* clock starts when he is unmasked */
   /* COWBOY MERGE arms here, after the duration is final, so the window can be clamped
      against it. sealAt is walked down by tick(), not by a setTimeout, so it is paused with
      the game and it cannot fire into a dead round. */
-  if((mode==='type'||mode==='boss') && !state.selfFile
+  if((mode==='type'||mode==='boss') && !state.selfFile && !state.comebackLive
      && rnd() < sealChanceFor(mode,state.shownChars,state.level)){
     const win=sealWindowFor(state.shownChars,state.shownItems,state.duration);
     state.sealArmed=true; state.sealWin=win;
@@ -3908,6 +4124,12 @@ function tick(now){
       if(s!==state.sealShown){ state.sealShown=s;
         const tg=valueCard.querySelector('.tag'); if(tg) tg.textContent='Exhibit — seals in '+s+'s'; } }
   }
+  /* THE HUNCH's window is the GREEN half of the clock, which is not a coincidence: the timer
+     bar already draws that boundary, so the affordance needs no extra pixel to explain itself.
+     hunchOffer() is a no-op unless the answer changes, so this is one class toggle per round,
+     not sixty a second. Nothing here pauses, prompts or blocks -- a player (or a bot) who
+     never looks at it plays the identical round. */
+  hunchOffer(!state.hunchCalled && !state.comebackLive && state.streak>=HUNCH_FROM && frac>HUNCH_WINDOW);
   /* ONE transition per round, not sixty calls a second */
   if(urgent!==state.wasUrgent){ state.wasUrgent=urgent; musicFromState(urgent); }
   /* two stages: a light 5kHz mechanical tick with a 3-way pitch rotation so 40 of them do not
@@ -3920,6 +4142,8 @@ function tick(now){
 }
 /* shared scoring core */
 function awardCorrect(mult){
+  /* THE HUNCH pays here and only here, so every round shape inherits it for free. */
+  if(state.hunchCalled) mult=(mult||1)*HUNCH_MULT;
   const remain=Math.max(0,state.deadline-performance.now());
   const timeBonus=Math.round(remain/(state.duration*1000)*100*(perkOn('nocturnal')?NOCTURNAL:1));
   const comboMult=1+Math.min(state.streak,COMBO_CAP)*COMBO_STEP;
@@ -3929,7 +4153,9 @@ function awardCorrect(mult){
   if(perkOn('shipfast'))  evBonus+=EV_SHIPFAST;
   if(UPS.has('lawyer'))   evBonus+=EV_LAWYER;
   /* modMult() is >= 1 by construction (every MODS[].m > 1), so evidence never goes down */
-  let pts=Math.round((100+timeBonus)*comboMult*(mult||1)*(1+evBonus)*modMult());
+  /* angMult() is the payout half of THE LINEUP and is >= 1 by construction, so picking an
+     angle can only ever raise evidence -- the price was already taken out of the clock. */
+  let pts=Math.round((100+timeBonus)*comboMult*(mult||1)*(1+evBonus)*modMult()*angMult());
   const doubled=state.doubleArmed; if(doubled){ pts*=2; state.doubleArmed=false; }
   state.score+=pts; state.streak++; state.correct++;
   state.bestCombo=Math.max(state.bestCombo,state.streak);
@@ -3976,6 +4202,13 @@ function penalize(){
     state.lives=0; state.streak=0; state.levelWrong++; state.doubleArmed=false; state.lastCoached=false;
     toast({ic:'⚖️',name:'Case thrown out',desc:'Chain of custody broken. That is the run.'},'Inadmissible');
     return; }
+  /* ONE MORE QUESTION. Second in the list, above every life source in the game, because the
+     offer was "one question" and a duck that eats the miss would quietly make it two. The run
+     is already extended; the extension is not itself extendable. */
+  if(state.comebackLive){
+    state.lives=0; state.streak=0; state.levelWrong++; state.doubleArmed=false; state.lastCoached=false;
+    state.coldRun=(state.coldRun|0)+1;
+    return; }
   let saved=false, why='', coached=false;
   /* TRAINING CASE — Case 1 only, and only for the first TRAINING_MISSES misses of the run.
      Hard-bounded on purpose: after that, misses are fatal again and game over is reachable. */
@@ -3992,6 +4225,7 @@ function penalize(){
   /* streak insurance: a long streak drops to 3, not to 0 — hotreload stays strictly better */
   state.streak = perkOn('hotreload') ? Math.floor(state.streak/2)
                : (state.streak>=STREAK_INSURANCE_FROM ? STREAK_INSURANCE_TO : 0);
+  if(state.hunchCalled) state.streak=0;   /* THE HUNCH: no insurance on a bet you placed yourself */
   state.coldRun=(state.coldRun|0)+1;
   if(DIFFC().mercy && state.coldRun>=2) state.mercyNext=true;
   state.levelWrong++; state.doubleArmed=false; }
@@ -4012,6 +4246,7 @@ function penalize(){
 function penalizeSoft(){
   state.streak = perkOn('hotreload') ? Math.floor(state.streak/2)
                : (state.streak>=STREAK_INSURANCE_FROM ? STREAK_INSURANCE_TO : 0);
+  if(state.hunchCalled) state.streak=0;   /* a wrong door you bet on is still a wrong door */
   state.coldRun=(state.coldRun|0)+1;
   if(DIFFC().mercy && state.coldRun>=2) state.mercyNext=true;
   state.levelWrong++; state.doubleArmed=false; state.lastCoached=false;
@@ -4027,12 +4262,71 @@ function markPathNode(raw,pq){
   if(v.textContent!==raw) v.textContent=raw;
 }
 function finishRound(correct){ $('gpanel').classList.remove('urgent'); setHUD();
+  /* THE HUNCH settles here, once, for every round shape there is — type, boss, path, valid,
+     spot and count all funnel through finishRound, so the wager needs exactly one exit. */
+  if(state.hunchCalled){
+    if(correct){ state.hunchWon=(state.hunchWon|0)+1;
+      flavorEl.innerHTML+='<br><b>🎲 The hunch paid. Evidence doubled.</b>';
+      cueIn('ach',0.12); toast({ic:'🎲',name:'Hunch paid',desc:'Called it before you read it. Double evidence.'},'Nerve'); }
+    else { state.hunchLost=(state.hunchLost|0)+1;
+      flavorEl.innerHTML+='<br><b>🎲 “You called it. That is the part I enjoyed.”</b> <span class="mono" style="font-size:11px;opacity:.85">Streak gone. All of it.</span>';
+      cueIn('deny',0.12); }
+    state.hunchCalled=false; hunchReflect();
+  }
   setTimeout(()=>{
-    if(state.lives<=0){ gameOver(); return; }
+    if(state.lives<=0){ if(offerComeback()) return; gameOver(); return; }
     if(state.pendingWin){ state.pendingWin=false; winGame(); return; }
     if(state.pendingAdvance){ state.pendingAdvance=false; startDay(); return; }
     nextRound();
   }, correct?820:1150); }
+
+/* ===================== ONE MORE QUESTION =====================
+   Losing your last life used to be a full stop. Now it is a pause, exactly once, and only if
+   the run was actually going somewhere.
+
+   WHY IT INTERCEPTS *BEFORE* gameOver(): #overOverlay is where SPACE means "play again". If the
+   offer were presented on or after that overlay, a player slapping SPACE to take the comeback
+   would restart the very run they were trying to save. So the overlay never appears; the death
+   is simply deferred, and every existing meaning of #overOverlay is untouched.
+
+   WHY CHAIN OF CUSTODY IS EXCLUDED: that modifier's entire promise is "one wrong ID and the
+   case is thrown out", and it is priced into modMult() as an evidence bonus. A comeback would
+   sell the promise back. penalize() zeroes lives for custody and this check refuses the offer.
+
+   WHY DAY 2: Case 1 already hands out TRAINING_MISSES coached misses. Two mercy systems on the
+   same case is not generosity, it is mush — and a run that ended on case 1 with one ID to its
+   name is not a comeback story, it is a tutorial. */
+function comebackReady(){
+  return !!(state.playing && !state.comebackUsed && !state.comebackLive
+    && !state.zen && !modOn('custody') && state.level>=COMEBACK_FROM_DAY);
+}
+const CB_LINES=[
+ "&ldquo;Sit down. You&rsquo;re bleeding on the evidence.&rdquo;<br><br>&ldquo;I&rsquo;ll be straight with you, detective: watching you lose had stopped being fun and started being <b>bullying</b>. So. One more. Name this one and neither of us ever mentions the last five minutes. Miss it and I walk out of here wearing your badge as a hat.&rdquo;",
+ "&ldquo;Don&rsquo;t. Don&rsquo;t say anything.&rdquo;<br><br>&ldquo;You came in here with a theory and a full set of hearts and you have spent <b>both</b>. I am giving one back, because a case this one-sided reflects badly on <i>me</i>. One question. Get it wrong and I stop taking your calls.&rdquo;",
+ "&ldquo;Relax. The paperwork can wait. The paperwork is about you.&rdquo;<br><br>&ldquo;Everyone in this building has already written you off. I have decided that is <b>my</b> call to make and I am not ready to make it. One exhibit. One heart. Miss it and I&rsquo;ll tell them you went out swinging &mdash; and I will be lying.&rdquo;",
+ "&ldquo;Hold still, you&rsquo;ve got evidence on your chin.&rdquo;<br><br>&ldquo;Here is my offer, and it is the only one: <b>one</b> more costume, <b>one</b> more heart, and no lawyer for either of us. You have beaten me before. Statistically. Once. Let&rsquo;s see it again.&rdquo;"
+];
+function offerComeback(){
+  if(!comebackReady()) return false;
+  /* set FIRST, unconditionally, before anything that can throw. This flag is the whole bound. */
+  state.comebackUsed=true; state.comebackLive=true;
+  state.roundActive=false; $('gpanel').classList.remove('urgent','boss');
+  const ov=$('cbOverlay'); const line=$('cbLine'); if(line) line.innerHTML=rand(CB_LINES);
+  ov.classList.remove('hidden');
+  mascot.className='mascot talk'; if(!reduced) mascot.classList.add('celebrate');
+  /* he is enjoying it, and the rack says so: the heartbeat you have been hearing all round,
+     then the deep-cover horn, then paper. Same three voices, arranged as a gloat. */
+  cue('lowlife'); cueIn('mode',0.30,true); cueIn('paper',1.20); vibrate([90,60,30,60,90]);
+  say('One more question. JSON is giving you a single life back. Answer the next exhibit correctly or the run ends.');
+  setTimeout(()=>{
+    ov.classList.add('hidden'); mascot.classList.remove('celebrate');
+    if(!state.playing||!state.comebackLive) return;
+    state.lives=1;                       /* exactly one. Never maxLives, never a heal. */
+    setHUD(); cue('match');
+    nextRound();
+  }, COMEBACK_BEAT);
+  return true;
+}
 
 function answer(id){
   if(!state.roundActive || (state.mode!=='type'&&state.mode!=='boss'))return;
@@ -4073,6 +4367,18 @@ function answer(id){
     if(boss) showFeedback('COVER BLOWN! +'+pts+(doubled?'!!':''),false);
     setTimeout(()=>{ speedLines(boss); fireBurst(false); }, reduced?0:40);   /* 40ms hit-stop before the world moves */
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
+    /* HE HANDED IT BACK. The single loudest moment in the game, and it should be: the player
+       was dead ninety seconds ago. comebackLive goes false here and can never be set again this
+       run, because comebackUsed is already true and only startGame() clears it. */
+    if(state.comebackLive){
+      state.comebackLive=false; state.comebackWon=true;
+      flavorEl.innerHTML+='<br><br><b>&ldquo;...well. That was rude.&rdquo;</b> '
+        +'&mdash; you are back on the case with <b>one heart</b> and nothing else.';
+      showFeedback('BACK IN THE ROOM!',false);
+      screenFlash(); confetti(); cueIn('perfect',0.24); cueIn('levelup',0.62); vibrate([30,50,30,50,140]);
+      toast({ic:'🫀',name:'Back in the room',desc:'You answered his one question. He will not be bringing it up again.'},'One more question');
+      say('Correct. You are back in the run with one life.');
+    }
   } else {
     if(pq) penalizeSoft(); else penalize();
     /* the most human line in the whole share kit comes out of these two assignments.
@@ -4166,6 +4472,10 @@ const OVER_QUIPS=[
 ];
 function gameOver(){
   state.playing=false; state.roundActive=false; state.paused=false;
+  /* WAVE 14: the comeback round is over one way or the other. comebackUsed is deliberately NOT
+     touched — it belongs to the run, and the run is only reset by startGame(). */
+  state.comebackLive=false; state.hunchOn=false; state.hunchCalled=false; hunchReflect();
+  $('cbOverlay').classList.add('hidden');
   $('pauseOverlay').classList.add('hidden');
   const runCoins=finalizeClout(false);
   wallet+=runCoins; commitStats(); saveShop(); addXP(runXP());
@@ -4180,7 +4490,10 @@ function gameOver(){
   const modeTag = state.ng?'Second file · ':state.daily?'Daily case · ':state.zen?'Stakeout · ':'';
   const mods=cleanMods(state.mods);
   $('runSum').innerHTML=`${modeTag}Accuracy <b>${acc}%</b> · <b>${state.correct}</b> IDs · +<b>${runCoins}</b> clout`
-    +(mods.length?`<br><b>${esc(modNames(mods))}</b> &mdash; evidence &times;${modMult().toFixed(2)}`:'');
+    +(mods.length?`<br><b>${esc(modNames(mods))}</b> &mdash; evidence &times;${modMult().toFixed(2)}`:'')
+    /* the run's decisions, reported back as decisions -- the whole point of this wave */
+    +(((state.hunchWon|0)+(state.hunchLost|0))?`<br>&#127922; Hunches: <b>${state.hunchWon|0}</b> paid, <b>${state.hunchLost|0}</b> burned`:'')
+    +(state.comebackUsed?'<br>&#129504; He gave you one more question. '+(state.comebackWon?'You answered it.':'You did not.'):'');
   /* you vs them: the whole competitive loop, for one if and no server */
   { const vs=$('vsLine'), rv=state.rival;
     if(vs){ if(rv && rv.rival>0){ const d=state.score-rv.rival, nm=esc(rv.name||'They');
@@ -4245,6 +4558,14 @@ addEventListener('keydown',e=>{
     if(!onCtl && (e.key==='Enter'||e.key===' ')&&!$('overOverlay').classList.contains('hidden')){e.preventDefault();startGame();}
     return; }
   if(state.paused)return;
+  /* THE HUNCH. SPACE is free during a live round -- the two existing SPACE bindings are both
+     gated on an overlay being visible AND on state.playing being false, so neither can be
+     reached from here. The onCtl guard is not optional: SPACE on a focused .abtn must still
+     answer with that button, which is how keyboard-only players answer at all. */
+  if(e.key===' '||e.key==='Spacebar'){
+    const onCtl = e.target && (e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='INPUT');
+    if(!onCtl && state.roundActive && state.hunchOn && !state.hunchCalled){ e.preventDefault(); callHunch(); }
+    return; }
   const pid=POWKEYS[e.key.toLowerCase()]; if(pid){ e.preventDefault(); usePower(pid); return; }
   if(state.mode==='valid'){ if(e.key==='1'){e.preventDefault();answerAlt('valid',false);} else if(e.key==='2'){e.preventDefault();answerAlt('broken',false);} return; }
   if(state.mode==='spot'||state.mode==='count'){ const i=parseInt(e.key,10); if(state.altCands&&i>=1&&i<=state.altCands.length){e.preventDefault();answerAlt(i-1,false);} return; }
@@ -4409,8 +4730,8 @@ $('zenBtn').addEventListener('click',()=>{ runMode={daily:false,zen:true,ng:fals
    "reload the page" -- both end-of-run overlays now offer one. #startOverlay is the
    overlay the game boots into, so showing it again is the state the file already ships in. */
 function backToDesk(){
-  if(state.playing){ state.playing=false; state.roundActive=false; }
-  $('overOverlay').classList.add('hidden'); $('winOverlay').classList.add('hidden');
+  if(state.playing){ state.playing=false; state.roundActive=false; state.comebackLive=false; }
+  $('overOverlay').classList.add('hidden'); $('winOverlay').classList.add('hidden'); $('cbOverlay').classList.add('hidden');
   $('pauseOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
   $('initialsBox').classList.add('hidden');
   rollWarrants(); renderWarrants(); renderMods(); reflectSecondFile(); reflectRank(); reflectStartOverlay();
