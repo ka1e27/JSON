@@ -809,6 +809,54 @@ body.cb .j-z{ text-decoration:line-through; }
 @media(max-width:460px){.evbag .dress::before{width:70px;height:70px;right:-6px;bottom:-16px;}
   .evbag .dress::after{width:38px;height:50px;left:8px;}}
 
+/* ================= WAVE 13 · COWBOY MERGE (the seal) =================
+   The exhibit is legible for a read window sized to its own length, then the shutter
+   comes down. THE TEXT NEVER MOVES: .v's textContent stays byte-identical raw JSON and
+   stays JSON.parse-able in the DOM, so a screen reader (and the automated gate) still has
+   the whole value. Only paint changes. The ink bar is .v's OWN ::after -- CSS generated
+   content never enters textContent, which is the same trick .dress and .clip already use
+   to hang props off #valueCard without contaminating #valueCard>.v.
+   .v is a flex item (blockified) and already position:relative;z-index:2, so ::after
+   covers exactly the value and nothing else -- which is what lets the path label below
+   survive the seal. Never inset more than the card's own 18px padding => no overflow. */
+.evbag .v::after{content:"SEALED";position:absolute;inset:-5px -10px;z-index:1;border-radius:5px;
+  background:var(--ink);color:var(--paper);font-family:var(--ff-type);font-weight:700;
+  font-size:clamp(10px,2.3vw,15px);letter-spacing:.34em;text-indent:.34em;line-height:1;
+  display:none;align-items:center;justify-content:center;pointer-events:none;
+  box-shadow:0 2px 0 rgba(25,19,8,.35);}
+.evbag.sealed .v::after{display:flex;}
+/* colour is never the only channel: the bar carries the WORD, and .v goes transparent
+   underneath it so nothing can be read through a theme with a translucent --ink. */
+.evbag.sealed .v,.evbag.sealed .v *{color:transparent!important;}
+.evbag.sealing .v::after{animation:sealdrop .24s cubic-bezier(.2,.9,.3,1) both;transform-origin:top center;}
+@keyframes sealdrop{0%{transform:scaleY(.06);opacity:.55}100%{transform:none;opacity:1}}
+/* F4: reduced motion loses the shutter tween, never the shutter. The global
+   `.reduced *::after{animation:none!important}` already kills the keyframes; the seal is
+   a display change, so it still lands, instantly, at the same instant. */
+body.cb .evbag.sealed .v::after{outline:3px dotted var(--paper);outline-offset:-6px;}
+
+/* ================= WAVE 13 · THE LANDLORD (the path query) =================
+   The question is "what type sits AT THIS PATH", so the path has to be readable at 320px
+   and it has to survive the seal. It rides a .cap sibling of .v -- same contract as .tag,
+   .dress and .clip: siblings carry the round's rule, #valueCard>.v carries the raw JSON
+   and nothing else. */
+.evbag.pathq{flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.evbag .cap{display:none;}
+.evbag.pathq .cap{display:block;position:relative;z-index:3;max-width:100%;
+  font-family:var(--ff-mono);font-weight:700;font-size:clamp(12px,3vw,16px);line-height:1.2;
+  letter-spacing:0;color:var(--ink);background:var(--yellow);border:2px solid var(--ink);
+  border-radius:4px;padding:3px 9px;margin:0 0 8px;word-break:break-all;text-align:center;}
+.evbag.pathq .cap::before{content:"PATH \25B8 ";font-family:var(--ff-type);font-size:9.5px;
+  letter-spacing:.14em;text-transform:uppercase;}
+/* the tag is the authoritative channel; hard-capped so a long label can never push the
+   card wider than the arena at 320px */
+.evbag .tag{max-width:calc(100% - 24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* post-verdict: the node the warrant named, boxed inside the value. Static outline, no
+   animation, so reduced motion loses nothing. */
+.j-mark{background:var(--yellow);outline:2px solid var(--ink);border-radius:2px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;}
+body.cb .j-mark{outline-style:dotted;outline-width:3px;}
+
 /* ============ THE FIRST DISGUISE — one free round, inside the poster ============
    Deliberately not the game and deliberately impossible to confuse WITH the game:
    .dbtn + data-t (never .abtn + data-id), #demoValue > .dv (never #valueCard > .v),
@@ -2312,6 +2360,147 @@ const BOSS=[
   '[{"k":"v"},[1,[2,[3]]],{"z":{"z":{"z":true}}}]'
 ];
 function pickBoss(){ let raw; do{ raw=rand(BOSS); }while(raw===lastRaw&&BOSS.length>1); lastRaw=raw; return {raw,value:JSON.parse(raw),type:typeOf(JSON.parse(raw))}; }
+
+/* ===================== THE LANDLORD OF node_modules =====================
+   MEASURED, and it is the whole boredom problem: every value the game can serve on a type
+   round is correctly classified by its FIRST CHARACTER. `{"tree":{...}}` is the same single
+   glyph as `{}`, so a 42-character nested boss is strictly easier than `1e3` -- and it is
+   paid 2.2x for the privilege. No amount of better values fixes that, because the answer is
+   a property of character 1.
+
+   So the round stops asking about character 1. The exhibit is the whole nested value, as
+   now, and a PATH is named beside it: name the type AT THE PATH. `state.current.type` is
+   the type of the node the path resolves to; everything downstream is untouched --
+   answer() still compares `id===cur.type`, the six .abtn keep their classes and data-id,
+   keys 1-6, the fifty tool, autocomp, the cold hint, stampVerdict, recordAns, per-type
+   stats, the achievements. One assignment turns "read the first byte" into "walk a
+   structure", and #valueCard>.v still holds byte-identical parseable raw JSON.
+
+   THE GUARANTEE (genPathRound enforces it, and the tests assert it over thousands of
+   instances): the type at the path is NEVER the outermost type. Reflex-tapping OBJECT is
+   always wrong on a Landlord round. It bites exactly once and then it is a habit.
+
+   Distractors, per ENG-A: the wrong buttons that matter are the types you land on by
+   getting the path slightly wrong -- index off by one, the sibling key, one level up. The
+   generator requires at least one such near-miss to resolve to a type that is neither the
+   answer nor the outer type, so the six buttons always contain somebody's honest mistake. */
+const PATH_KEYS=['id','ok','api','meta','deps','tags','env','row','job','key','list','flag','size','name','role','logs','ttl','pkg'];
+function pqLeaf(){
+  const r=rnd();
+  if(r<0.10) return '"'+rand(PATH_KEYS).toUpperCase()+'"';
+  if(r<0.19) return rand(['"42"','"true"','"null"','"0"','"[]"','"{}"','"-9"','"3.14"']);   /* the disguises still bite four levels down */
+  if(r<0.25) return '""';
+  if(r<0.42) return String(Math.floor(rnd()*99));
+  if(r<0.50) return rand(['1e3','-0.001','3.14','0','-9','1.0','1000000']);
+  if(r<0.68) return rnd()<0.5?'true':'false';
+  if(r<0.82) return 'null';
+  return '"'+rand(PATH_KEYS)+'"';
+}
+function pqNode(depth,maxDepth){
+  if(depth>=maxDepth || (depth>0 && rnd()<0.42)) return pqLeaf();
+  const n=1+Math.floor(rnd()*2)+(rnd()<0.3?1:0);            /* 1..3 children */
+  if(rnd()<0.5){ const it=[]; for(let i=0;i<n;i++) it.push(pqNode(depth+1,maxDepth)); return '['+it.join(',')+']'; }
+  const ks=shuffle(PATH_KEYS.slice()).slice(0,n);
+  return '{'+ks.map(k=>'"'+k+'":'+pqNode(depth+1,maxDepth)).join(',')+'}';
+}
+/* every path of 1..maxLen segments, as [{k,arr}] */
+function pqPaths(v,base,out,maxLen){
+  if(v===null||typeof v!=='object'||base.length>=maxLen) return out;
+  if(Array.isArray(v)) v.forEach((x,i)=>{ const p=base.concat([{k:i,arr:true}]); out.push(p); pqPaths(x,p,out,maxLen); });
+  else Object.keys(v).forEach(k=>{ const p=base.concat([{k:k,arr:false}]); out.push(p); pqPaths(v[k],p,out,maxLen); });
+  return out;
+}
+function pqStr(p){ return p.map(s=>s.arr?'['+s.k+']':'.'+s.k).join('').replace(/^\./,''); }
+/* spoken form for say(): "deps zero, meta, active" */
+function pqSpeak(p){ return p.map(s=>s.arr?('index '+s.k):s.k).join(', '); }
+/* hasOwnProperty via Object.prototype: the key comes from generated data, never from the
+   object under inspection, and a value that ships a "constructor" key must not resolve. */
+function pqGet(v,p){ let n=v;
+  for(let i=0;i<p.length;i++){ const s=p[i];
+    if(n===null||typeof n!=='object') return undefined;
+    if(s.arr){ if(!Array.isArray(n)||!(s.k>=0)||s.k>=n.length) return undefined; }
+    else { if(Array.isArray(n)||!Object.prototype.hasOwnProperty.call(n,s.k)) return undefined; }
+    n=n[s.k]; }
+  return n; }
+/* near-miss paths: exactly one step changed. Index +-1, a sibling key, one level up. */
+function pqNear(p,doc){
+  const out=[], last=p[p.length-1];
+  if(!last) return out;
+  if(last.arr){ [1,-1].forEach(d=>{ const q=p.slice(); q[q.length-1]={k:last.k+d,arr:true}; if(q[q.length-1].k>=0) out.push(q); }); }
+  else { const par=pqGet(doc,p.slice(0,-1));
+    if(par&&typeof par==='object'&&!Array.isArray(par)) Object.keys(par).forEach(k=>{ if(k===last.k)return;
+      const q=p.slice(); q[q.length-1]={k:k,arr:false}; out.push(q); }); }
+  if(p.length>1) out.push(p.slice(0,-1));                    /* one level up: the container */
+  return out;
+}
+function pqMaxSegs(l){ const d=trapDay(l); return d>=9?4 : d>=6?3 : 2; }
+function pqMinSegs(l){ return trapDay(l)>=5?2:1; }
+const PATH_FALLBACK={raw:'{"deps":[{"meta":{"active":true}}]}',
+  seg:[{k:'deps',arr:false},{k:0,arr:true},{k:'meta',arr:false},{k:'active',arr:false}],
+  label:'deps[0].meta.active',type:'boolean'};
+function genPathRound(level,deep){
+  const d=trapDay(level)+(deep?2:0);
+  const maxSegs=Math.min(4,pqMaxSegs(level)+(deep?1:0)), minSegs=Math.min(maxSegs,pqMinSegs(level)+(deep?1:0));
+  const maxDepth=Math.max(2,maxSegs), maxChars=Math.round(36+4.4*Math.min(10,d));   /* 40..80 */
+  for(let i=0;i<240;i++){
+    const raw=pqNode(0,maxDepth);
+    if(raw.length<9||raw.length>maxChars) continue;
+    if(raw.charAt(0)!=='['&&raw.charAt(0)!=='{') continue;
+    let doc; try{ doc=JSON.parse(raw); }catch(e){ continue; }
+    const outer=typeOf(doc);
+    const all=pqPaths(doc,[],[],maxSegs).filter(p=>p.length>=minSegs);
+    /* NEVER the outer type. This is the lesson, and it is a filter, not a hope. */
+    const ok=all.filter(p=>{ const v=pqGet(doc,p); return v!==undefined && typeOf(v)!==outer && pqStr(p).length<=20; });
+    if(!ok.length) continue;
+    const p=ok[Math.floor(rnd()*ok.length)], tv=pqGet(doc,p), ans=typeOf(tv);
+    const near=[]; pqNear(p,doc).forEach(q=>{ const v=pqGet(doc,q); if(v===undefined)return;
+      const t=typeOf(v); if(t!==ans&&near.indexOf(t)<0) near.push(t); });
+    /* from day 4 the lineup must contain an honest wrong answer that is not just the box */
+    if(d>=4 && !near.some(t=>t!==outer)) continue;
+    if(raw===lastRaw) continue;
+    lastRaw=raw;
+    return {raw:raw,value:doc,type:ans,pathq:{seg:p,label:pqStr(p),outer:outer,near:near,val:tv}};
+  }
+  const f=PATH_FALLBACK, doc=JSON.parse(f.raw);
+  return {raw:f.raw,value:doc,type:f.type,pathq:{seg:f.seg,label:f.label,outer:'object',near:['object'],val:true}};
+}
+/* [start,end) of the node at path p inside raw, for the post-verdict highlight. Bounded,
+   whitespace-free-generated-JSON only; anything unexpected returns null and the caller
+   falls back to the plain render, so this can never damage .v. */
+function pqRange(raw,p){
+  let i=0;
+  const str=()=>{ if(raw.charAt(i)!=='"') return false; i++;
+    while(i<raw.length){ const c=raw.charAt(i); if(c==='\\'){i+=2;continue;} if(c==='"'){i++;return true;} i++; }
+    return false; };
+  function val(seg){
+    const s=i, c=raw.charAt(i); let hit=null;
+    if(c==='"'){ if(!str()) return undefined; }
+    else if(c==='{'){ i++;
+      if(raw.charAt(i)==='}') i++;
+      else for(;;){ const ks=i; if(!str()) return undefined; const key=raw.slice(ks+1,i-1);
+        if(raw.charAt(i)!==':') return undefined; i++;
+        const want = !!(seg&&seg.length&&!seg[0].arr&&seg[0].k===key);
+        const r=val(want?seg.slice(1):null); if(r===undefined) return undefined; if(r) hit=r;
+        if(raw.charAt(i)===','){ i++; continue; }
+        if(raw.charAt(i)==='}'){ i++; break; }
+        return undefined; } }
+    else if(c==='['){ i++; let n=0;
+      if(raw.charAt(i)===']') i++;
+      else for(;;){ const want = !!(seg&&seg.length&&seg[0].arr&&seg[0].k===n);
+        const r=val(want?seg.slice(1):null); if(r===undefined) return undefined; if(r) hit=r;
+        n++;
+        if(raw.charAt(i)===','){ i++; continue; }
+        if(raw.charAt(i)===']'){ i++; break; }
+        return undefined; } }
+    else { const m=/^(true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(raw.slice(i));
+      if(!m) return undefined; i+=m[0].length; }
+    if(seg && seg.length===0) return [s,i];
+    return hit;
+  }
+  let r; try{ r=val(p&&p.length?p.slice():[]); }catch(e){ return null; }
+  if(r===undefined||!r||i!==raw.length) return null;
+  return r;
+}
 const BROKEN=[
   {raw:'{"a":}',   why:'nothing after the colon.'},
   {raw:'[1,2,]',   why:'trailing comma.'},
@@ -3039,6 +3228,21 @@ const BOSS_TIME=1.15, ALT_TIME=1.25;
 const T_ESPRESSO=1.18, T_SHIPFAST=0.88, T_MACHINE=1.10;
 /* cadence */
 const CORRECT_PER_DAY=5, DRAFT_EVERY_DAYS=2, POWER_EVERY=4, ALT_PROB=0.30, ALT_FROM_DAY=2;
+/* ===== THE LANDLORD'S FREQUENCY, AND WHY IT IS BOUNDED =====
+   A path round LOOKS exactly like a type round to an automated player: .abtn are live,
+   #valueCard>.v is parseable raw JSON, and the six buttons carry their usual data-id. That
+   player reads .v, taps the outermost type, and by construction is ALWAYS wrong (the type
+   at the path is never the outer type). That is fine -- it is the point -- but only if such
+   a player can still finish a campaign. Two things make that true and they are both load-
+   bearing: (1) a path miss never costs a life (penalizeSoft), and (2) path rounds never run
+   before day 3, never twice in a row, and never above PATH_MAX_RATE of type rounds, so day
+   progress is bounded: expected rounds per ID is at most 1/(1-0.28) = 1.39. */
+const PATH_FROM_DAY=3, PATH_MAX_RATE=0.28, PATH_PER_SEG=0.12;
+function pathRateFor(l){ const d=trapDay(l); if(d<PATH_FROM_DAY) return 0;
+  return Math.max(0,Math.min(PATH_MAX_RATE, 0.10+0.040*(d-PATH_FROM_DAY))); }
+/* the marquee pairing: from day 6 half the deep-cover rounds are a path through a value
+   that then seals. That is the difficulty the boss art has always been advertising. */
+function bossPathRate(l){ return trapDay(l)>=6 ? 0.5 : 0; }
 /* scoring */
 const COMBO_STEP=0.18, COMBO_CAP=10, BOSS_EV=2.2, ALT_EV=1.3;
 const EV_COPYPASTE=0.20, EV_SHIPFAST=0.35, EV_LAWYER=0.10, NOCTURNAL=1.4;
@@ -3059,7 +3263,8 @@ const state={playing:false,score:0,displayScore:0,level:1,lives:3,maxLives:3,str
   mode:'type',bossPending:false,lastWasAlt:false,altAnswer:null,altReason:'',altTarget:null,altCands:null,altCorrectIdx:0,
   perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,locker:[],filedThisRun:0,
   mods:[],ng:false,ngTier:0,campaignDays:CAMPAIGN_DAYS,caseOrder:null,dayUsedPower:false,daySeen:null,selfFile:false,selfServed:false,
-  dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,wasUrgent:false};
+  dayCorrect:0,dayTarget:CORRECT_PER_DAY,coldRun:0,mercyNext:false,graceUsed:0,lastCoached:false,shownChars:0,shownItems:0,wasUrgent:false,
+  pathQ:null,lastWasPath:false,sealArmed:false,sealed:false,sealAt:0,sealWin:0,sealShown:0,sealSeen:0};
 let HI=parseInt(localStorage.getItem('jw_hi')||'0',10)||0; $('navHi').textContent=HI;
 const mascot=$('mascot'),valueCard=$('valueCard'),flavorEl=$('flavor'),timerFill=$('timerFill'),feedback=$('feedback'),levelupEl=$('levelup');
 const timerBar=document.querySelector('.timerbar');
@@ -3091,6 +3296,12 @@ function setValue(raw,opts){
   /* never light a CREDIBLE-or-CORRUPTED round: colouring a syntax error gives the answer away */
   const lit = opts.lit!==false && (state.mode==='type'||state.mode==='boss'||state.mode==='count');
   valueCard.innerHTML=evtag(opts.tag);
+  /* the warrant's path rides a .cap SIBLING of .v -- same contract as .tag/.dress/.clip.
+     It is inside the card (so it is visible at 320px, unlike #question used to be) and it
+     is outside .v (so #valueCard>.v is still exactly the raw JSON). It also sits outside
+     the seal, which paints over .v alone -- you can lose the exhibit and keep the warrant. */
+  valueCard.classList.toggle('pathq',!!opts.cap);
+  if(opts.cap){ const c=document.createElement('span'); c.className='cap'; c.textContent=opts.cap; valueCard.appendChild(c); }
   const v=document.createElement('span'); v.className='v';
   if(lit){ const html=litJSON(raw); if(html){ v.innerHTML=html; if(v.textContent!==raw) v.textContent=raw; }
            else v.textContent=raw; }
@@ -3099,6 +3310,68 @@ function setValue(raw,opts){
   if(opts.reveal!==false) revealCard();
 }
 function say(msg){ const el=$('srLive'); if(!el)return; el.textContent=''; setTimeout(()=>{ el.textContent=msg; },30); }
+
+/* ===================== COWBOY MERGE: THE SEAL =====================
+   MEASURED absurdity this fixes: readBudget pays 0.045s/char and 0.18s/item, so a nested
+   89-char deep-cover exhibit was handed 12.47s to name a type decided by character 1,
+   while a bare `5` got 4.36s. Length was a DISCOUNT. The art -- the dying lamp, the violet
+   rim, the stretched clock -- was writing a cheque the mechanic never cashed.
+
+   Now the exhibit is legible for a read window sized to its own length and then it seals.
+   The clock keeps running, the six buttons stay live, and you answer from memory. Length
+   is a threat: the window grows like readBudget, the rest of the round does not.
+
+   THE TEXT IS NEVER TOUCHED. .v.textContent stays byte-identical raw JSON, in the DOM,
+   JSON.parse-able, and say() has already read it out. This is a paint change and an
+   accessibility no-op. Anyone who "simplifies" it into rewriting .v has broken the gate. */
+const SEAL_FROM_DAY=4, SEAL_MIN_CHARS=12, SEAL_FIRST_MULT=1.9, SEAL_MAX_RATE=0.30;
+const SEAL_PATH_FROM_DAY=5, SEAL_PATH_RATE=0.35;   /* about one path round in three seals */
+function sealChanceFor(mode,chars,l){
+  if(chars<SEAL_MIN_CHARS) return 0;
+  const d=trapDay(l); if(d<SEAL_FROM_DAY) return 0;
+  if(mode==='boss') return 1;                                   /* the boss IS Cowboy Merge */
+  /* THE MARQUEE PAIRING, and the reason this rate is not the plain one below: a path round
+     is generated at 40-80 chars, so it always clears SEAL_MIN_CHARS, and "walk the structure,
+     then lose sight of it" is the most interesting round the game has. Measured before this
+     branch existed: the seal fired ONCE in 130 rounds, because ordinary type values have a
+     median length of 6 and bosses are rare -- a mechanic nobody ever sees is not a mechanic.
+     Safe for the gate: a path miss goes through penalizeSoft(), so it costs no life. */
+  if(state.pathQ) return d>=SEAL_PATH_FROM_DAY ? SEAL_PATH_RATE : 0;
+  return Math.max(0,Math.min(SEAL_MAX_RATE, 0.08+0.045*(d-5)));  /* long type rounds from day 4-5 */
+}
+/* The window scales with the value, exactly like readBudget, because a longer exhibit
+   genuinely takes longer to read -- that is the honest part. What it does NOT do is hand
+   over the whole round. GRAVEYARD SHIFT squeezes thinking, never legibility: the 0.9s
+   floor here is absolute and is applied after the duration clamp. */
+function sealWindowFor(chars,items,duration){
+  let w=readBudget(chars,items)*1.15+0.55;
+  if((state.sealSeen|0)===0) w*=SEAL_FIRST_MULT;      /* the first one in a run is nearly twice as generous */
+  w=Math.max(1.35,w);
+  w=Math.min(w, duration-0.85);                       /* always at least 0.85s of clock after the shutter */
+  return Math.max(0.9,w);
+}
+function sealNow(){
+  if(!state.sealArmed || state.sealed) return;
+  state.sealed=true; state.sealSeen=(state.sealSeen|0)+1;
+  valueCard.classList.add('sealed');
+  if(!reduced){ valueCard.classList.remove('sealing'); void valueCard.offsetWidth; valueCard.classList.add('sealing'); }
+  const t=valueCard.querySelector('.tag'); if(t) t.textContent='Sealed · 03:47';
+  cue('paper'); vibrate(18);
+  say('Exhibit sealed. Answer from memory.');
+}
+/* freeze finally has a reason to exist: a coffee break at 3:47 AM puts the shutter back up
+   for the rest of the round. The least-used tool in the tray answers the hardest mechanic. */
+function unseal(reason){
+  const was=state.sealed||state.sealArmed;
+  state.sealed=false; state.sealArmed=false;
+  valueCard.classList.remove('sealed','sealing');
+  if(was && reason==='freeze'){
+    const t=valueCard.querySelector('.tag'); if(t) t.textContent='Exhibit — shutter back up';
+    flavorEl.innerHTML='“You took a coffee break at 3:47 AM and the shutter went back up. Nobody is going to believe that.”';
+    say('The exhibit is legible again.');
+  }
+  return was;
+}
 function stampVerdict(okv,label){
   say((okv?'Correct. ':'Wrong. ')+'It was '+label+'.');
   const el=document.createElement('div'); el.className='vstamp'+(okv?' ok':'');
@@ -3147,7 +3420,8 @@ function grantPower(id){ if(modOn('notools'))return;      /* NO REQUISITION: the
 function usePower(id){ if(modOn('notools'))return;
   if(!state.playing||state.powers[id]<=0)return; if(id!=='life'&&!state.roundActive)return;
   if(id==='life'){ if(state.lives>=state.maxLives)return; state.powers[id]--; state.lives=Math.min(state.maxLives,state.lives+1); }   /* heals, never raises the cap */
-  else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen'); }
+  else if(id==='freeze'){ if(state.frozen)return; state.powers[id]--; state.frozen=true; state.frozenRemain=Math.max(0,state.deadline-performance.now()); timerBar.classList.add('frozen');
+    unseal('freeze'); }   /* COWBOY MERGE: stopping the clock also puts the shutter back up */
   else if(id==='fifty'){ if(state.mode!=='type'&&state.mode!=='boss')return; const wrongs=answersHost?[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type&&!b.disabled&&!b.classList.contains('eliminated')):[];
     if(wrongs.length<2)return; state.powers[id]--; for(let k=wrongs.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[wrongs[k],wrongs[j]]=[wrongs[j],wrongs[k]];} wrongs.slice(0,2).forEach(b=>{b.classList.add('eliminated');b.disabled=true;}); }
   else if(id==='double'){ if(state.doubleArmed)return; state.powers[id]--; state.doubleArmed=true; }
@@ -3309,6 +3583,7 @@ function startGame(){
   Object.assign(state,{playing:true,score:0,displayScore:0,level:1,lives:baseLives,maxLives:baseLives,streak:0,bestCombo:0,correct:0,answered:0,roundActive:false,
     coins:0,powers:{freeze:0,fifty:0,double:0,life:0},doubleArmed:false,frozen:false,frozenRemain:0,levelWrong:0,usedAnyPower:false,
     mode:'type',bossPending:false,lastWasAlt:false,paused:false,pauseRemain:0,zen:runMode.zen,daily:runMode.daily,
+    pathQ:null,lastWasPath:false,sealArmed:false,sealed:false,sealAt:0,sealWin:0,sealShown:0,sealSeen:0,
     perkSet:{},pendingAdvance:false,pendingWin:false,endless:false,duckUsed:false,roundsPlayed:0,
     mods:mods,ng:!!runMode.ng,ngTier:ngTier,campaignDays:(mods.indexOf('longcon')>=0?15:CAMPAIGN_DAYS),
     caseOrder:buildCaseOrder(mods),dayUsedPower:false,daySeen:{},selfServed:false,selfFile:false,
@@ -3325,6 +3600,7 @@ function startGame(){
   $('gpanel').classList.remove('onfire','urgent','boss'); $('fireBadge').classList.remove('show');
   timerBar.classList.remove('frozen');
   valueCard.innerHTML=EVTAG+'<span class="v">?</span>'; flavorEl.textContent=''; timerFill.style.width='100%';
+  valueCard.classList.remove('sealed','sealing','pathq');
   $('winOverlay').classList.add('hidden'); $('draftOverlay').classList.add('hidden'); $('briefOverlay').classList.add('hidden');
   setHUD(); renderPowers(); renderPerkChips();
   if(UPS.has('intern')){ const ids=Object.keys(POWERS); grantPower(ids[Math.floor(rnd()*ids.length)]); }
@@ -3515,6 +3791,10 @@ function nextRound(){
   state.roundsPlayed=(state.roundsPlayed|0)+1;
   state.lastWasAlt=(mode!=='type'&&mode!=='boss');
   state.mode=mode;
+  /* ---- WAVE 13: every round starts unsealed and un-warranted. Both shapes are opt-in
+     per round, and both are cleared here so no state can leak across a round boundary. ---- */
+  state.pathQ=null; state.sealArmed=false; state.sealed=false; state.sealShown=0;
+  valueCard.classList.remove('sealed','sealing');
   flavorEl.textContent=''; mascot.className='mascot talk';
   state.frozen=false; timerBar.classList.remove('frozen');
   $('gpanel').classList.remove('boss');
@@ -3522,14 +3802,32 @@ function nextRound(){
   state.shownChars=0; state.shownItems=0;
   if(mode==='type'||mode==='boss'){
     answers.classList.remove('hidden'); alt.classList.add('hidden');
-    if(state.selfFile){ state.current=selfFile(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
+    /* THE LANDLORD. Frequency is bounded on purpose -- see penalizeSoft() for the gate
+       contract. Never on the first round of a run, never on the forced "42"/42 opening,
+       never twice in a row, never on THE FILE ON YOU, and never before day 3 (day 2 under
+       COLD OPEN) so an automated type-only player has a clean day 1 either way. */
+    const pathFrom = modOn('coldopen') ? 2 : PATH_FROM_DAY;
+    let wantPath=false;
+    if(!state.selfFile && (state.roundsPlayed|0)>1 && !state.lastWasPath && state.level>=pathFrom
+       && !(state.firstEver && (state.answered|0)<2)){
+      wantPath = rnd() < (mode==='boss' ? bossPathRate(state.level) : pathRateFor(state.level));
+    }
+    if(wantPath){
+      const pr=genPathRound(state.level, mode==='boss');
+      state.current={raw:pr.raw,value:pr.value,type:pr.type};
+      state.pathQ=pr.pathq;
+      if(mode==='boss'){ $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
+    }
+    else if(state.selfFile){ state.current=selfFile(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
     else if(mode==='boss'){ state.current=pickBoss(); $('gpanel').classList.add('boss'); mascot.classList.add('shake'); }
     else state.current=pickValue(state.level);
+    state.lastWasPath=!!state.pathQ;
     const raw=state.current.raw, long=raw.length>18;
     state.shownChars=raw.length;
     valueCard.style.fontSize = state.selfFile ? 'clamp(11px,2.5vw,17px)'   /* the only four-line value in the game */
+      : state.pathQ ? (raw.length>44?'clamp(11px,2.6vw,18px)':'clamp(14px,3.2vw,22px)')
       : long ? 'clamp(15px,3.4vw,24px)' : 'clamp(28px,6.4vw,48px)';
-    setValue(raw);
+    setValue(raw, state.pathQ ? {tag:'Exhibit &mdash; type AT THE PATH', cap:state.pathQ.label} : undefined);
     answersHost.querySelectorAll('.abtn').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong','eliminated');});
     if(perkOn('autocomp')){ const wr=[...answersHost.querySelectorAll('.abtn')].filter(b=>b.dataset.id!==state.current.type);
       const pick=wr[Math.floor(rnd()*wr.length)]; if(pick){pick.classList.add('eliminated');pick.disabled=true;} }
@@ -3540,10 +3838,12 @@ function nextRound(){
     }
     $('question').innerHTML = state.selfFile
       ? '&ldquo;Last exhibit. This one came out of <b>your</b> desk. Name it.&rdquo;'
+      : state.pathQ ? '&ldquo;Naming the box it came in does not count. I asked about the <b>tenant</b>.&rdquo;'
       : mode==='boss' ? rand(BOSS_TAUNTS) : taunt();
     if(mode==='boss'){ bark('boss'); }
     if(state.selfFile) announceMode('🗂️ THE FILE ON YOU',true);
-    else if(mode==='boss') announceMode('🕶️ DEEP COVER',true);
+    else if(mode==='boss') announceMode(state.pathQ?'🕶️ DEEP COVER · FOLLOW THE PATH':'🕶️ DEEP COVER',true);
+    else if(state.pathQ) announceMode('🔎 FOLLOW THE PATH');
   } else if(mode==='valid'){
     answers.classList.add('hidden'); alt.classList.remove('hidden'); buildValidRound(alt);
     $('question').innerHTML='&ldquo;Is this testimony real, or did I forge it?&rdquo;'; announceMode('🔍 CREDIBLE or CORRUPTED?');
@@ -3558,7 +3858,8 @@ function nextRound(){
     $('question').innerHTML='&ldquo;Count the haul. <b>Top level only.</b> Miscount and I keep it.&rdquo;';
     announceMode('🔢 COUNT THE TOP LEVEL');
   }
-  say(state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
+  say(state.pathQ?('Follow the path: '+pqSpeak(state.pathQ.seg)+'. Name the type at the end of it, not the type of the exhibit. The exhibit is '+state.current.raw)
+     :state.selfFile?'The last exhibit is your own case record. Name the outermost type.'
      :mode==='type'?('Name the disguise. '+(state.dayCorrect|0)+' of '+(state.dayTarget||CORRECT_PER_DAY)+' this case.')
      :mode==='boss'?'Deep cover round. Name the outermost type.'
      :mode==='valid'?'Credible or corrupted? Two choices.'
@@ -3567,9 +3868,23 @@ function nextRound(){
   const think=thinkBudget(state.level);
   const modeMult = mode==='boss' ? BOSS_TIME : (mode!=='type' ? ALT_TIME : 1);
   state.duration = readBudget(state.shownChars,state.shownItems) + think*modeMult
+                   + (state.pathQ ? PATH_PER_SEG*state.pathQ.seg.length : 0)   /* walking the path is paid for, per segment */
                    + (state.mercyNext ? think*MERCY_CLOCK_BONUS : 0);
   state.mercyNext=false;
   state.deadline=performance.now()+REVEAL_MS+state.duration*1000; state.roundActive=true; state.lastTick=0;   /* clock starts when he is unmasked */
+  /* COWBOY MERGE arms here, after the duration is final, so the window can be clamped
+     against it. sealAt is walked down by tick(), not by a setTimeout, so it is paused with
+     the game and it cannot fire into a dead round. */
+  if((mode==='type'||mode==='boss') && !state.selfFile
+     && rnd() < sealChanceFor(mode,state.shownChars,state.level)){
+    const win=sealWindowFor(state.shownChars,state.shownItems,state.duration);
+    state.sealArmed=true; state.sealWin=win;
+    state.sealAt=performance.now()+REVEAL_MS+win*1000;
+    const tg=valueCard.querySelector('.tag'); if(tg) tg.textContent='Exhibit — seals in '+Math.ceil(win)+'s';
+    if(mode!=='boss') announceMode(state.pathQ?'🌒 ONE LOOK · FOLLOW THE PATH':'🌒 ONE LOOK · 3:47 AM');
+    say('One look. This exhibit seals in about '+Math.round(win)+' seconds. '
+        +(state.pathQ?('Follow the path: '+pqSpeak(state.pathQ.seg)+'. '):'')+state.current.raw);
+  }
   renderPowers();
   /* the radio reads the case file: day, streak, last life, deep cover. Once per round, not per frame. */
   state.wasUrgent=false; musicFromState(false);
@@ -3583,6 +3898,16 @@ function tick(now){
   timerFill.style.background = frac>0.5?'var(--green)':frac>0.25?'var(--yellow)':'var(--red)';
   const urgent=frac<0.28; $('gpanel').classList.toggle('urgent',urgent);
   if(!state.frozen) mascot.classList.toggle('sweating', urgent);
+  /* COWBOY MERGE: the countdown lives on the exhibit tag -- a .v sibling, visible at 320px,
+     a word and a number rather than a colour. It runs on the same frame loop as the clock,
+     so pausing pauses it, and freezing cancels it outright (usePower -> unseal). */
+  if(state.sealArmed && !state.sealed){
+    const left=state.sealAt-now;
+    if(left<=0) sealNow();
+    else { const s=Math.ceil(left/1000);
+      if(s!==state.sealShown){ state.sealShown=s;
+        const tg=valueCard.querySelector('.tag'); if(tg) tg.textContent='Exhibit — seals in '+s+'s'; } }
+  }
   /* ONE transition per round, not sixty calls a second */
   if(urgent!==state.wasUrgent){ state.wasUrgent=urgent; musicFromState(urgent); }
   /* two stages: a light 5kHz mechanical tick with a 3-way pitch rotation so 40 of them do not
@@ -3670,6 +3995,37 @@ function penalize(){
   state.coldRun=(state.coldRun|0)+1;
   if(DIFFC().mercy && state.coldRun>=2) state.mercyNext=true;
   state.levelWrong++; state.doubleArmed=false; }
+/* ===== SOFT PENALTY — READ THIS BEFORE "FIXING" IT =====
+   A path round is the only round in the game that looks like a type round and has a
+   different answer. That is deliberate, and it is why it costs the combo, AIRTIGHT and the
+   clock but NEVER a life:
+
+   an automated player -- and the verification gate is one -- reads #valueCard>.v, parses it,
+   and clicks the .abtn matching the OUTERMOST type. On a path round that answer is wrong by
+   construction, every single time. If a path miss took a life, that player would die on
+   every run and there would be no type-only path to a campaign win, which is the one
+   invariant the whole verification story rests on. Lives are lost in penalize() only, from
+   plain type and boss rounds only.
+
+   CHAIN OF CUSTODY stays in penalize() for exactly the same reason: "one wrong ID" means one
+   wrong ID, not one wrong door. */
+function penalizeSoft(){
+  state.streak = perkOn('hotreload') ? Math.floor(state.streak/2)
+               : (state.streak>=STREAK_INSURANCE_FROM ? STREAK_INSURANCE_TO : 0);
+  state.coldRun=(state.coldRun|0)+1;
+  if(DIFFC().mercy && state.coldRun>=2) state.mercyNext=true;
+  state.levelWrong++; state.doubleArmed=false; state.lastCoached=false;
+}
+/* post-verdict: box the node the warrant named, inside the value, so a miss teaches the
+   walk instead of just the answer. Belt and braces -- if the rendered text is not
+   byte-identical to the raw we throw the whole thing away and put the raw back, exactly as
+   setValue already does for litJSON. #valueCard>.v can never stop being parseable. */
+function markPathNode(raw,pq){
+  const v=valueCard.querySelector('.v'); if(!v) return;
+  const r=pqRange(raw,pq.seg); if(!r) return;
+  v.innerHTML=esc(raw.slice(0,r[0]))+'<span class="j-mark">'+esc(raw.slice(r[0],r[1]))+'</span>'+esc(raw.slice(r[1]));
+  if(v.textContent!==raw) v.textContent=raw;
+}
 function finishRound(correct){ $('gpanel').classList.remove('urgent'); setHUD();
   setTimeout(()=>{
     if(state.lives<=0){ gameOver(); return; }
@@ -3682,7 +4038,9 @@ function answer(id){
   if(!state.roundActive || (state.mode!=='type'&&state.mode!=='boss'))return;
   state.roundActive=false;
   state.frozen=false; timerBar.classList.remove('frozen');
-  const cur=state.current, correct = id===cur.type, boss=state.mode==='boss';
+  const cur=state.current, correct = id===cur.type, boss=state.mode==='boss', pq=state.pathQ;
+  /* the round is over: the shutter goes back up so the verdict is legible against the value */
+  unseal();
   if(id) cue('type_'+id);            /* you hear what you picked -- mouse and keys 1-6 alike */
   recordAns(cur.type,correct,cur.raw);
   mascot.classList.remove('talk','sweating');
@@ -3692,6 +4050,16 @@ function answer(id){
   flavorEl.innerHTML=flavorFor(cur.value)+`  <b>&mdash; he was ${art} ${cur.type.toUpperCase()}.</b>`;
   if(state.selfFile) flavorEl.innerHTML='&ldquo;A name, a case count, an accuracy and one boolean you have been avoiding. '+
     'All of it in <b>one pair of braces.</b>&rdquo;  <b>&mdash; it was an OBJECT. It was always going to be an OBJECT.</b>';
+  if(pq){
+    /* the whole lesson in one line: where the path ended, what was there, and what the box
+       was -- because "the box" is the answer the reflex wants and it is never right. */
+    flavorEl.innerHTML='&ldquo;<b class="mono">'+esc(pq.label)+'</b> was <b class="mono">'+esc(JSON.stringify(pq.val))+'</b>'
+      +' &mdash; '+art+' <b>'+cur.type.toUpperCase()+'</b>. The exhibit around it was '
+      +(/^[aeiou]/i.test(pq.outer)?'an ':'a ')+pq.outer.toUpperCase()+'.&rdquo;'
+      +(correct?'' : (id===pq.outer ? ' <b>You named the folder. I asked about the tenant.</b>'
+                                    : ' <b>Four levels down and one door along.</b>'));
+    markPathNode(cur.raw,pq);
+  }
   if(correct){
     state.daySeen=state.daySeen||{};
     if(!Object.prototype.hasOwnProperty.call(state.daySeen,cur.type)){ state.daySeen[cur.type]=1;
@@ -3706,11 +4074,12 @@ function answer(id){
     setTimeout(()=>{ speedLines(boss); fireBurst(false); }, reduced?0:40);   /* 40ms hit-stop before the world moves */
     if(state.streak>=2) comboFloat(correctBtn, '×'+(1+state.streak));
   } else {
-    penalize();
-    /* the most human line in the whole share kit comes out of these two assignments */
-    state.lastMissRaw=cur.raw; state.lastMissType=cur.type;
+    if(pq) penalizeSoft(); else penalize();
+    /* the most human line in the whole share kit comes out of these two assignments.
+       A path round is not a disguise miss, so it never becomes the share line. */
+    if(!pq){ state.lastMissRaw=cur.raw; state.lastMissType=cur.type; }
     /* coach the RULE, not just the answer, while the training case is live */
-    if(state.lastCoached && TELLS[cur.type]) flavorEl.innerHTML+=' <b>🎓 '+esc(TELLS[cur.type])+'</b>';
+    if(!pq && state.lastCoached && TELLS[cur.type]) flavorEl.innerHTML+=' <b>🎓 '+esc(TELLS[cur.type])+'</b>';
     if(id){ const wrongBtn=answersHost.querySelector('.abtn[data-id="'+id+'"]'); wrongBtn&&wrongBtn.classList.add('wrong'); }
     correctBtn.classList.add('correct');
     stampVerdict(false, cur.type.toUpperCase());
@@ -3718,10 +4087,10 @@ function answer(id){
       mascot.classList.add('shake'); cue('wrong'); cueIn('type_'+cur.type,0.46); vibrate([55,35,90]);
       $('gpanel').classList.add('hit'); setTimeout(()=>$('gpanel').classList.remove('hit'),350);
     }, reduced?0:70);
-    flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+rand(FAIL_QUIPS)+'</span>';
+    flavorEl.innerHTML += '<br><span class="mono" style="font-size:11px;opacity:.85">'+(pq?'“Forty-seven dependencies turned up to defend me and six of them are the same dependency.”':rand(FAIL_QUIPS))+'</span>';
     if(!id) bark('slowRound'); else if(state.levelWrong===1) bark('firstMiss');
     if(state.lives===1) bark('lowLives');
-    if(!id) showFeedback('TOO SLOW!',true);
+    if(!id) showFeedback('TOO SLOW!',true); else if(pq) showFeedback('WRONG DOOR!',true);
   }
   $('gpanel').classList.remove('boss');
   finishRound(correct);
