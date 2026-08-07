@@ -3152,7 +3152,12 @@ function showBriefing(day,cb,fast){
      and then takes ROUTINE for you, exactly as if you had pressed the old button.
      Reduced motion does NOT shorten it: the pre-existing 200ms path exists to skip an
      animation, and a decision is not an animation. Removing motion never removes a choice. */
-  ov._auto=setTimeout(()=>go('routine'), lineup?6200:(reduced?200:(fast?1800:3400)));
+  /* REDUCED MOTION GETS THE SAME READING TIME AS EVERYONE ELSE. This used to be 200ms, which
+     is not a motion reduction -- it is deleting the briefing. Case 1 is the only path that
+     reaches it (the lineup branch above already sits at 6200ms), and case 1's briefing is the
+     one that explains the training case to a brand-new player. #briefBtn still skips it
+     instantly for anyone who has read it, so a longer fallback costs nobody anything. */
+  ov._auto=setTimeout(()=>go('routine'), lineup?6200:(fast?1800:3400));
 }
 function dayStartEffects(){ state.duckUsed=false;
   state.dayUsedPower=false; state.daySeen={};      /* per-case warrant bookkeeping */
@@ -3671,7 +3676,9 @@ function showToast(q){
   t.innerHTML=`<span class="tic">${a.ic}</span><span><span class="tt">${q.label||'Case file'}</span><span class="tn" style="display:block">${a.name}</span><span class="td">${a.desc}</span></span>`;
   $('toaster').appendChild(t);
   const kill=()=>{ t.remove(); pumpToasts(); };
-  if(reduced){ t.classList.add('in'); setTimeout(kill,2600); return; }
+  /* same words, same time to read them: TOAST_LIFE, not a shorter hard-coded number. The
+     only thing reduced motion drops here is the slide-in and the fade-out. */
+  if(reduced){ t.classList.add('in'); setTimeout(kill,TOAST_LIFE); return; }
   requestAnimationFrame(()=>t.classList.add('in'));
   setTimeout(()=>{t.classList.remove('in');t.classList.add('out');setTimeout(kill,450);},TOAST_LIFE); }
 setInterval(pumpToasts,400);
