@@ -3659,11 +3659,12 @@ function gadgetUsable(id){ if(!G||!G.live) return false; const g=G.gad[id]; if(!
 /* a pause can land mid-exhibit, on a lesson, or in the beat between two exhibits. Whatever was
    about to happen is suspended with it and re-armed on resume, so the case can never stall. */
 function pauseGame(){ if(!G||!G.live||G.paused||G.ended||G.cracking) return;
-  G.paused=true; G.pauseRemain=G.roundActive?Math.max(0,G.deadline-nowMs()):0; G.pauseSeal=G.sealArmed?Math.max(0,G.sealAt-nowMs()):0;
+  G.paused=true; G.pausedAt=nowMs(); G.pauseRemain=G.roundActive?Math.max(0,G.deadline-nowMs()):0; G.pauseSeal=G.sealArmed?Math.max(0,G.sealAt-nowMs()):0;
   if(G.vT){ clearTimeout(G.vT); G.vT=0; G.pendingNext=true; }
   uiPause(true); applyAudioState(); cue('pause'); }
 function resumeGame(){ if(!G||!G.paused) return; G.paused=false;
-  if(G.roundActive){ G.deadline=nowMs()+G.pauseRemain; if(G.sealArmed) G.sealAt=nowMs()+G.pauseSeal; }
+  if(G.roundActive){ const gap=nowMs()-G.pausedAt; G.shownAt+=gap; G.dealtAt+=gap; /* the pause is not answer time */
+    G.deadline=nowMs()+G.pauseRemain; if(G.sealArmed) G.sealAt=nowMs()+G.pauseSeal; }
   uiPause(false); applyAudioState(); cue('resume');
   if(G.roundActive){ requestAnimationFrame(tick); return; }
   if(!G.live||G.ended) return;
@@ -3674,7 +3675,8 @@ function quitSession(){ if(!G) return false; const k=G.kind; G.live=false; G.rou
   /* leaving a cold case run still banks it: the run is the score */
   if(k==='cold'&&G.correct>0&&!G.ended){ applyAudioState(); endSession(false); return true; }
   G.ended=true; applyAudioState(); G=null; musicFromState(false); return false; }
-addEventListener('visibilitychange',()=>{ if(document.hidden&&G&&G.roundActive&&!G.paused) pauseGame(); });
+/* hidden in any moment of a case: mid-exhibit, on a lesson, or between two (where the next clock would start unseen) */
+addEventListener('visibilitychange',()=>{ if(document.hidden&&G&&G.live&&!G.paused) pauseGame(); });
 /* ===================== THE SUSPECT: one drawing, mounted wherever he is needed ===================== */
 const SUSPECT_SVG=`<svg viewBox="0 0 140 186" aria-hidden="true" focusable="false">
  <g class="j-brace">
@@ -4294,8 +4296,10 @@ function showEnding(then){
     '<div class="rewards"><div class="reward"><span class="ric">📕</span><span><span class="rn">The second file is open</span><span class="rd" style="display:block">Every case again, meaner, for red stars. Switch files at the top of the map.</span></span></div>'+
     '<div class="reward"><span class="ric">❄️</span><span><span class="rn">Cold cases never close</span><span class="rd" style="display:block">How deep can you go? The leaderboard is on your desk.</span></span></div></div>'+
     '<div class="btnrow"><button class="btn yellow" id="syGo" data-autofocus>Back to the precinct</button><button class="btn paper" id="syBrag">&#128203; Copy brag</button></div>';
-    $('syGo').addEventListener('click',()=>{ closeModal('mStory',true); then&&then(); });
-    $('syBrag').addEventListener('click',()=>copyOut($('syBrag'),'who is json?\n\nCASE CLOSED. He was, allegedly, a data format.\n'+totalStars(false)+'/'+TOTAL_STARS+' stars · rank '+currentRank()+' ('+rankTitle(currentRank())+') · '+filedCount()+' disguises filed\n\nYour turn, detective: '+siteURL(),'&#10004; Copied','&#128203; Copy brag')); });
+    $('syGo').addEventListener('click',()=>closeModal('mStory'));
+    $('syBrag').addEventListener('click',()=>copyOut($('syBrag'),'who is json?\n\nCASE CLOSED. He was, allegedly, a data format.\n'+totalStars(false)+'/'+TOTAL_STARS+' stars · rank '+currentRank()+' ('+rankTitle(currentRank())+') · '+filedCount()+' disguises filed\n\nYour turn, detective: '+siteURL(),'&#10004; Copied','&#128203; Copy brag')); },
+    /* Esc and the backdrop close it too, and must still leave the finished case behind */
+    {onClose:()=>{ then&&then(); }});
   cue('victory'); confetti(60); setTimeout(()=>confetti(40),600); }
 /* ===================== COLD CASES TAB ===================== */
 function renderCold(){ const p=$('pane-cold');
