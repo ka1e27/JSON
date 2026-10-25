@@ -615,6 +615,10 @@ body.rainy .bg .rain{opacity:1;}
 .room.onfire{box-shadow:var(--lift),0 0 0 3px var(--red),0 0 40px -6px rgba(207,43,35,.75);}
 .room.boss{--paper:#b5a17c;--card:#c9b48d;--ink:#0f0c07;--ink-2:#4a4133;box-shadow:var(--lift),0 0 0 3px var(--purple),0 0 46px -6px rgba(139,92,246,.7);}
 .room.boss::before{background-image:radial-gradient(58% 52% at 50% 30%, transparent 32%, rgba(8,6,14,.42) 100%),radial-gradient(30% 24% at 50% 18%, rgba(139,92,246,.3), transparent 70%);}
+/* the boss room's paper is darker, so its red text goes deeper to stay readable (4.5:1 on the vignette) */
+.room.boss .pcase .pk{color:#3d0805;}
+.room.boss .htag,.room.boss .bubble b,.room.boss .coach b,.room.boss .vpanel .vh .bad,.room.boss .streak:not(.fire) .sv{color:#7a110b;}
+.room.boss .htag{border-color:#7a110b;}
 .room.hard{box-shadow:var(--lift),0 0 0 3px var(--red);}
 .room.urgent::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 70px -8px var(--red);animation:urg .55s ease infinite;z-index:7;}
 @keyframes urg{0%,100%{opacity:.25}50%{opacity:.9}}
@@ -3953,7 +3957,7 @@ function winQuip(R){ if(G&&G.streak>=6&&rnd()<0.5) return '“'+G.streak+' in a 
   return rand(WIN_REACT); }
 function loseQuip(R){ if(R.kind==='path'&&R.outer) return '“You named the folder. I asked about the tenant.”';
   if(R.kind==='type'&&R.type==='string'&&surfaceOf(R.raw)!=='string') return '“The quotes, detective. Always the quotes.”';
-  return rand(['“Ha.”','“Wrong disguise. I am in the vents now.”','“That goes in the retro. Nothing will happen at the retro.”','“The intern would have had that one.”']); }
+  return rand(['“Ha.”','“Wrong disguise. I have already changed twice.”','“That goes in the retro. Nothing will happen at the retro.”','“The intern would have had that one.”']); }
 /* the radio cast, rate-limited, and never over a live exhibit: a line with nowhere to go is dropped, not saved for later */
 let _lastBark=0;
 Object.assign(BARKS,{g_coffee:BARKS.tool_freeze,g_ai:BARKS.tool_fifty,g_ship:BARKS.tool_double,g_ctrlz:BARKS.tool_life,
@@ -4104,7 +4108,8 @@ function veteranWelcome(then){ SAVE.flags.vet=2; save(); openModal('mStory',()=>
   '<div class="btnrow"><button class="btn" data-close="mStory" data-autofocus>To the case map &#9654;</button></div>'; wireClose($('sySheet')); },{onClose:()=>{ then&&then(); }}); }
 /* ===================== THE CASE MAP ===================== */
 const MAP_OPEN={};
-const NODE_X=[22,76,27,73,25,50], NODE_STEP=92;
+/* the boss card sits a little lower: on a phone it shares columns with the case above, which can carry a twist tag and a Play button */
+const NODE_X=[22,76,27,73,25,50], NODE_STEP=92, BOSS_GAP=62;
 function renderMap(){
   const pane=$('pane-map'), hard=!!(HARDVIEW&&SAVE.flags.won), N=nextLevel(hard);
   const ts=totalStars(hard), nm=nextMile();
@@ -4145,8 +4150,8 @@ function renderMap(){
     if(c&&!renderMap._scrolled){ renderMap._scrolled=1; const hm=$('hubMain'); const r=c.getBoundingClientRect(), hr=hm.getBoundingClientRect();
       hm.scrollTop+=r.top-hr.top-hr.height*0.35; } }); }
 function boardHtml(D,hard,N){
-  const H=10+5*NODE_STEP+200; let nodes='', pts=[];
-  D.levels.forEach((L,i)=>{ const x=NODE_X[i], y=14+i*NODE_STEP; pts.push([x,y+(L.boss?70:44)]);
+  const H=10+5*NODE_STEP+200+BOSS_GAP; let nodes='', pts=[];
+  D.levels.forEach((L,i)=>{ const x=NODE_X[i], y=14+i*NODE_STEP+(L.boss?BOSS_GAP:0); pts.push([x,y+(L.boss?70:44)]);
     const un=unlocked(L,hard), cl=cleared(L,hard), s=starsOf(L.id,hard), isCur=un&&N.id===L.id;
     const cls='node'+(L.boss?' boss':'')+(un?'':' locked')+(cl?' done':'')+(isCur?' current':'');
     const nm=L.boss?L.bossName:L.name;
