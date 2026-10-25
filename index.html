@@ -1044,11 +1044,14 @@ const plural=(n,w,ws)=>n+' '+(n===1?w:(ws||w+'s'));
 const art=t=>/^[aeiou]/i.test(String(t))?'an':'a';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-/* ---- seeded randomness. Every session owns a seed, so a Cold Case or a Daily is replayable
-       byte for byte by a stranger with the link. Two Math.random() call sites stay unseeded on
-       purpose (the AI gadget's shuffle and the confetti): neither decides WHICH exhibits appear. */
+/* ---- seeded randomness. Every session owns a seeded stream (G.rng), so a Daily deals the same
+       exhibits to everybody and a Cold Case link starts a stranger on the same cases. The stream
+       is lent to the generators only while something is being dealt (dealWith). Every other draw,
+       a taunt, a quip, the AI gadget, the confetti, comes from Math.random, so what one player
+       answers can never shift what the next exhibit is. */
 let seedRng=null;
 function rnd(){ return seedRng?seedRng():Math.random(); }
+function dealWith(rng,fn){ const prev=seedRng; seedRng=rng||null; try{ return fn(); } finally{ seedRng=prev; } }
 function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 const rand=a=>a[Math.floor(rnd()*a.length)];
 function shuffle(a){ for(let k=a.length-1;k>0;k--){ const j=Math.floor(rnd()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; }
@@ -3357,15 +3360,15 @@ function baseSession(kind){ return {kind,live:true,ended:false,paused:false,
   round:null,roundActive:false,deadline:0,duration:0,shownAt:0,noClock:false,frozen:false,frozenRemain:0,coffeeRound:false,
   gad:{},shipArmed:false,shipPow:200,duckLeft:0,duckPow:0,lastMissStreak:0,
   boss:false,phase:0,finalPending:false,selfLive:false,locker:[],typeHist:[],lastKind:'',kindsSeen:{},log:[],heat:1,sealSeen:0,
-  perks:{},tut:-1,coached:{},startedAt:nowMs(),vT:0,cfg:null,base:null}; }
+  perks:{},tut:-1,coached:{},startedAt:nowMs(),vT:0,cfg:null,base:null,rng:null}; }
 
 /* ---------- starting a case from the map ---------- */
 function startLevel(id,hard){
   const L=LEVEL_BY_ID[id]; if(!L||!unlocked(L,!!hard)) return false;
-  seedRng=mulberry32(newSeed()); lastRaw=''; cjLast='';
+  lastRaw=''; cjLast='';
   const H=hard?hardify(L):null;
   const hearts=caseHearts(L,hard), backup=backupFor(L,hard);
-  G=baseSession('level');
+  G=baseSession('level'); G.rng=mulberry32(newSeed());
   Object.assign(G,{L,hard:!!hard,name:L.boss?L.bossName:L.name,kicker:(hard?'Second file · ':'')+'Case '+L.id+(L.boss?' · Boss':'')+(L.tw?' · '+TWISTS[L.tw].n:''),
     hpMax:Math.round(L.hp*(H?H.hpMul:1)),hearts,heartsMax:hearts,boss:!!L.boss,heat:L.dn,tut:(L.tut&&!hard)?0:-1});
   if(G.tut===0) G.coached.six=1;   /* the guided six already taught it */
@@ -3423,10 +3426,11 @@ function nextRound(){
   clearTimeout(G.vT); G.vT=0;
   if(G.kind==='daily'&&G.answered>=G.total){ endSession(true); return; }
   let R, coach='';
-  if(G.tut>=0&&G.tut<TUT.length){ R=buildTut(G.tut); coach=R.coach; }
-  else if(G.finalPending){ R=buildType(G.cfg,'self'); R.prompt='Last exhibit. This one came out of <b>your</b> desk. Name it.'; G.finalPending=false; G.selfLive=true; }
-  else if(G.kind==='daily'){ R=dailyRound(); }
-  else { const k=pickKind(); R=buildKind(k); R.fam=k; }
+  dealWith(G.rng,()=>{
+    if(G.tut>=0&&G.tut<TUT.length){ R=buildTut(G.tut); coach=R.coach; }
+    else if(G.finalPending){ R=buildType(G.cfg,'self'); R.prompt='Last exhibit. This one came out of <b>your</b> desk. Name it.'; G.finalPending=false; G.selfLive=true; }
+    else if(G.kind==='daily'){ R=dailyRound(); }
+    else { const k=pickKind(); R=buildKind(k); R.fam=k; } });
   if(!R.fam) R.fam=R.kind==='type'?R.sub:R.kind;
   G.round=R; G.rounds++; G.lastKind=R.kind+':'+R.fam;
   /* the first time a technique shows up in a career, it is coached and the clock is doubled */
@@ -3437,7 +3441,7 @@ function nextRound(){
     if(t&&SAVE.tech.indexOf(t)<0&&!G.coached[t]){ coach=TECHS[t].p; G.coached[t]=1; coachMul=1.6; } }
   /* ONE LOOK: the shutter, decided per round, never on a coached or guided exhibit */
   G.sealArmed=false; R.sealed=false;
-  if(R.sealable&&!R.guided&&G.kind!=='train'&&(R.kind==='type'||R.kind==='path')&&G.cfg.seal>0&&rnd()<G.cfg.seal) G.sealArmed=true;
+  if(R.sealable&&!R.guided&&G.kind!=='train'&&(R.kind==='type'||R.kind==='path')&&G.cfg.seal>0&&dealWith(G.rng,rnd)<G.cfg.seal) G.sealArmed=true;
   if(G.sealArmed&&G.sealTech&&!G.coached.seal){ coach=TECHS.seal.p; G.coached.seal=1; coachMul=Math.max(coachMul,1.5); }
   G.noClock=(G.kind==='train')||!!R.guided;
   const think=thinkTime()*(MODE_MULT[R.kind]||1);
@@ -4516,8 +4520,9 @@ function setCase(n){ G.caseNo=n; G.boss=n%5===0; G.hpMax=Math.round((86+12*(n-1)
   G.cfg=coldCfg(n); G.secondUsed=false; G.heat=Math.min(9,1+Math.floor(n/2)); G.phase=0;
   G.name=G.boss?'Cold case '+n+' · deep cover':'Cold case '+n; G.kicker=(G.rival?'Challenge run':'Cold cases')+' · seed '+(G.seed>>>0).toString(36); }
 function startCold(seed,tier,rival){
-  seed=(seed>>>0)||newSeed(); seedRng=mulberry32(seed); lastRaw=''; cjLast='';
-  G=baseSession('cold'); G.seed=seed; G.tier=clamp(tier|0||coldTier(),2,9); G.rival=rival||null;
+  seed=(seed>>>0)||newSeed(); lastRaw=''; cjLast='';
+  /* exhibits and perk drafts draw from separate streams, so a draft can't shift the cases after it */
+  G=baseSession('cold'); G.seed=seed; G.rng=mulberry32(seed); G.prng=mulberry32((seed^0x5bd1e995)>>>0); G.tier=clamp(tier|0||coldTier(),2,9); G.rival=rival||null;
   G.hearts=G.heartsMax=SAVE.hearts; setCase(1); setupGadgets();
   enterPlay(); }
 function coldCaseCracked(){
@@ -4534,7 +4539,7 @@ function nextCase(){ if(!G||G.ended) return;
 function showPerkDraft(cb){
   const pool=Object.keys(PERKS).filter(id=>!G.perks[id]&&(id!=='deps'||Object.keys(G.gad).length)&&(id!=='standup'||G.hearts<G.heartsMax));
   if(!pool.length){ cb(); return; }
-  const pick=shuffle(pool.slice()).slice(0,3); let done=false;
+  const pick=dealWith(G.prng,()=>shuffle(pool.slice()).slice(0,3)); let done=false;
   const choose=id=>{ if(done) return; done=true; clearTimeout(t); closeModal('mDraft',true); applyPerk(id); cb(); };
   openModal('mDraft',()=>{ $('drSheet').innerHTML='<div class="kicker" style="text-align:center">Cold case '+G.caseNo+' cracked &middot; requisition form</div>'+
     '<h2 id="drTitle" style="text-align:center;padding:0">Pick your <span class="r">edge</span></h2><div class="sub" style="text-align:center">one perk &middot; it lasts the rest of the run</div>'+
@@ -4578,10 +4583,10 @@ function challengeNote(){ if(!CHALLENGE) return ''; return (CHALLENGE.name||'A d
    one that counts and the one you can share; replays are practice. */
 const DAILY_N=15;
 function startDaily(){
-  const k=dayKey(); seedRng=mulberry32(hashStr('jw2-daily-'+k)); lastRaw=''; cjLast='';
-  G=baseSession('daily'); G.total=DAILY_N; G.dayKey=k; G.hearts=G.heartsMax=1; G.hp=G.hpMax=DAILY_N;
+  const k=dayKey(); lastRaw=''; cjLast='';
+  G=baseSession('daily'); G.rng=mulberry32(hashStr('jw2-daily-'+k)); G.total=DAILY_N; G.dayKey=k; G.hearts=G.heartsMax=1; G.hp=G.hpMax=DAILY_N;
   const plan=['plain','trap','nest','trap','count','valid','trap','spot','path','nest','valid','trap','spot','count','boss'];
-  G.plan=['plain','plain'].concat(shuffle(plan.slice(2))).slice(0,DAILY_N);
+  G.plan=['plain','plain'].concat(dealWith(G.rng,()=>shuffle(plan.slice(2)))).slice(0,DAILY_N);
   G.cfg={d:3,think:5.2,mix:{plain:1},seal:0,sig:0.3,fair:true};
   G.name='Daily case #'+dailyNo(k); G.kicker=k+' · the same fifteen for everybody'; G.heat=4;
   enterPlay(); }
@@ -4620,7 +4625,7 @@ let TRAIN_PICK={six:1}, TRAIN_D=4;
 function startTrain(){
   const mix={}; TRAIN_SETS.forEach(t=>{ if(TRAIN_PICK[t.id]&&(!t.need||SAVE.tech.indexOf(t.need)>=0)) Object.keys(t.mix).forEach(k=>{ mix[k]=(mix[k]||0)+t.mix[k]; }); });
   if(!Object.keys(mix).length) mix.plain=1;
-  seedRng=null; lastRaw=''; cjLast='';
+  lastRaw=''; cjLast='';
   G=baseSession('train'); G.cfg={d:TRAIN_D,think:9,mix,seal:0,sig:0.4,fair:false}; G.hp=G.hpMax=1; G.hearts=G.heartsMax=1;
   G.name='Training room'; G.kicker='Off the record · Esc to leave'; G.heat=1;
   enterPlay(); }
