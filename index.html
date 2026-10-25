@@ -617,11 +617,13 @@ body.rainy .bg .rain{opacity:1;}
 .room.shake{animation:pshake .34s ease;}
 @keyframes pshake{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,3px)}40%{transform:translate(7px,-3px)}60%{transform:translate(-5px,2px)}80%{transform:translate(5px,-2px)}}
 .room.onfire{box-shadow:var(--lift),0 0 0 3px var(--red),0 0 40px -6px rgba(207,43,35,.75);}
-.room.boss{--paper:#b5a17c;--card:#c9b48d;--ink:#0f0c07;--ink-2:#4a4133;box-shadow:var(--lift),0 0 0 3px var(--purple),0 0 46px -6px rgba(139,92,246,.7);}
-.room.boss::before{background-image:radial-gradient(58% 52% at 50% 30%, transparent 32%, rgba(8,6,14,.42) 100%),radial-gradient(30% 24% at 50% 18%, rgba(139,92,246,.3), transparent 70%);}
-/* the boss room's paper is darker, so its red text goes deeper to stay readable (4.5:1 on the vignette) */
+.room.boss{--paper:#b5a17c;--card:#c9b48d;--ink:#0f0c07;--ink-2:#2e271c;box-shadow:var(--lift),0 0 0 3px var(--purple),0 0 46px -6px rgba(139,92,246,.7);}
+.room.boss::before{background-image:radial-gradient(64% 60% at 50% 36%, transparent 42%, rgba(8,6,14,.2) 100%),radial-gradient(30% 24% at 50% 18%, rgba(139,92,246,.3), transparent 70%);}
+/* the boss room's paper is darker, so its text goes deeper to stay readable on the vignette (the HUD sits in its corners) */
 .room.boss .pcase .pk{color:#3d0805;}
-.room.boss .htag,.room.boss .bubble b,.room.boss .coach b,.room.boss .vpanel .vh .bad,.room.boss .streak:not(.fire) .sv{color:#7a110b;}
+.room.boss .htag,.room.boss .bubble b,.room.boss .coach b,.room.boss .vpanel .vh .bad{color:#7a110b;}
+.room.boss .streak:not(.fire) .sv{color:#4a0906;}
+.room.boss .pfoot .sl,.room.boss .pfoot .gbtn,.room.boss .gnone{color:var(--ink);}
 .room.boss .htag{border-color:#7a110b;}
 .room.hard{box-shadow:var(--lift),0 0 0 3px var(--red);}
 .room.urgent::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 70px -8px var(--red);animation:urg .55s ease infinite;z-index:7;}
@@ -772,6 +774,7 @@ body.rainy .bg .rain{opacity:1;}
 
 /* footer: tools, streak, score */
 .pfoot{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px dashed rgba(25,19,8,.35);min-height:44px;}
+.gnone{font-family:var(--ff-type);font-size:10.5px;color:var(--ink-2);}
 .gadgets{display:flex;gap:6px;flex:1 1 auto;min-width:0;flex-wrap:wrap;}
 .gbtn{position:relative;display:inline-flex;align-items:center;gap:5px;border:2px solid var(--ink);border-radius:99px;background:var(--card);color:var(--ink);
   font-family:var(--ff-type);font-size:11px;padding:5px 10px 5px 6px;box-shadow:2px 2px 0 rgba(25,19,8,.3);transition:transform .1s var(--ease),opacity .2s;white-space:nowrap;}
@@ -3563,7 +3566,8 @@ function onWrong(R,id,timedOut){
   G.lastMissStreak=prev;
   G.streak = keep?prev : (G.perks.hotreload?Math.floor(prev/2):0);
   G.shipArmed=false;
-  if(G.selfLive){ G.selfLive=false; if(G.L&&G.L.final){ G.hp=Math.max(G.hp,Math.round(G.hpMax*0.25)); G.selfDone=false; } }
+  /* missing your own file lets him pull himself together: a quarter of his composure back, shown on the bar */
+  if(G.selfLive){ G.selfLive=false; if(G.L&&G.L.final){ G.hp=Math.max(G.hp,Math.round(G.hpMax*0.25)); G.selfDone=false; uiHP(); } }
   if(G.kind==='daily'&&G.answered>=G.total) G.after='end'; else G.after=(G.hearts<=0)?'fail':'next';
   uiLose(R,{id,timedOut,saved,why});
   cue('wrong'); if(!saved) cueIn('heart',0.12); cueIn('type_'+R.ans,0.5);
@@ -3903,7 +3907,7 @@ function uiScore(instant){ if(!G) return; const el=$('scoreV'), target=G.score|0
   const t0=nowMs(); (function st(){ const p=Math.min(1,(nowMs()-t0)/420); _scoreShown=Math.round(from+(target-from)*(1-Math.pow(1-p,3))); el.textContent=fmt(_scoreShown); if(p<1) requestAnimationFrame(st); })(); }
 function uiGadgets(){ if(!G) return; const host=$('gadgets');
   const ids=Object.keys(G.gad);
-  if(!ids.length){ host.innerHTML=G.kind==='train'?'':'<span style="font-family:var(--ff-type);font-size:10.5px;color:var(--ink-2)">No gadgets equipped</span>'; return; }
+  if(!ids.length){ host.innerHTML=G.kind==='train'?'':'<span class="gnone">No gadgets equipped</span>'; return; }
   host.innerHTML=ids.map(id=>{ const g=G.gad[id], d=GADGETS[id];
     if(d.passive) return '<span class="gbtn passive'+(G.duckLeft>0?'':' spent')+'" title="'+esc(d.n+': '+d.d)+'"><span class="gi">'+d.ic+'</span><span class="gl">'+esc(d.n)+'</span><span class="gc">'+G.duckLeft+'</span></span>';
     const can=gadgetUsable(id);
