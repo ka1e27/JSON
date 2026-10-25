@@ -3325,6 +3325,8 @@ const BASE_DMG=8, SPEED_BONUS=0.6, COMBO_STEP=0.08, COMBO_CAP=10;
 const READ_PER_CHAR=0.045, READ_PER_ITEM=0.18, PATH_PER_SEG=0.12, HARD_FLOOR=1.45;
 const MODE_MULT={type:1,path:1.15,count:1.25,valid:1.3,spot:1.3,diag:1.6};
 const REVEAL_MS=reduced?0:340, SEAL_FIRST_MULT=1.9, WIN_BEAT=760, LESSON_BEAT=1150, AUTO_CONTINUE=4800;
+/* nobody reads an exhibit in a fifth of a second: an answer that early is the second half of a double click */
+const INPUT_GUARD=220;
 const ROUND_KINDS=['plain','trap','nest','boss','path','dpath','count','valid','spot','diag'];
 const TYPE_FAMILIES=['plain','trap','nest','boss'];
 /* which round family each technique governs, for the first-time coach */
@@ -3447,7 +3449,7 @@ function nextRound(){
   if(KIND_BANNER[bk]&&!G.kindsSeen[bk]&&G.tut<0){ G.kindsSeen[bk]=1; uiBanner(KIND_BANNER[bk],R.fam==='boss'||R.fam==='dpath'?'boss':''); }
   if(G.selfLive) uiBanner('🗂️ The file on you','boss');
   uiRound(R,{coach});
-  G.shownAt=nowMs()+REVEAL_MS; G.deadline=G.shownAt+dur*1000;
+  G.dealtAt=nowMs(); G.shownAt=G.dealtAt+REVEAL_MS; G.deadline=G.shownAt+dur*1000;
   if(G.sealArmed){ const w=sealWindow(R.chars,R.items,dur); G.sealAt=G.shownAt+w*1000; G.sealShown=0; uiSealTag(Math.ceil(w)); }
   G.roundActive=true; G.urgent=false;
   uiGadgets(); /* drawn again now the exhibit is live, or the in-round gadgets stay greyed out */
@@ -3483,6 +3485,7 @@ function tick(t){
 function answer(id){
   if(!G||!G.roundActive||G.paused) return;
   const R=G.round; if(id!=null&&!R.opts.some(o=>o.id===id)) return;
+  if(id!=null&&nowMs()-(G.dealtAt||0)<INPUT_GUARD) return;
   if(id!=null&&G.elim&&G.elim.indexOf(id)>=0) return;
   const t=nowMs(), rt=Math.max(0,t-G.shownAt);
   const ok=id===R.ans;
@@ -3851,7 +3854,7 @@ function uiLose(R,info){
     (info.why?'<div class="vq">'+esc(info.why)+'</div>':(info.saved||G.kind==='train'||G.kind==='daily'?'':'<div class="vq">'+esc(rand(FAIL_QUIPS))+'</div>'))+
     '<div class="vgo"><button class="btn sm yellow" id="vGo">'+tail+' <span class="k">space</span></button></div>';
   $('stage').appendChild(vp);
-  const go=$('vGo'); go.addEventListener('click',()=>afterLesson());
+  const go=$('vGo'); go.addEventListener('click',()=>{ if(verdictOpen()) afterLesson(); });
   vp._at=nowMs(); setTimeout(()=>{ try{ if($('vGo')) $('vGo').focus({preventScroll:true}); }catch(e){} },60);
   G.vT=setTimeout(afterLesson,AUTO_CONTINUE+(SAVE.set.slow?2400:0));
   bubbleEl.innerHTML=info.timedOut?rand(['“Time. I love that word.”','“You hesitated. I noticed.”','“The clock was always on my side.”']):loseQuip(R);
@@ -3969,6 +3972,7 @@ function openModal(id,render,opts){ const m=$(id); if(!m) return; opts=opts||{};
   if(render) render();
   const i=MSTACK.findIndex(x=>x.id===id); if(i>=0) MSTACK.splice(i,1);
   MSTACK.push({id,ret:document.activeElement,closable:opts.closable!==false,onClose:opts.onClose||null});
+  if(!m.classList.contains('on')) m._at=nowMs();
   m.classList.add('on'); m.style.zIndex=String(88+MSTACK.length*2);
   setTimeout(()=>{ const f=_focusables(m); const pref=m.querySelector('[data-autofocus]')||f[0]; if(pref){ try{ pref.focus({preventScroll:true}); }catch(e){} } m.scrollTop=0; },30);
   cue('paper'); }
@@ -3984,6 +3988,9 @@ addEventListener('keydown',e=>{ const t=topModal(); if(!t||e.key!=='Tab') return
   else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
   else if(!m.contains(document.activeElement)){ e.preventDefault(); first.focus(); } },true);
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=>{ if(e.target!==m) return; const t=topModal(); if(t&&t.id===m.id&&t.closable) closeModal(m.id); }));
+/* a click in the first instant of a sheet was aimed at whatever was under it a moment ago */
+const MODAL_GUARD=250;
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{ if(nowMs()-(m._at||0)<MODAL_GUARD){ e.preventDefault(); e.stopPropagation(); } },true));
 const xBtn=id=>'<button class="x" data-close="'+id+'" aria-label="Close">&#10006;</button>';
 function wireClose(root){ (root||document).querySelectorAll('[data-close]').forEach(b=>{ if(b._w) return; b._w=1; b.addEventListener('click',()=>closeModal(b.dataset.close)); }); }
 
