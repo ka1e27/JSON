@@ -3425,6 +3425,8 @@ function nextRound(){
   if(!G||!G.live||G.paused) return;
   clearTimeout(G.vT); G.vT=0;
   if(G.kind==='daily'&&G.answered>=G.total){ endSession(true); return; }
+  /* never start a clock in a hidden tab: whatever timer got here (a perk draft, a phase change), the case waits, paused */
+  if(document.hidden){ G.pendingNext=true; pauseGame(); if(G.paused) return; G.pendingNext=false; }
   let R, coach='';
   dealWith(G.rng,()=>{
     if(G.tut>=0&&G.tut<TUT.length){ R=buildTut(G.tut); coach=R.coach; }
@@ -4539,14 +4541,15 @@ function nextCase(){ if(!G||G.ended) return;
 function showPerkDraft(cb){
   const pool=Object.keys(PERKS).filter(id=>!G.perks[id]&&(id!=='deps'||Object.keys(G.gad).length)&&(id!=='standup'||G.hearts<G.heartsMax));
   if(!pool.length){ cb(); return; }
-  const pick=dealWith(G.prng,()=>shuffle(pool.slice()).slice(0,3)); let done=false;
+  const pick=dealWith(G.prng,()=>shuffle(pool.slice()).slice(0,3)); let done=false, t=0;
   const choose=id=>{ if(done) return; done=true; clearTimeout(t); closeModal('mDraft',true); applyPerk(id); cb(); };
   openModal('mDraft',()=>{ $('drSheet').innerHTML='<div class="kicker" style="text-align:center">Cold case '+G.caseNo+' cracked &middot; requisition form</div>'+
     '<h2 id="drTitle" style="text-align:center;padding:0">Pick your <span class="r">edge</span></h2><div class="sub" style="text-align:center">one perk &middot; it lasts the rest of the run</div>'+
     '<div class="perks">'+pick.map((id,i)=>{ const p=PERKS[id]; return '<button class="perkcard" data-perk="'+id+'"'+(i===0?' data-autofocus':'')+'><span class="pic">'+p.ic+'</span><span class="pn">'+esc(p.n)+'</span><span class="pt">'+esc(p.tag)+'</span><span class="pd">'+esc(p.d)+'</span></button>'; }).join('')+'</div>';
     $('drSheet').querySelectorAll('[data-perk]').forEach(b=>b.addEventListener('click',()=>choose(b.dataset.perk))); },{closable:false});
   cue('paper'); cueIn('mode',0.14,false);
-  const t=setTimeout(()=>choose(rand(pick)),25000); }
+  /* an idle requisition form files itself after 25 s, but never while nobody is looking at it */
+  const arm=()=>{ t=setTimeout(()=>{ if(document.hidden) arm(); else choose(rand(pick)); },25000); }; arm(); }
 function applyPerk(id){ G.perks[id]=1; const p=PERKS[id];
   if(id==='legacy'){ G.heartsMax++; G.hearts++; } if(id==='standup') G.hearts=G.heartsMax;
   toast({ic:p.ic,name:p.n,desc:p.tag},'Perk'); }
