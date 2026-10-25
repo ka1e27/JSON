@@ -173,11 +173,12 @@ body.rainy .bg .rain{opacity:1;}
 .sheet p b{color:var(--ink);}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px;}
 
-/* ---------- toasts: never on top of a live exhibit on a phone ---------- */
+/* ---------- toasts: never on top of a live exhibit ---------- */
 .toaster{position:fixed;top:calc(10px + var(--safe-t));right:12px;z-index:92;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:min(320px,88vw);}
 .toast{display:flex;gap:10px;align-items:flex-start;background:var(--paper);color:var(--ink);border:var(--edge);border-radius:4px;
   padding:9px 12px;box-shadow:4px 4px 0 rgba(0,0,0,.5);opacity:0;transform:translateX(120%);transition:opacity .35s var(--ease),transform .35s var(--ease);}
 .toast.in{opacity:1;transform:none;} .toast.out{opacity:0;transform:translateX(120%);}
+.toaster.held{visibility:hidden;}
 .toast .tic{font-size:20px;line-height:1;}
 .toast .tt{display:block;font-family:var(--ff-type);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--red);}
 .toast .tn{display:block;font-family:var(--ff-display);font-size:15px;text-transform:uppercase;line-height:1.1;}
@@ -3449,6 +3450,7 @@ function nextRound(){
   G.shownAt=nowMs()+REVEAL_MS; G.deadline=G.shownAt+dur*1000;
   if(G.sealArmed){ const w=sealWindow(R.chars,R.items,dur); G.sealAt=G.shownAt+w*1000; G.sealShown=0; uiSealTag(Math.ceil(w)); }
   G.roundActive=true; G.urgent=false;
+  uiGadgets(); /* drawn again now the exhibit is live, or the in-round gadgets stay greyed out */
   say(roundSpeech(R,coach));
   musicFromState(false);
   requestAnimationFrame(tick); }
@@ -3947,11 +3949,11 @@ function winQuip(R){ if(G&&G.streak>=6&&rnd()<0.5) return '“'+G.streak+' in a 
 function loseQuip(R){ if(R.kind==='path'&&R.outer) return '“You named the folder. I asked about the tenant.”';
   if(R.kind==='type'&&R.type==='string'&&surfaceOf(R.raw)!=='string') return '“The quotes, detective. Always the quotes.”';
   return rand(['“Ha.”','“Wrong disguise. I am in the vents now.”','“That goes in the retro. Nothing will happen at the retro.”','“The intern would have had that one.”']); }
-/* the radio cast, rate-limited, and never over a live exhibit on a phone */
+/* the radio cast, rate-limited, and never over a live exhibit: a line with nowhere to go is dropped, not saved for later */
 let _lastBark=0;
 Object.assign(BARKS,{g_coffee:BARKS.tool_freeze,g_ai:BARKS.tool_fifty,g_ship:BARKS.tool_double,g_ctrlz:BARKS.tool_life,
   g_flash:[{w:'lint',t:'Pointing the flashlight at line 1. I have been pointing at line 1 for years.'},{w:'intern',t:'Oh, THAT bracket. Yeah. That one was always the problem.'}]});
-function bark(key){ const pool=BARKS[key]; if(!pool||!pool.length) return; const t=nowMs(); if(t-_lastBark<3500) return;
+function bark(key){ const pool=BARKS[key]; if(!pool||!pool.length||toastSpace()<TOAST_MIN) return; const t=nowMs(); if(t-_lastBark<3500) return;
   _lastBark=t; const b=pool[Math.floor(Math.random()*pool.length)], who=CAST[b.w]||CAST.log; toast({ic:who.ic,name:who.n,desc:b.t},'Radio'); }
 /* ===================== THE SHELL: screens, modals, toasts ===================== */
 let SCREEN='title';
@@ -3985,13 +3987,18 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('mousedown',e=
 const xBtn=id=>'<button class="x" data-close="'+id+'" aria-label="Close">&#10006;</button>';
 function wireClose(root){ (root||document).querySelectorAll('[data-close]').forEach(b=>{ if(b._w) return; b._w=1; b.addEventListener('click',()=>closeModal(b.dataset.close)); }); }
 
-/* ---- toasts: capped, queued, and held back while a phone is mid-exhibit ---- */
-const TOAST_LIFE=3400; let toastQ=[];
+/* ---- toasts: capped, queued, and never on top of a live room ---- */
+const TOAST_LIFE=3400, TOAST_MIN=220; let toastQ=[];
 const toastNarrow=()=>{ try{ return matchMedia('(max-width:700px)').matches; }catch(e){ return innerWidth<=700; } };
+/* the width a notice may take: anything mid-case, or only the margin beside the room while an exhibit is live */
+function toastSpace(){ if(!(G&&G.live&&SCREEN==='play')) return Infinity; const r=$('room');
+  return r?innerWidth-r.getBoundingClientRect().right-24:0; }
 function toast(a,label){ toastQ.push({a,label}); if(toastQ.length>6) toastQ.shift(); pumpToasts(); }
 function pumpToasts(){ const host=$('toaster'); if(!host) return;
-  /* on a phone the room has no spare pixels: everything waits for the verdict sheet */
-  if(toastNarrow()&&G&&G.live&&SCREEN==='play') return;
+  const w=toastSpace(), held=w<TOAST_MIN;
+  /* no margin to spare (a phone, a small laptop): everything waits for the verdict sheet */
+  host.classList.toggle('held',held); host.style.maxWidth=!held&&w<320?Math.floor(w)+'px':'';
+  if(held) return;
   while(toastQ.length&&host.children.length<(toastNarrow()?2:3)) showToast(toastQ.shift()); }
 function showToast(q){ const a=q.a, t=document.createElement('div'); t.className='toast';
   t.innerHTML='<span class="tic" aria-hidden="true">'+(a.ic||'📄')+'</span><span><span class="tt">'+esc(q.label||'Notice')+'</span><span class="tn">'+esc(a.name||'')+'</span><span class="td">'+esc(a.desc||'')+'</span></span>';
