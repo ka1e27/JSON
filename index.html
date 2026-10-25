@@ -4226,7 +4226,8 @@ function gainsHtml(res){
   h+='<div class="gl"><span>Clout</span><b>+'+fmt(res.clout)+'</b></div>';
   if(res.filed&&res.filed.length) h+='<div class="gl"><span>Filed in the dossier</span><b>+'+res.filed.length+'</b></div><div class="newlist">'+res.filed.slice(0,8).map(r=>'<span class="chip">'+esc(r.length>18?r.slice(0,16)+'…':r)+'</span>').join('')+(res.filed.length>8?'<span class="chip">+'+(res.filed.length-8)+' more</span>':'')+'</div>';
   if(res.lost) h+='<div class="gl"><span>He took <b style="font-size:inherit;color:var(--red)">'+plural(res.lost,'unfiled disguise')+'</b> with him</span><span></span></div>';
-  (res.miles||[]).forEach(m=>{ h+='<div class="gl"><span>&#9733; '+m.at+'-star milestone</span><b>+'+fmt(m.c)+' clout</b></div>'; });
+  /* a milestone pays XP too, and the bar above already includes it: say so, or the bar outruns the numbers */
+  (res.miles||[]).forEach(m=>{ h+='<div class="gl"><span>&#9733; '+m.at+'-star milestone</span><b>+'+fmt(m.c)+' clout &middot; +'+fmt(m.x)+' XP</b></div>'; });
   return h+'</div>'; }
 function renderResultsLevel(res){
   const L=res.L, nm=L.boss?L.bossName:L.name;
