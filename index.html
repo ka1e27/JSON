@@ -434,7 +434,8 @@ body.rainy .bg .rain{opacity:1;}
 .mapend{text-align:center;font-family:var(--ff-type);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,230,205,.5);padding:8px 0 4px;}
 
 /* ================= briefing / results / generic sheets ================= */
-.brief .bno{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.brief .bno{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:44px;} /* clear of the ✖ */
+#cdSheet>.kicker{padding-right:44px;}
 .brief .bq{font-family:var(--ff-type);font-size:13.5px;line-height:1.55;background:var(--card);border-left:4px solid var(--red);padding:10px 12px;margin:14px 0 4px;color:var(--ink);}
 .brief .bq b{color:var(--red);}
 .brief .bmemo{font-family:var(--ff-type);font-size:12.5px;line-height:1.5;color:var(--ink-2);margin-top:8px;}
@@ -516,6 +517,7 @@ body.rainy .bg .rain{opacity:1;}
 .themecard{border:var(--edge);border-radius:5px;padding:12px;box-shadow:3px 3px 0 rgba(0,0,0,.4);}
 .themecard.equipped{box-shadow:3px 3px 0 rgba(0,0,0,.4),0 0 0 3px var(--green);}
 .themecard .nm{font-family:var(--ff-display);font-size:17px;text-transform:uppercase;}
+.themecard .tfree{font-family:var(--ff-type);font-size:10.5px;line-height:1.35;margin-top:6px;opacity:.8;}
 .themecard .sw{display:flex;gap:5px;margin:9px 0 11px;}
 .themecard .sw i{width:22px;height:22px;border:2px solid rgba(0,0,0,.45);border-radius:3px;}
 .themecard .btn{width:100%;font-size:14px;padding:7px 10px;}
@@ -528,7 +530,8 @@ body.rainy .bg .rain{opacity:1;}
 .dc{position:relative;border:2px solid var(--ink);border-radius:5px;padding:8px 7px 7px;background:var(--paper-2);min-width:0;min-height:74px;text-align:left;
   display:flex;flex-direction:column;gap:5px;transition:transform .12s var(--ease);}
 .dc:not(:disabled):hover{transform:translateY(-2px);}
-.dc .raw{font-family:var(--ff-mono);font-weight:700;font-size:11.5px;line-height:1.3;word-break:break-all;max-height:4em;overflow:hidden;}
+/* break-all alone won't split a run of quotes and commas, so long JSON also gets overflow-wrap:anywhere */
+.dc .raw{font-family:var(--ff-mono);font-weight:700;font-size:11.5px;line-height:1.3;word-break:break-all;overflow-wrap:anywhere;max-height:4em;overflow:hidden;}
 .dc .wm{position:absolute;right:5px;bottom:4px;font-size:30px;opacity:.12;pointer-events:none;}
 .dc.unfiled{border-style:dashed;background:rgba(25,19,8,.05);align-items:center;justify-content:center;font-family:var(--ff-display);font-size:22px;color:rgba(25,19,8,.35);}
 .dc.newf{box-shadow:0 0 0 3px var(--yellow);}
@@ -765,6 +768,7 @@ body.rainy .bg .rain{opacity:1;}
 @keyframes vpin{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 .vpanel .vh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--ff-display);font-size:clamp(18px,3.4vw,24px);text-transform:uppercase;line-height:1;}
 .vpanel .vh .bad{color:var(--red);}
+.vpanel .vh .saved{font-family:var(--ff-type);font-size:12.5px;text-transform:none;line-height:1.3;color:#1d6b3c;}
 .vpanel .vt{font-family:var(--ff-type);font-size:clamp(12.5px,1.9vw,14px);line-height:1.5;color:var(--ink);}
 .vpanel .vt b{background:var(--yellow);padding:0 3px;}
 .vpanel .vt .mono{font-family:var(--ff-mono);font-weight:700;background:rgba(25,19,8,.08);border-radius:3px;padding:0 4px;}
@@ -872,7 +876,32 @@ body.rainy .bg .rain{opacity:1;}
   .abtn .di{font-size:16px;}
   .streak .sv,.scorebox .sv{font-size:20px;}
 }
-@media(max-height:540px){ .room{grid-template-rows:auto auto auto auto auto;overflow-y:auto;height:auto;min-height:100%;} .play{overflow-y:auto;align-items:flex-start;} }
+/* a short window scrolls rather than squeezing rows into each other: the room must not shrink below its content
+   (its explicit min-height replaces the flex item's content-based minimum, so flex-shrink is switched off) */
+@media(max-height:540px){ .room{grid-template-rows:auto auto auto auto auto;overflow-y:auto;height:auto;min-height:100%;flex-shrink:0;} .play{overflow-y:auto;align-items:flex-start;} }
+/* a phone on its side has width to spare and no height: exhibit on the left, answers on the right, nothing to scroll */
+@media(max-height:540px) and (min-aspect-ratio:3/2){
+  .room{grid-template-rows:auto auto auto minmax(0,1fr) auto;height:100%;min-height:0;overflow:hidden;}
+  .play{overflow:hidden;align-items:center;}
+  .suspect{padding:2px 0 0;} .suspect .mascot{width:clamp(44px,13vh,64px);height:clamp(48px,14vh,70px);}
+  .timer{margin:3px 0 1px;}
+  .stage{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;column-gap:clamp(10px,2vw,18px);row-gap:4px;
+    align-items:center;padding:4px 0;}
+  .stage>.evcard{grid-column:1;grid-row:1;min-height:0;max-height:100%;padding-top:16px;padding-bottom:10px;}
+  .stage>.prompt{grid-column:1;grid-row:2;}
+  .stage>.answers{grid-column:2;grid-row:1 / span 2;align-self:center;}
+  .abtn{min-height:clamp(40px,14vh,58px);font-size:14px;}
+  .abtn .di{font-size:15px;}
+  /* the lesson takes the answer side and leaves the exhibit it explains in view */
+  .stage>.vpanel{left:calc(52% + 6px);top:0;bottom:0;overflow-y:auto;}
+  .pfoot{min-height:38px;padding-top:5px;}
+}
+/* the smallest phones on their side (568 x 320): every row gives up a few more pixels */
+@media(max-height:340px) and (min-aspect-ratio:3/2){
+  .room{padding:6px 10px;} .pbar{padding-bottom:3px;} .suspect .mascot{width:40px;height:44px;}
+  .abtn{min-height:36px;font-size:13px;} .answers.six{gap:5px;} .pfoot{min-height:34px;padding-top:3px;}
+  .gbtn .gl{display:none;}
+}
 /* the longest exhibit labels only fit the smallest phones with tighter tracking */
 @media(max-width:359px){ .evcard .tag{letter-spacing:.06em;padding:2px 6px;left:10px;max-width:calc(100% - 46px);} }
 @media(max-width:400px){
@@ -936,7 +965,7 @@ body.cb .j-mark{outline-style:dotted;outline-width:3px;}
         </div>
       </div>
     </div>
-    <div class="tfoot"><span>Built for everyone who has asked <span class="red">"who is json"</span></span><span>&middot;</span><span>keys 1&ndash;6 &middot; Q W E R tools</span></div>
+    <div class="tfoot"><span>Built for everyone who has asked <span class="red">"who is json"</span></span><span>&middot;</span><span>keys 1&ndash;6 &middot; Q W E R T tools</span></div>
   </section>
 
   <!-- ================= HUB ================= -->
@@ -1129,7 +1158,7 @@ function flavorNumber(v){ if(v===0)return "“Zero. Nothing, but confidently.”
   return "“A perfectly ordinary number. Suspiciously ordinary.”"; }
 function flavorFor(v){ if(v===null)return "“Null. Not zero, not empty — nothing. Like your test coverage.” 🕳️";
   if(Array.isArray(v))return v.length?`“An array of ${v.length}. We move as a unit.”`:"“An empty array. The gang didn't show.” 📭";
-  const t=typeof v; if(t==='object')return Object.keys(v).length?`“An object with ${Object.keys(v).length} key(s). I keep secrets in braces.”`:"“An empty object. Minimal. Hollow. Deployed anyway.”";
+  const t=typeof v; if(t==='object')return Object.keys(v).length?`“An object with ${plural(Object.keys(v).length,'key')}. I keep secrets in braces.”`:"“An empty object. Minimal. Hollow. Deployed anyway.”";
   if(t==='string')return flavorString(v); if(t==='number')return flavorNumber(v);
   if(t==='boolean')return v?"“True. An unqualified yes.” ✅":"“False. A cold, load-bearing no.” ❌"; return "“…what am I even.”"; }
 
@@ -1307,8 +1336,8 @@ const FAIL_QUIPS=[
  "Capt. Kanban has moved that to Blocked. Blocked by you.",
  "Lint warned you about that one. Twice. In yellow.",
  "He accepted all your changes on the way out.",
- "It was a null. It was always going to be a null.",
- "Six options. You found the fifth-best one.",
+ "He was wearing it the whole time. You were looking at the hat.",
+ "Close, the way a 404 is close to a 200.",
  "He left a 200 OK where the body should have been."
 ];
 const OVER_QUIPS=[
@@ -1394,24 +1423,24 @@ const GADGETS={
     pd:p=>p?('Answers given on a frozen clock hit <b>+'+p+'%</b> harder.'):'Freezes this exhibit until you answer.'},
   ai:{ic:'🤖',n:'Ask the AI',key:'w',passive:false,
     d:'Rules out wrong answers. Not allowed on two-way questions; even the AI has standards.',
-    uses:[1,2,2,3,3], pow:[2,2,2,3,3],
-    pd:p=>'Rules out <b>'+p+'</b> wrong answer'+(p===1?'':'s')+' on a six-way question, '+(p-1)+' on a four-way.'},
+    uses:[1,2,2,3,3], pow:[2,2,3,3,4],
+    pd:p=>'Rules out <b>'+p+'</b> wrong answer'+(p===1?'':'s')+' on a six-way question, '+(p-1)+' on a four-way. Never the last one.'},
   ship:{ic:'🚀',n:'Ship It',key:'e',passive:false,
     d:'Arms a power hit: your next correct answer lands harder. A miss wastes it.',
-    uses:[1,1,2,2,3], pow:[200,200,250,250,300],
+    uses:[1,2,2,3,3], pow:[200,200,250,250,300],
     pd:p=>'Next correct answer deals <b>×'+(p/100)+'</b> damage.'},
   ctrlz:{ic:'↩️',n:'Ctrl+Z',key:'r',passive:false,
-    d:'Patches a heart back, up to your maximum.',
-    uses:[1,1,2,2,3], pow:[0,0,1,1,1],
-    pd:p=>p?'Restores a heart <b>and</b> the streak your last miss cost you.':'Restores one heart.'},
+    d:'Patches a heart back, up to your maximum. Even on the miss that would have lost the case.',
+    uses:[1,1,2,2,3], pow:[0,1,1,2,2],
+    pd:p=>p>=2?'Restores <b>two</b> hearts and the streak your last miss cost you.':p?'Restores a heart <b>and</b> the streak your last miss cost you.':'Restores one heart.'},
   flash:{ic:'🔦',n:'Flashlight',key:'t',passive:false,
     d:'Shines on the giveaway: the outer bracket, the quotes, the node at the end of the path, the broken character.',
-    uses:[1,2,2,3,4], pow:[0,0,0,0,0],
+    uses:[1,2,3,4,5], pow:[0,0,0,0,0],
     pd:()=>'Highlights the tell on this exhibit.'},
   duck:{ic:'🦆',n:'Rubber Duck',key:'',passive:true,
-    d:'Passive. Takes your first miss of every case: no heart lost. It still counts as a mistake for stars.',
-    uses:[1,1,1,1,2], pow:[0,0,1,1,1],
-    pd:p=>p?'Also keeps your streak alive when it saves you.':'Forgives the heart, not the streak.'}
+    d:'Passive. Takes the first miss of every case, and more as it levels up: no heart lost. It still counts as a mistake for stars.',
+    uses:[1,1,2,2,3], pow:[0,1,1,2,2],
+    pd:p=>p>=2?'Keeps your streak alive when it saves you, and the next exhibit gets <b>+50%</b> clock.':p?'Also keeps your streak alive when it saves you.':'Forgives the heart, not the streak.'}
 };
 const GADGET_ORDER=['coffee','ai','ship','ctrlz','flash','duck'];
 const GADGET_COST=[0,0,100,220,400,650];   /* index = the level you are buying */
@@ -1491,7 +1520,7 @@ const AWARDS=[
  {id:'hard1',   ic:'📕',n:'Second file',          d:'Earn a red star in the Second File.',           st:'hardStars', g:1,    xp:80, c:60},
  {id:'hard81',  ic:'🩸',n:'Seen it twice',        d:'Earn 81 red stars in the Second File.',         st:'hardStars', g:81,   xp:400,c:400},
  {id:'rank10',  ic:'🎗️',n:'Lead detective',       d:'Reach rank 10.',                                st:'rank',      g:10,   xp:0,  c:150},
- {id:'rank20',  ic:'🎖️',n:'Linter of the law',    d:'Reach rank 20.',                                st:'rank',      g:20,   xp:0,  c:300},
+ {id:'rank20',  ic:'🎖️',n:'Linter of the law',    d:'Reach rank 19, where the title is.',            st:'rank',      g:19,   xp:0,  c:300},
  {id:'rank30',  ic:'👑',n:'Commissioner',         d:'Reach rank 30.',                                st:'rank',      g:30,   xp:0,  c:600}
 ];
 
@@ -1570,7 +1599,7 @@ function defSave(){ return {
   daily:{last:'',streak:0,bestStreak:0,hist:{}},
   themes:{owned:['classic'],eq:'classic'},
   rk:1, bonus:0, hearts:3, slots:2, miles:[], lvf:{},
-  flags:{intro:0,won:0,ending:0,mig:0,vet:0,hardSeen:0}
+  flags:{intro:0,won:0,won2:0,ending:0,mig:0,vet:0,hardSeen:0}
 }; }
 const sN=(v,lo,hi,d)=>{ const n=Number(v); return Number.isFinite(n)?clamp(Math.floor(n),lo,hi):d; };
 const sB=v=>v===true||v===1||v==='1';
@@ -3083,6 +3112,8 @@ function renderRaw(raw,lit,ranges){
   for(const p of pieces){ if(p.a===p.b) continue;
     if(!open&&ri<R.length&&p.a===R[ri][0]){ out+='<span class="'+(R[ri][2]||'j-mark')+'">'; open=true; }
     out+=p.c?'<span class="'+p.c+'">'+esc(raw.slice(p.a,p.b))+'</span>':esc(raw.slice(p.a,p.b));
+    /* a long exhibit wraps after a comma, not in the middle of a number (<wbr> adds no text, so textContent is unchanged) */
+    if(p.c==='j-c'&&raw[p.b-1]===',') out+='<wbr>';
     if(open&&p.b===R[ri][1]){ out+='</span>'; open=false; ri++; } }
   if(open) out+='</span>';
   return out; }
@@ -3231,11 +3262,12 @@ function rankInfo(xp){ let r=1, rem=Math.max(0,xp|0);
 function currentRank(){ return rankInfo(SAVE.xp).rank; }
 function rankTitle(r){ if(r>RANK_MAX) return 'Commissioner ★'+(r-RANK_MAX); let t=RANK_TITLES[0][1]; RANK_TITLES.forEach(([at,n])=>{ if(r>=at) t=n; }); return t; }
 function rewardFor(r){ return r>RANK_MAX ? {t:'clout',n:300} : (RANK_REWARDS[r]||null); }
-function rewardText(w){ if(!w) return {ic:'📄',n:'A promotion',d:'And the paperwork that comes with it.'};
+function rewardText(w,refund){ if(!w) return {ic:'📄',n:'A promotion',d:'And the paperwork that comes with it.'};
   switch(w.t){
     case 'gadget': return {ic:GADGETS[w.id].ic,n:'Gadget: '+GADGETS[w.id].n,d:GADGETS[w.id].d};
     case 'clout':  return {ic:'🪙',n:'+'+fmt(w.n)+' clout',d:'Spend it on gadget upgrades and desk themes.'};
-    case 'theme':  return {ic:THEMES[w.id].ic,n:'Desk theme: '+THEMES[w.id].name,d:'Equip it in Gear. If you already own it, you get clout instead.'};
+    case 'theme':  return refund?{ic:THEMES[w.id].ic,n:'Desk theme: '+THEMES[w.id].name+' (already yours)',d:'You bought it early, so the department pays you back: +'+fmt(refund)+' clout.'}
+                         :{ic:THEMES[w.id].ic,n:'Desk theme: '+THEMES[w.id].name,d:'Equip it in Gear.'};
     case 'slot':   return {ic:'🎒',n:'Loadout slot '+w.n,d:'Carry '+w.n+' gadgets into every case.'};
     case 'heart':  return {ic:'❤️',n:'A fourth heart',d:'Every case now starts with 4 hearts. Stars still count mistakes, not hearts.'};
     case 'bonus':  return {ic:'📈',n:'+'+w.n+'% clout',d:'On everything you earn from now on.'};
@@ -3244,16 +3276,19 @@ function applyReward(w){
   if(!w) return;
   if(w.t==='gadget'){ SAVE.gad[w.id]=Math.max(1,SAVE.gad[w.id]|0); if(SAVE.load.indexOf(w.id)<0&&SAVE.load.length<SAVE.slots) SAVE.load.push(w.id); }
   else if(w.t==='clout') addClout(w.n,false);
-  else if(w.t==='theme'){ if(SAVE.themes.owned.indexOf(w.id)<0) SAVE.themes.owned.push(w.id); else addClout(150,false); }
+  /* a theme you already own (bought early, or brought from v1) comes back as its price in clout */
+  else if(w.t==='theme'){ if(SAVE.themes.owned.indexOf(w.id)<0) SAVE.themes.owned.push(w.id); else return addClout(Math.max(150,THEMES[w.id].cost|0),false); }
   else if(w.t==='slot') SAVE.slots=Math.max(SAVE.slots,w.n);
   else if(w.t==='heart') SAVE.hearts=Math.max(SAVE.hearts,w.n);
   else if(w.t==='bonus') SAVE.bonus=Math.min(50,(SAVE.bonus|0)+w.n); }
 /* returns the ranks newly reached, each with its reward already applied */
 function settleRanks(){ const r=currentRank(), out=[];
-  while(SAVE.rk<r){ SAVE.rk++; const w=rewardFor(SAVE.rk); applyReward(w); out.push({rank:SAVE.rk,w}); }
+  while(SAVE.rk<r){ SAVE.rk++; const w=rewardFor(SAVE.rk); const refund=applyReward(w)||0; out.push({rank:SAVE.rk,w,refund:w&&w.t==='theme'?refund:0}); }
   SAVE.stats.rank=Math.max(SAVE.stats.rank|0,r); return out; }
 function gainXP(n){ n=Math.max(0,Math.round(n)); SAVE.xp+=n; return n; }
-function addClout(n,bonus){ n=Math.max(0,Math.round(n*(bonus===false?1:(1+(SAVE.bonus|0)/100)))); SAVE.clout+=n; SAVE.earned+=n; return n; }
+/* what a payout is really worth once the rank bonus is applied: shown on a card, paid by addClout */
+function withBonus(n,bonus){ return Math.max(0,Math.round(n*(bonus===false?1:(1+(SAVE.bonus|0)/100)))); }
+function addClout(n,bonus){ n=withBonus(n,bonus); SAVE.clout+=n; SAVE.earned+=n; return n; }
 
 /* ---- stats: the single instrumentation point ---- */
 const STAT_MAX={bestStreak:1,coldBest:1,rank:1};
@@ -3457,6 +3492,7 @@ function nextRound(){
   let dur=readBudget(R.chars,R.items)+think+(R.segs?PATH_PER_SEG*R.segs:0);
   dur=Math.max(HARD_FLOOR,dur)*coachMul*(SAVE.set.slow?1.5:1);
   if(G.selfLive) dur*=1.4;
+  if(G.duckCalm){ dur*=1.5; G.duckCalm=false; }
   G.duration=dur; G.frozen=false; G.coffeeRound=false; G.flashUsed=false;
   G.elim=[];
   /* AUTOCOMPLETE greys one wrong answer on every exhibit with more than two options */
@@ -3493,7 +3529,7 @@ function tick(t){
     const sec=Math.ceil(remain/1000); if(urgent&&!G.frozen&&sec!==G.lastTick&&sec>0){ G.lastTick=sec; cue(frac<0.14?'tickhot':'tick',null,sec); } }
   else uiTimer(1,false,false,true);
   if(G.sealArmed&&!G.round.sealed){ const left=G.sealAt-t;
-    if(left<=0){ G.round.sealed=true; G.sealSeen++; uiSeal(true); cue('paper'); vibrate(18); say('Exhibit sealed. Answer from memory.'); }
+    if(left<=0){ G.round.sealed=true; G.sealSeen++; uiSeal(true); uiGadgets(); cue('paper'); vibrate(18); say('Exhibit sealed. Answer from memory.'); }
     else { const s=Math.ceil(left/1000); if(s!==G.sealShown){ G.sealShown=s; uiSealTag(s); } } }
   if(!G.noClock&&!G.frozen&&remain<=0){ answer(null); return; }
   requestAnimationFrame(tick); }
@@ -3559,7 +3595,7 @@ function onWrong(R,id,timedOut){
   if(!train) G.mistakes++;
   if(train||G.kind==='daily'){ saved=true; }
   else if(G.L&&G.L.tut&&!G.hard){ saved=true; why='Training case: no heart lost.'; }
-  else if(G.duckLeft>0){ G.duckLeft--; saved=true; keep=!!G.duckPow; why='🦆 The duck took that one.'; if(G.gad.duck) G.gad.duck.left=G.duckLeft; }
+  else if(G.duckLeft>0){ G.duckLeft--; saved=true; keep=!!G.duckPow; if(G.duckPow>=2) G.duckCalm=true; why='🦆 The duck took that one.'+(G.duckPow>=2?' It also bought you extra time on the next one.':''); if(G.gad.duck) G.gad.duck.left=G.duckLeft; }
   else if(G.perks.second&&!G.secondUsed){ G.secondUsed=true; saved=true; why='🩺 Second opinion: no heart lost.'; }
   else if(G.perks.vibetest&&rnd()<0.25){ saved=true; why='🧪 Vibes held. No heart lost.'; }
   if(!saved) G.hearts=Math.max(0,G.hearts-1);
@@ -3631,7 +3667,9 @@ function settleLevel(won){
   if(L.tech&&SAVE.tech.indexOf(L.tech)<0) SAVE.tech.push(L.tech);
   if(G.sealTech&&SAVE.tech.indexOf('seal')<0) SAVE.tech.push('seal');
   if(G.tutDone||(L.tut&&won)) SAVE.flags.intro=Math.max(SAVE.flags.intro,1);
-  let ending=false; if(won&&L.final&&!hard&&!SAVE.flags.won){ SAVE.flags.won=1; ending=true; }
+  /* the first close of each file has its own ending: 'first', then 'second' for the red-star file */
+  let ending=false; if(won&&L.final&&!hard&&!SAVE.flags.won){ SAVE.flags.won=1; ending='first'; }
+  else if(won&&L.final&&hard&&!SAVE.flags.won2){ SAVE.flags.won2=1; ending='second'; }
   recountStars();
   const miles=settleMiles(), ranks=settleRanks();
   checkAwards();
@@ -3660,8 +3698,10 @@ function useGadget(id){
     for(let k=wrong.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [wrong[k],wrong[j]]=[wrong[j],wrong[k]]; }
     G.elim=(G.elim||[]).concat(wrong.slice(0,Math.min(n,wrong.length-1))); uiEliminate(G.elim); }
   else if(id==='ship'){ if(G.shipArmed) return; G.shipArmed=true; }
-  else if(id==='ctrlz'){ if(G.hearts>=G.heartsMax) return; G.hearts++; if(g.pow) G.streak=Math.max(G.streak,G.lastMissStreak); uiHearts(true); uiStreak(); }
-  else if(id==='flash'){ if(!active||G.flashUsed||!R.hint||!R.hint.length||R.kind==='valid'||R.kind==='spot') return; G.flashUsed=true; uiFlashlight(R); }
+  else if(id==='ctrlz'){ if(G.hearts>=G.heartsMax) return; G.hearts=Math.min(G.heartsMax,G.hearts+(g.pow>=2?2:1)); if(g.pow) G.streak=Math.max(G.streak,G.lastMissStreak); uiHearts(true); uiStreak();
+    /* pressed on the miss that lost the case, it un-loses it */
+    if(G.after==='fail'&&G.hearts>0){ G.after='next'; uiRescued(); } }
+  else if(id==='flash'){ if(!active||G.flashUsed||R.sealed||!R.hint||!R.hint.length||R.kind==='valid'||R.kind==='spot') return; G.flashUsed=true; uiFlashlight(R); }
   g.left--; stat('gadgetUses'); cue('power'); bark('g_'+id);
   uiGadgets(); }
 function gadgetUsable(id){ if(!G||!G.live) return false; const g=G.gad[id]; if(!g||g.left<=0||GADGETS[id].passive) return false;
@@ -3670,7 +3710,7 @@ function gadgetUsable(id){ if(!G||!G.live) return false; const g=G.gad[id]; if(!
   if(id==='ai') return a&&R&&R.opts.length>=4;
   if(id==='ship') return !G.shipArmed&&G.kind!=='daily';
   if(id==='ctrlz') return G.hearts<G.heartsMax&&G.kind!=='daily';
-  if(id==='flash') return a&&R&&!G.flashUsed&&R.hint&&R.hint.length>0&&R.kind!=='valid'&&R.kind!=='spot';
+  if(id==='flash') return a&&R&&!G.flashUsed&&!R.sealed&&R.hint&&R.hint.length>0&&R.kind!=='valid'&&R.kind!=='spot';
   return false; }
 
 /* ---------- pause ---------- */
@@ -3692,6 +3732,9 @@ function resumeGame(){ if(!G||!G.paused) return; G.paused=false;
 function quitSession(){ if(!G) return false; const k=G.kind; G.live=false; G.roundActive=false; G.paused=false; clearTimeout(G.vT); uiCloseVerdict();
   /* leaving a cold case run still banks it: the run is the score */
   if(k==='cold'&&G.correct>0&&!G.ended){ applyAudioState(); endSession(false); return true; }
+  /* so does walking out of today's first Daily sitting once it has begun: the rest go down unanswered.
+     Otherwise a first look at the fifteen could be thrown away and the sitting taken again, knowing them */
+  if(k==='daily'&&G.answered>0&&!G.ended&&dailyFirst()){ while(G.log.length<G.total) G.log.push({k:'',ok:false,to:true,t:''}); applyAudioState(); endSession(true); return true; }
   G.ended=true; applyAudioState(); G=null; musicFromState(false); return false; }
 /* hidden in any moment of a case: mid-exhibit, on a lesson, or between two (where the next clock would start unseen) */
 addEventListener('visibilitychange',()=>{ if(document.hidden&&G&&G.live&&!G.paused) pauseGame(); });
@@ -3783,8 +3826,13 @@ function enterPlay(){
   G.vT=setTimeout(nextRound,G.boss?1500:950); }
 
 /* ---------- drawing an exhibit ---------- */
+const LANDSCAPE_MQ='(max-height:540px) and (min-aspect-ratio:3/2)';
 function evSize(n,multiline){ if(multiline) n+=14;
-  return n<=6?'clamp(34px,8vw,56px)':n<=12?'clamp(28px,6.4vw,46px)':n<=22?'clamp(22px,4.6vw,34px)':n<=36?'clamp(17px,3.6vw,26px)':n<=56?'clamp(14px,2.9vw,21px)':'clamp(12px,2.5vw,17px)'; }
+  const s=n<=6?[34,8,56]:n<=12?[28,6.4,46]:n<=22?[22,4.6,34]:n<=36?[17,3.6,26]:n<=56?[14,2.9,21]:[12,2.5,17];
+  /* a phone on its side gives the exhibit about half the room's width, so the size can't follow the full viewport */
+  let land=false; try{ land=matchMedia(LANDSCAPE_MQ).matches; }catch(e){}
+  if(!land) return 'clamp('+s[0]+'px,'+s[1]+'vw,'+s[2]+'px)';
+  return 'clamp('+Math.round(s[0]*.75)+'px,'+(s[1]*.55).toFixed(2)+'vw,'+Math.round(s[2]*.72)+'px)'; }
 function uiRound(R,o){
   o=o||{};
   evcard.className='evcard';
@@ -3879,6 +3927,10 @@ function uiLose(R,info){
   G.vT=setTimeout(afterLesson,AUTO_CONTINUE+(SAVE.set.slow?2400:0));
   bubbleEl.innerHTML=info.timedOut?rand(['“Time. I love that word.”','“You hesitated. I noticed.”','“The clock was always on my side.”']):loseQuip(R);
   say((info.timedOut?'Too slow. ':'Wrong. ')+ansText.replace(/<[^>]+>/g,'')+' '+String(R.explain||'').replace(/<[^>]+>/g,'')+(info.saved&&info.why?' '+info.why:'')+' Press space to continue.'); }
+/* Ctrl+Z on the losing miss: the panel stops saying the case is over */
+function uiRescued(){ const go=$('vGo'); if(go) go.innerHTML='Next exhibit &#9654; <span class="k">space</span>';
+  const vh=document.querySelector('#vpanel .vh'); if(vh&&!vh.querySelector('.saved')) vh.insertAdjacentHTML('beforeend',' <span class="saved">&#8617;&#65039; Undone. The case is still open.</span>');
+  say('Control Z. The case is still open.'); }
 function uiCloseVerdict(){ const v=$('vpanel'); if(v) v.remove(); }
 function verdictOpen(){ const v=$('vpanel'); return !!v&&nowMs()-(v._at||0)>350; }
 function uiGuidedRetry(R,id){ const b=answersEl.querySelector('[data-id="'+id+'"]'); if(b){ b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),600); }
@@ -4037,13 +4089,17 @@ function showToast(q){ const a=q.a, t=document.createElement('div'); t.className
 setInterval(pumpToasts,400);
 
 /* ===================== TITLE ===================== */
+/* what the title says is next: a case, or once the first file is closed, the second one */
+function titleNext(N){ if(!LEVELS.every(L=>cleared(L,false))) return 'next: case '+N.id;
+  if(!LEVELS.every(L=>cleared(L,true))) return 'next: case '+nextLevel(true).id+' in the second file';
+  return 'both files closed'; }
 function renderTitle(){
   const first=!SAVE.flags.intro&&!SAVE.stats.games;
   const r=currentRank(), N=nextLevel(false);
   $('playBtn').innerHTML=first?'&#9654; Open the case':'&#9654; Continue';
   $('titleMeta').innerHTML=first?'54 cases &middot; 9 districts &middot; 1 suspect &middot; no idea'
-    :'Rank <b>'+r+'</b> &middot; '+esc(rankTitle(r))+' &middot; next: case '+N.id+' &middot; <b>'+totalStars(false)+'</b>/'+TOTAL_STARS+' stars';
-  $('titleStatus').textContent=SAVE.flags.won?'closed. allegedly.':'unresolved';
+    :'Rank <b>'+r+'</b> &middot; '+esc(rankTitle(r))+' &middot; '+titleNext(N)+' &middot; <b>'+totalStars(false)+'</b>/'+TOTAL_STARS+' stars';
+  $('titleStatus').textContent=SAVE.flags.won2?'closed twice. allegedly.':SAVE.flags.won?'closed. allegedly.':'unresolved';
   $('mugStamp').textContent=SAVE.flags.won?'POSITIVELY IDENTIFIED':'NO PHOTO ON FILE';
   const side=$('titleSide'); side.innerHTML='';
   const mk=(html,fn,label)=>{ const b=document.createElement('button'); b.className='pill'; b.innerHTML=html; b.addEventListener('click',fn); if(label) b.setAttribute('aria-label',label); side.appendChild(b); };
@@ -4226,7 +4282,9 @@ function gainsHtml(res){
   let h='<div class="rgain">';
   h+='<div class="gl"><span>Experience</span><b>+'+fmt(res.xp)+' XP</b></div>';
   h+='<div class="rk"><span class="rl">Rank <b id="rRk">'+before.rank+'</b></span><span class="bar"><i id="rXp" style="width:'+(before.into/before.need*100).toFixed(1)+'%"></i></span><span class="rl" id="rXpT">'+fmt(before.into)+' / '+fmt(before.need)+'</span></div>';
-  if(up) h+='<div class="gl" id="rUp" style="visibility:hidden"><span>&#127894; Promoted to <b style="font-size:inherit">'+esc(rankTitle(after.rank))+'</b></span><b>Rank '+after.rank+'</b></div>';
+  /* the title only gets a mention when it actually changes: several ranks share one */
+  const retitled=rankTitle(after.rank)!==rankTitle(before.rank);
+  if(up) h+='<div class="gl" id="rUp" style="visibility:hidden"><span>&#127894; '+(retitled?'Promoted to <b style="font-size:inherit">'+esc(rankTitle(after.rank))+'</b>':'Promoted')+'</span><b>Rank '+after.rank+'</b></div>';
   h+='<div class="gl"><span>Clout</span><b>+'+fmt(res.clout)+'</b></div>';
   if(res.filed&&res.filed.length) h+='<div class="gl"><span>Filed in the dossier</span><b>+'+res.filed.length+'</b></div><div class="newlist">'+res.filed.slice(0,8).map(r=>'<span class="chip">'+esc(r.length>18?r.slice(0,16)+'…':r)+'</span>').join('')+(res.filed.length>8?'<span class="chip">+'+(res.filed.length-8)+' more</span>':'')+'</div>';
   if(res.lost) h+='<div class="gl"><span>He took <b style="font-size:inherit;color:var(--red)">'+plural(res.lost,'unfiled disguise')+'</b> with him</span><span></span></div>';
@@ -4259,7 +4317,7 @@ function renderResultsLevel(res){
   $('rMap').addEventListener('click',leave(()=>enterHub('map'))); }
 /* whatever the player chose, the ending and the promotions get their moment first */
 function afterResults(res,then){
-  const go=()=>{ if(res.ending){ showEnding(then); return; } then(); };
+  const go=()=>{ if(res.ending){ showEnding(then,res.ending==='second'); return; } then(); };
   /* a promotion the player has not seen yet comes first, then the ending, then wherever they were going */
   if(res.ranks&&res.ranks.length&&!res._rk){ res._rk=1; clearTimeout(res._rkT); showRankUp(res.ranks,go); return; }
   go(); }
@@ -4285,7 +4343,7 @@ function showRankUp(list,then){
   openModal('mRank',()=>{ const top=list[list.length-1];
     let h=xBtn('mRank')+'<div class="kicker" style="text-align:center">Promotion</div><h2 id="rkTitle" style="text-align:center;padding:0">Rank <span class="r">'+top.rank+'</span></h2>'+
       '<div class="sub" style="text-align:center">'+esc(rankTitle(top.rank))+'</div><div class="rewards">'+
-      list.map(x=>{ const t=rewardText(x.w); return '<div class="reward"><span class="ric">'+t.ic+'</span><span><span class="rn">'+(list.length>1?'Rank '+x.rank+' &middot; ':'')+esc(t.n)+'</span><span class="rd" style="display:block">'+esc(t.d)+'</span></span></div>'; }).join('')+'</div>';
+      list.map(x=>{ const t=rewardText(x.w,x.refund); return '<div class="reward"><span class="ric">'+t.ic+'</span><span><span class="rn">'+(list.length>1?'Rank '+x.rank+' &middot; ':'')+esc(t.n)+'</span><span class="rd" style="display:block">'+esc(t.d)+'</span></span></div>'; }).join('')+'</div>';
     const nx=rewardFor(top.rank+1); if(nx){ const t=rewardText(nx); h+='<p style="text-align:center;font-size:12px">Next, at rank '+(top.rank+1)+': <b>'+esc(t.n)+'</b></p>'; }
     h+='<div class="btnrow"><button class="btn yellow" data-close="mRank" data-autofocus>Excellent</button></div>';
     $('rkSheet').innerHTML=h; wireClose($('rkSheet')); },{onClose:then||null});
@@ -4308,18 +4366,23 @@ function showDistrictIntro(D,then){
     (D.tech?'<div class="tech"><span class="tk">This district teaches</span><span class="tic">'+TECHS[D.tech].ic+'</span><div><h4>'+esc(TECHS[D.tech].n)+'</h4><p>'+TECHS[D.tech].p+'</p></div></div>':
       '<div class="tech"><span class="tk">The last district</span><span class="tic">🚨</span><div><h4>Everything</h4><p>Every technique the city has taught you, at once, against the best he has.</p></div></div>')+
     '<div class="btnrow"><button class="btn" id="syGo" data-autofocus>Enter '+esc(D.name)+' &#9654;</button></div>';
-    $('syGo').addEventListener('click',()=>{ closeModal('mStory',true); then&&then(); }); },{onClose:null});
+    $('syGo').addEventListener('click',()=>closeModal('mStory')); },
+    /* Esc or the backdrop still walks you into the district: the intro is only ever shown once */
+    {onClose:()=>{ then&&then(); }});
   cue('mode',null,true); }
-function showEnding(then){
+function showEnding(then,second){
+  const reds=totalStars(true);
   openModal('mStory',()=>{ $('sySheet').innerHTML=
-    '<div class="rstamp" style="display:flex;justify-content:center;margin-bottom:14px"><span class="stamp green" style="font-family:var(--ff-display);font-size:28px">Case closed</span></div>'+
-    '<h2 id="syTitle" style="text-align:center;padding:0">You got <span class="r">JSON.</span></h2>'+
-    '<p style="margin-top:12px">'+rand(EPILOGUES)+'</p>'+
-    '<div class="rewards"><div class="reward"><span class="ric">📕</span><span><span class="rn">The second file is open</span><span class="rd" style="display:block">Every case again, meaner, for red stars. Switch files at the top of the map.</span></span></div>'+
+    '<div class="rstamp" style="display:flex;justify-content:center;margin-bottom:14px"><span class="stamp green" style="font-family:var(--ff-display);font-size:28px">'+(second?'Closed twice':'Case closed')+'</span></div>'+
+    '<h2 id="syTitle" style="text-align:center;padding:0">'+(second?'You got <span class="r">JSON.</span> Again.':'You got <span class="r">JSON.</span>')+'</h2>'+
+    '<p style="margin-top:12px">'+rand(second?EPILOGUES_NG:EPILOGUES)+'</p>'+
+    '<div class="rewards">'+(second
+      ?'<div class="reward"><span class="ric">📕</span><span><span class="rn">The second file is closed</span><span class="rd" style="display:block">'+reds+' / '+TOTAL_STARS+' red stars so far. Every one still out there is a case he thinks you can&rsquo;t sweep.</span></span></div>'
+      :'<div class="reward"><span class="ric">📕</span><span><span class="rn">The second file is open</span><span class="rd" style="display:block">Every case again, meaner, for red stars. Switch files at the top of the map.</span></span></div>')+
     '<div class="reward"><span class="ric">❄️</span><span><span class="rn">Cold cases never close</span><span class="rd" style="display:block">How deep can you go? The leaderboard is on your desk.</span></span></div></div>'+
     '<div class="btnrow"><button class="btn yellow" id="syGo" data-autofocus>Back to the precinct</button><button class="btn paper" id="syBrag">&#128203; Copy brag</button></div>';
     $('syGo').addEventListener('click',()=>closeModal('mStory'));
-    $('syBrag').addEventListener('click',()=>copyOut($('syBrag'),'who is json?\n\nCASE CLOSED. He was, allegedly, a data format.\n'+totalStars(false)+'/'+TOTAL_STARS+' stars · rank '+currentRank()+' ('+rankTitle(currentRank())+') · '+filedCount()+' disguises filed\n\nYour turn, detective: '+siteURL(),'&#10004; Copied','&#128203; Copy brag')); },
+    $('syBrag').addEventListener('click',()=>copyOut($('syBrag'),'who is json?\n\n'+(second?'CASE CLOSED. TWICE. He is still, allegedly, a data format.\n'+reds+'/'+TOTAL_STARS+' red stars · ':'CASE CLOSED. He was, allegedly, a data format.\n')+totalStars(false)+'/'+TOTAL_STARS+' stars · rank '+currentRank()+' ('+rankTitle(currentRank())+') · '+filedCount()+' disguises filed\n\nYour turn, detective: '+siteURL(),'&#10004; Copied','&#128203; Copy brag')); },
     /* Esc and the backdrop close it too, and must still leave the finished case behind */
     {onClose:()=>{ then&&then(); }});
   cue('victory'); confetti(60); setTimeout(()=>confetti(40),600); }
@@ -4327,8 +4390,9 @@ function showEnding(then){
 function renderCold(){ const p=$('pane-cold');
   let h='<div class="panehead"><h2>Cold <em>cases</em></h2><span class="hint">endless &middot; perks &middot; one run</span></div>';
   if(CHALLENGE){ h+='<div class="card" style="margin-bottom:12px;border-color:var(--blue)"><h3>📨 A run, sent to you</h3><p><b>'+esc(CHALLENGE.name||'A detective')+'</b> sent you their exact cold case run'+
-    (CHALLENGE.rival?' and walked out with <b>'+fmt(CHALLENGE.rival)+'</b> evidence':'')+'. Same exhibits, same clock, same perks on offer.</p>'+
-    '<div class="modecard"><div></div><div class="mrow"><button class="btn blue" id="chGo">&#9654; Take the challenge</button></div></div></div>'; }
+    (CHALLENGE.rival?' and walked out with <b>'+fmt(CHALLENGE.rival)+'</b> evidence':'')+'. Same exhibits, same clock, same perks on offer.'+
+    (coldOpen()?'':' It will keep: the cold case files open once you beat <b>The Impostor</b>, and this link will still work then.')+'</p>'+
+    (coldOpen()?'<div class="modecard"><div></div><div class="mrow"><button class="btn blue" id="chGo">&#9654; Take the challenge</button></div></div>':'')+'</div>'; }
   if(!coldOpen()) h+='<div class="card lockcard"><div class="big">🔒</div><h3>Cold cases are locked</h3><p>Beat <b>The Impostor</b> at the end of <b>The Quote District</b> and the cold case files open for good.</p></div>';
   else { const t=coldTier();
     h+='<div class="card"><div class="modecard"><div class="mic">❄️</div><div><h3>Work a cold case run</h3><p>Suspect after suspect until your hearts run out. Draft a perk after every crack, a heart back every other case, deep cover every fifth. Uses your loadout and every technique from the districts you have cleared: '+coldTechs(t).map(x=>'<b>'+esc(TECHS[x].n)+'</b>').join(', ')+'.</p>'+
@@ -4353,13 +4417,13 @@ function renderResultsCold(res){
   if(res.rival&&res.rival.rival){ const d=res.score-res.rival.rival; h+='<div class="tipline">'+(d>=0?'&#129351; You beat <b>'+esc(res.rival.name||'them')+'</b> by <b>'+fmt(d)+'</b>.':'&#129352; <b>'+esc(res.rival.name||'They')+'</b> is still ahead by <b>'+fmt(-d)+'</b>.')+'</div>'; }
   if(res.qual) h+='<div class="card" style="margin-top:10px;text-align:center"><p style="margin:0 0 8px">Top 8. Sign the report:</p><input id="lbIni" class="mono" maxlength="3" value="'+esc(SAVE.initials)+'" aria-label="Your initials" autocomplete="off" spellcheck="false" style="width:110px;text-align:center;font-size:24px;font-weight:700;letter-spacing:.2em;padding:6px;border:2px solid var(--ink);border-radius:4px;background:var(--paper-2);color:var(--ink)"> <button class="btn sm" id="lbSign">Sign</button></div>';
   h+=gainsHtml(res);
-  h+='<div class="btnrow"><button class="btn" id="rAgain" data-autofocus>&#9654; Run it back</button><button class="btn paper" id="rLink">&#128279; Copy challenge link</button><button class="btn paper" id="rMap">Precinct</button></div>';
+  h+='<div class="btnrow"><button class="btn" id="rAgain" data-autofocus>&#9654; '+(res.rival?'Retry the challenge':'Run it back')+'</button><button class="btn paper" id="rLink">&#128279; Copy challenge link</button><button class="btn paper" id="rMap">Precinct</button></div>';
   $('rSheet').innerHTML=h;
   if($('lbSign')){ const sign=()=>{ const n=($('lbIni').value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU'; SAVE.initials=n;
       SAVE.cold.lb.push({n,s:res.score,k:res.cracked,d:dayKey()}); SAVE.cold.lb.sort((a,b)=>b.s-a.s); SAVE.cold.lb=SAVE.cold.lb.slice(0,8); save();
       $('lbSign').parentNode.innerHTML='<p style="margin:0">Filed under <b>'+esc(n)+'</b>.</p>'; cue('buy'); res.qual=false; };
     $('lbSign').addEventListener('click',sign); $('lbIni').addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){ e.preventDefault(); sign(); } }); }
-  $('rAgain').addEventListener('click',()=>{ closeModal('mResults',true); afterResults(res,()=>startCold(newSeed(),coldTier(),null)); });
+  $('rAgain').addEventListener('click',()=>{ closeModal('mResults',true); afterResults(res,()=>res.rival?startCold(res.seed,res.tier,res.rival):startCold(newSeed(),coldTier(),null)); });
   $('rLink').addEventListener('click',()=>copyOut($('rLink'),challengeLink(res.seed,res.tier,res.score),'&#10004; Link copied','&#128279; Copy challenge link'));
   $('rMap').addEventListener('click',()=>{ closeModal('mResults',true); afterResults(res,()=>enterHub('cold')); }); }
 
@@ -4418,7 +4482,9 @@ function renderGear(){ const p=$('pane-gear');
       const sw=['--board','--card','--yellow','--blue'].map(k=>'<i style="background:'+pv[k]+'"></i>').join('');
       const act=eq?'<button class="btn sm green" disabled>&#10003; On your desk</button>':have?'<button class="btn sm paper" data-th="'+id+'">Equip</button>'
         :t.cost<0?'<button class="btn sm" disabled>Rank 30 only</button>':'<button class="btn sm'+(SAVE.clout>=t.cost?' yellow':'')+'" data-buy="'+id+'"><i class="coin"></i> '+fmt(t.cost)+'</button>';
-      h+='<div class="themecard'+(eq?' equipped':'')+'" style="background:'+pv['--paper-2']+';color:'+pv['--ink']+'"><div class="nm">'+t.ic+' '+esc(t.name)+'</div><div class="sw">'+sw+'</div>'+act+'</div>'; });
+      let freeAt=0; for(const r in RANK_REWARDS){ const w=RANK_REWARDS[r]; if(w.t==='theme'&&w.id===id) freeAt=+r; }
+      const note=!have&&freeAt&&t.cost>0?'<div class="tfree">free at rank '+freeAt+' &middot; buy it early and that rank pays you back</div>':'';
+      h+='<div class="themecard'+(eq?' equipped':'')+'" style="background:'+pv['--paper-2']+';color:'+pv['--ink']+'"><div class="nm">'+t.ic+' '+esc(t.name)+'</div><div class="sw">'+sw+'</div>'+act+note+'</div>'; });
     h+='</div>'; }
   p.innerHTML=h;
   p.querySelectorAll('[data-gt]').forEach(b=>b.addEventListener('click',()=>{ GEARTAB=b.dataset.gt; renderGear(); cue('click'); }));
@@ -4439,7 +4505,7 @@ function renderDossier(){ const p=$('pane-dossier'), filed=filedCount();
         S.raws.map(r=>{ const e=SAVE.dos[r], f=e&&e.f, t=SIG[r].type;
           return f?'<button class="dc" data-card="'+esc(r)+'"><span class="raw">'+esc(r)+'</span><span class="chip t-'+t+'">'+(t==='broken'?'forged':t)+'</span><span class="wm" aria-hidden="true">'+(t==='broken'?'✗':ico(t))+'</span></button>'
                   :'<div class="dc unfiled" aria-label="Not yet filed">?</div>'; }).join('')+'</div>'+
-        '<div class="claimbar"><span>Complete set: <b>'+fmt(S.clout)+' clout + '+S.xp+' XP</b></span>'+(claimed?'<span class="chip" style="background:var(--green)">&#10003; claimed</span>':
+        '<div class="claimbar"><span>Complete set: <b>'+fmt(withBonus(S.clout))+' clout + '+S.xp+' XP</b></span>'+(claimed?'<span class="chip" style="background:var(--green)">&#10003; claimed</span>':
           done?'<button class="btn sm yellow" data-claimset="'+S.id+'">Claim</button>':'<span>'+(S.raws.length-n)+' to go</span>')+'</div></div>'; });
     h+='</div><p style="font-size:11.5px;color:rgba(240,230,205,.6);margin-top:10px;font-family:var(--ff-type)">A disguise files the first time you name it correctly in a case you go on to crack. Lose the case and he takes the unfiled ones with him.</p>'; }
   else if(DOSTAB==='guide'){ h+='<div class="card"><h3>Every rule the city has taught you</h3><p style="margin-bottom:10px">Unlocked as each district teaches its technique. Locked rules are the ones still ahead of you.</p><div class="rules">';
@@ -4454,17 +4520,19 @@ function renderDossier(){ const p=$('pane-dossier'), filed=filedCount();
         const pc=Math.round(q.c/q.a*100); return '<div class="row"><span class="tn" style="color:var(--t-'+t+')">'+ico(t)+t+'</span><span class="bar"><i style="width:'+pc+'%;background:var(--t-'+t+')"></i></span><span class="pc">'+pc+'%</span></div>'; }).join('')+'</div></div>'; }
   p.innerHTML=h;
   p.querySelectorAll('[data-dt2]').forEach(b=>b.addEventListener('click',()=>{ DOSTAB=b.dataset.dt2; renderDossier(); cue('click'); }));
-  p.querySelectorAll('[data-claimset]').forEach(b=>b.addEventListener('click',()=>{ const r=claimSet(b.dataset.claimset); if(r){ cue('unlock'); confetti(30);
+  p.querySelectorAll('[data-claimset]').forEach(b=>b.addEventListener('click',()=>{ if(claimTooSoon()) return; const r=claimSet(b.dataset.claimset); if(r){ cue('unlock'); confetti(30);
     toast({ic:'🧩',name:'Set complete',desc:'+'+fmt(r.c)+' clout · +'+r.x+' XP'},'Dossier'); const ranks=settleRanks(); save(); checkAwards(); renderTopbar(); renderDossier(); if(ranks.length) showRankUp(ranks); } }));
   p.querySelectorAll('[data-card]').forEach(b=>b.addEventListener('click',()=>openCard(b.dataset.card))); }
 function openCard(raw){ const e=SAVE.dos[raw], m=SIG[raw]; if(!e||!m) return; const t=m.type, S=SETS.find(s=>s.id===m.set);
-  openModal('mCard',()=>{ $('cdSheet').innerHTML=xBtn('mCard')+'<div class="kicker">'+esc(S.n)+'</div><h2 id="cdTitle" class="mono" style="font-family:var(--ff-mono);font-size:clamp(20px,6vw,32px);text-transform:none;word-break:break-all">'+esc(raw)+'</h2>'+
+  openModal('mCard',()=>{ $('cdSheet').innerHTML=xBtn('mCard')+'<div class="kicker">'+esc(S.n)+'</div><h2 id="cdTitle" class="mono" style="font-family:var(--ff-mono);font-size:clamp(20px,6vw,32px);text-transform:none;word-break:break-all;overflow-wrap:anywhere">'+esc(raw)+'</h2>'+
     '<div class="sub"><span class="chip t-'+t+'">'+(t==='broken'?'forged':t)+'</span> &middot; filed '+esc(e.d||'long ago')+'</div>'+
     '<p>'+(t==='broken'?'Not legal JSON. '+(BROKEN_CAT[raw]?'<b>'+esc(DIAG_CATS[BROKEN_CAT[raw]].n)+'</b>: '+esc(DIAG_CATS[BROKEN_CAT[raw]].d):''):(CARD_NOTES[raw]?esc(CARD_NOTES[raw]):TELLS[t]))+'</p>'+
     '<div class="statline"><span class="s">Named right <b>'+e.c+'</b></span><span class="s">Missed <b>'+e.w+'</b></span></div>'+
     '<div class="btnrow"><button class="btn sm paper" data-close="mCard" data-autofocus>Back to the file</button></div>'; wireClose($('cdSheet')); }); }
 
 /* ===================== AWARDS TAB ===================== */
+/* claiming re-sorts or re-draws the list, so the next Claim can land under the pointer: one claim per beat */
+let _claimAt=0; const claimTooSoon=()=>{ const t=nowMs(); if(t-_claimAt<450) return true; _claimAt=t; return false; };
 function renderAwards(){ const p=$('pane-awards'), got=AWARDS.filter(a=>SAVE.ach[a.id]===1).length, ready=awardsReady();
   let h='<div class="panehead"><h2>Com<em>mendations</em></h2><span class="hint">'+got+' / '+AWARDS.length+' claimed'+(ready?' &middot; '+ready+' waiting':'')+'</span></div><div class="awlist">';
   const order=AWARDS.slice().sort((a,b)=>{ const r={ready:0,open:1,claimed:2}; return r[awardState(a)]-r[awardState(b)]; });
@@ -4472,9 +4540,9 @@ function renderAwards(){ const p=$('pane-awards'), got=AWARDS.filter(a=>SAVE.ach
     h+='<div class="card aw'+(s==='claimed'?' got':s==='open'?' locked':'')+'"><span class="aic" aria-hidden="true">'+a.ic+'</span><div><div class="an">'+esc(a.n)+'</div><div class="ad">'+esc(a.d)+'</div>'+
       (s==='open'&&a.g>1?'<div class="bar"><i style="width:'+(pr/a.g*100).toFixed(1)+'%"></i></div>':'')+'</div><div class="ar">'+
       (s==='ready'?'<button class="btn sm yellow" data-aw="'+a.id+'">Claim</button>':s==='claimed'?'<span>&#10003; claimed</span>':'<span>'+fmt(pr)+' / '+fmt(a.g)+'</span>')+
-      '<span>'+(a.xp?'+'+a.xp+' XP ':'')+(a.c?'+'+a.c+' clout':'')+'</span></div></div>'; });
+      '<span>'+(a.xp?'+'+a.xp+' XP ':'')+(a.c?'+'+fmt(withBonus(a.c))+' clout':'')+'</span></div></div>'; });
   p.innerHTML=h+'</div>';
-  p.querySelectorAll('[data-aw]').forEach(b=>b.addEventListener('click',()=>{ const r=claimAward(b.dataset.aw); if(r){ cue('ach'); confetti(20);
+  p.querySelectorAll('[data-aw]').forEach(b=>b.addEventListener('click',()=>{ if(claimTooSoon()) return; const r=claimAward(b.dataset.aw); if(r){ cue('ach'); confetti(20);
     const ranks=settleRanks(); save(); checkAwards(true); renderTopbar(); renderAwards(); if(ranks.length) showRankUp(ranks); } })); }
 
 /* ===================== SETTINGS, PAUSE, CONFIRM ===================== */
@@ -4498,7 +4566,17 @@ function renderSettings(){ const S=SAVE.set;
   const ini=$('setIni'); ini.addEventListener('keydown',e=>e.stopPropagation()); ini.addEventListener('change',()=>{ SAVE.initials=(ini.value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU'; ini.value=SAVE.initials; save(); });
   $('setIntro').addEventListener('click',()=>{ closeModal('mSettings',true); playCutscene(()=>{}); });
   $('setReset').addEventListener('click',()=>confirmBox('Start over?','This wipes your v2 progress on this device: ranks, stars, clout, gadgets, the dossier. It cannot be undone.','Wipe it',()=>{
-    try{ localStorage.removeItem(SAVE_KEY); }catch(e){} SAVE=defSave(); SAVE.flags.mig=1; save(); applyTheme('classic'); closeAllModals(); showScreen('title'); renderTitle(); })); }
+    startOver(); })); }
+/* a fresh save, applied to the page in place: everything the old save had switched on (the colour aid, rain, the
+   radio, a theme) is undone at once, and mig stays set so v1 data on this device is not imported again */
+function startOver(){
+  SAVE=defSave(); SAVE.flags.mig=1; save();
+  if(G){ G.live=false; G.ended=true; clearTimeout(G.vT); G=null; }
+  try{ stopMusic(); if(!SAVE.set.rain) ambStop(); applyMuteGain(); reflectMusic(); }catch(e){}
+  applyTheme(SAVE.themes.eq); document.body.classList.toggle('cb',!!SAVE.set.cb); document.body.classList.toggle('rainy',!!SAVE.set.rain&&!reduced);
+  HARDVIEW=false; TAB='map'; GEARTAB='gadgets'; TRAIN_PICK={six:1}; TRAIN_D=4; HASH_TAB=''; Object.keys(MAP_OPEN).forEach(k=>delete MAP_OPEN[k]);
+  toastQ.length=0; const tq=$('toaster'); if(tq) tq.innerHTML='';
+  recountStars(); checkAwards(true); closeAllModals(); showScreen('title'); renderTitle(); }
 function confirmBox(title,body,okText,onOk){ openModal('mConfirm',()=>{ $('cfSheet').innerHTML=xBtn('mConfirm')+'<h2 id="cfTitle">'+esc(title)+'</h2><p style="margin-top:10px">'+esc(body)+'</p>'+
   '<div class="btnrow"><button class="btn paper" data-close="mConfirm" data-autofocus>Cancel</button><button class="btn" id="cfOk">'+esc(okText)+'</button></div>'; wireClose($('cfSheet'));
   $('cfOk').addEventListener('click',()=>{ closeModal('mConfirm',true); onOk(); }); }); }
@@ -4508,7 +4586,8 @@ function renderPause(){ const k=G?G.kind:'level';
     (G&&G.kind==='level'?'<div class="goals">'+G.L.stars.map(s=>'<div class="goal">'+starSvg(false)+'<span>'+esc(starText(s))+'</span><span class="gs">'+(s.t==='mist'?G.mistakes+' so far':s.t==='time'?(G.timeSum/1000).toFixed(1)+'s so far':s.t==='streak'?'best ×'+Math.max(1,G.best):'')+'</span></div>').join('')+'</div>':'')+
     '<div class="btnrow" style="margin-top:6px"><button class="pill" id="psSnd" aria-pressed="'+(!SAVE.set.mute)+'">'+(SAVE.set.mute?'🔇 Sound off':'🔊 Sound on')+'</button><button class="pill" id="psMus" aria-pressed="'+(!!musicOn)+'">🎵 Radio '+(musicOn?'on':'off')+'</button></div>'+
     '<div class="btnrow"><button class="btn yellow" id="psGo" data-autofocus>&#9654; Resume</button>'+(k==='level'?'<button class="btn paper" id="psRe">&#8635; Restart</button>':'')+
-    '<button class="btn paper" id="psQuit">'+(k==='cold'?'End the run':k==='train'?'Leave training':'Leave the case')+'</button></div>';
+    '<button class="btn paper" id="psQuit">'+(k==='cold'?'End the run':k==='train'?'Leave training':'Leave the case')+'</button></div>'+
+    (G&&G.answered>0&&dailyFirst()?'<p style="font-size:12px;text-align:center">Leaving files today&rsquo;s sitting as it stands: the exhibits you haven&rsquo;t answered count as unanswered.</p>':'');
   $('psGo').addEventListener('click',()=>resumeGame());
   $('psSnd').addEventListener('click',()=>{ setMutePref(!SAVE.set.mute); renderPause(); try{ $('psSnd').focus(); }catch(e){} });
   $('psMus').addEventListener('click',()=>{ initAudio(); setMusicPref(!musicOn); renderPause(); try{ $('psMus').focus(); }catch(e){} });
@@ -4607,6 +4686,7 @@ function startDaily(){
 function dailyRound(){ const i=G.answered|0, k=G.plan[Math.min(i,G.plan.length-1)];
   G.cfg.d=Math.min(9,3+Math.floor(i/3)); G.cfg.think=Math.max(3.8,5.4-i*0.1);
   const R=buildKind(k); R.fam=k; return R; }
+const dailyFirst=()=>!!G&&G.kind==='daily'&&SAVE.daily.last!==G.dayKey;
 function settleDaily(){
   const k=G.dayKey, first=SAVE.daily.last!==k, rankBefore=rankInfo(SAVE.xp);
   const grid=G.log.map(e=>e.ok?'g':(e.to?'t':'w')).join('');
