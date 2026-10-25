@@ -477,6 +477,10 @@ body.rainy .bg .rain{opacity:1;}
 .modecard{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;}
 .modecard .mic{font-size:44px;line-height:1;}
 .modecard .mrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+/* the text column may shrink below its widest button, and a long button label wraps instead of pushing the card wider */
+.modecard>div{min-width:0;}
+.modecard .mrow .btn{max-width:100%;white-space:normal;text-align:center;}
+@media(max-width:359px){ .modecard{grid-template-columns:1fr;gap:6px;} .modecard .mic{font-size:34px;} }
 .statline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 .statline .s{font-family:var(--ff-type);font-size:11px;background:rgba(25,19,8,.07);border:1.5px solid rgba(25,19,8,.22);border-radius:4px;padding:5px 9px;}
 .statline .s b{font-family:var(--ff-display);font-size:17px;font-weight:400;margin-left:4px;}
