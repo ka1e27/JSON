@@ -4241,14 +4241,16 @@ function renderResultsLevel(res){
   h+=gainsHtml(res);
   const N=nextLevel(res.hard), hasNext=res.won&&N&&N.id!==L.id&&unlocked(N,res.hard);
   h+='<div class="btnrow">';
-  if(res.won){ if(hasNext) h+='<button class="btn" id="rNext" data-autofocus>Next: case '+N.id+' &#9654;</button>';
+  /* the first win of the final case has one way out: through the ending, back to the precinct */
+  if(res.ending) h+='<button class="btn yellow" id="rMap" data-autofocus>Close the case &#9654;</button>';
+  else if(res.won){ if(hasNext) h+='<button class="btn" id="rNext" data-autofocus>Next: case '+N.id+' &#9654;</button>';
     h+='<button class="btn paper" id="rRetry">&#8635; Replay</button><button class="btn paper" id="rMap">Map</button>'; }
   else h+='<button class="btn" id="rRetry" data-autofocus>&#8635; Try again</button><button class="btn paper" id="rMap">Map</button>';
   h+='</div>';
   $('rSheet').innerHTML=h;
   const leave=fn=>()=>{ closeModal('mResults',true); afterResults(res,fn); };
   if($('rNext')) $('rNext').addEventListener('click',leave(()=>{ enterHub('map'); openBriefing(N.id,res.hard); }));
-  $('rRetry').addEventListener('click',leave(()=>{ startLevel(L.id,res.hard); }));
+  if($('rRetry')) $('rRetry').addEventListener('click',leave(()=>{ startLevel(L.id,res.hard); }));
   $('rMap').addEventListener('click',leave(()=>enterHub('map'))); }
 /* whatever the player chose, the ending and the promotions get their moment first */
 function afterResults(res,then){
