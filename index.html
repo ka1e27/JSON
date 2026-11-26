@@ -782,6 +782,8 @@ body.rainy .bg .rain{opacity:1;}
 .vpanel .vt b{background:var(--yellow);padding:0 3px;}
 .vpanel .vt .mono{font-family:var(--ff-mono);font-weight:700;background:rgba(25,19,8,.08);border-radius:3px;padding:0 4px;}
 .vpanel .vq{font-family:var(--ff-mono);font-size:10.5px;color:var(--ink-2);}
+.vpanel .vbody{display:flex;flex-direction:column;gap:7px;min-height:0;}
+.vpanel .vfoot{display:flex;flex-direction:column;gap:6px;flex:none;}
 .vpanel .vgo{align-self:flex-end;}
 .vpanel .vgo .btn{font-size:16px;padding:9px 16px;}
 
@@ -911,7 +913,8 @@ body.rainy .bg .rain{opacity:1;}
   .abtn{min-height:clamp(40px,14vh,58px);font-size:14px;}
   .abtn .di{font-size:15px;}
   /* the lesson takes the answer side and leaves the exhibit it explains in view */
-  .stage>.vpanel{left:calc(52% + 6px);top:0;bottom:0;overflow-y:auto;}
+  .stage>.vpanel{left:calc(52% + 6px);top:0;bottom:0;overflow:hidden;}
+  .stage>.vpanel .vbody{flex:1 1 auto;overflow-y:auto;}
   .pfoot{min-height:38px;padding-top:5px;}
 }
 /* the smallest phones on their side (568 x 320): every row gives up a few more pixels */
@@ -3656,7 +3659,7 @@ function crackSuspect(){ G.live=false; G.roundActive=false; uiCrack(true); cueIn
   G.vT=setTimeout(()=>endSession(true),reduced?600:1300); }
 function endSession(won){
   if(!G||G.ended) return; G.ended=true; G.live=false; G.roundActive=false; clearTimeout(G.vT);
-  stat('playMs',Math.round(nowMs()-G.startedAt));
+  stat('playMs',playedMs());
   let res=null;
   if(G.kind==='level') res=settleLevel(won);
   else if(G.kind==='cold') res=settleCold();
@@ -3746,7 +3749,7 @@ function pauseGame(){ if(!G||!G.live||G.paused||G.ended||G.cracking) return;
   G.paused=true; G.pausedAt=nowMs(); G.pauseRemain=G.roundActive?Math.max(0,G.deadline-nowMs()):0; G.pauseSeal=G.sealArmed?Math.max(0,G.sealAt-nowMs()):0;
   if(G.vT){ clearTimeout(G.vT); G.vT=0; G.pendingNext=true; }
   uiPause(true); applyAudioState(); cue('pause'); }
-function resumeGame(){ if(!G||!G.paused) return; G.paused=false;
+function resumeGame(){ if(!G||!G.paused) return; G.paused=false; G.pausedMs=(G.pausedMs||0)+(nowMs()-G.pausedAt);
   if(G.roundActive){ const gap=nowMs()-G.pausedAt; G.shownAt+=gap; G.dealtAt+=gap; /* the pause is not answer time */
     G.deadline=nowMs()+G.pauseRemain; if(G.sealArmed) G.sealAt=nowMs()+G.pauseSeal; }
   uiPause(false); applyAudioState(); cue('resume');
@@ -3755,13 +3758,17 @@ function resumeGame(){ if(!G||!G.paused) return; G.paused=false;
   if($('vpanel')){ armLesson(); try{ $('vGo').focus({preventScroll:true}); }catch(e){} }
   else if(G.pendingNext||!G.round){ G.vT=setTimeout(nextRound,350); }
   G.pendingNext=false; }
-function quitSession(){ if(!G) return false; const k=G.kind; G.live=false; G.roundActive=false; G.paused=false; clearTimeout(G.vT); uiCloseVerdict();
+/* time actually spent on a case: a pause (or a tab left hidden overnight) is not time on the case */
+function playedMs(){ if(!G) return 0; const paused=(G.pausedMs||0)+(G.paused?nowMs()-G.pausedAt:0); return Math.max(0,Math.round(nowMs()-G.startedAt-paused)); }
+function quitSession(){ if(!G) return false; const k=G.kind;
+  if(G.paused){ G.pausedMs=(G.pausedMs||0)+(nowMs()-G.pausedAt); }   /* leaving from the pause sheet: that pause is not time on the case either */
+  G.live=false; G.roundActive=false; G.paused=false; clearTimeout(G.vT); uiCloseVerdict();
   /* leaving a cold case run still banks it: the run is the score */
   if(k==='cold'&&G.correct>0&&!G.ended){ applyAudioState(); endSession(false); return true; }
   /* so does walking out of today's first Daily sitting once it has begun: the rest go down unanswered.
      Otherwise a first look at the fifteen could be thrown away and the sitting taken again, knowing them */
   if(k==='daily'&&G.answered>0&&!G.ended&&dailyFirst()){ while(G.log.length<G.total) G.log.push({k:'',ok:false,to:true,t:''}); applyAudioState(); endSession(true); return true; }
-  if(k!=='train'){ stat('playMs',Math.round(nowMs()-G.startedAt)); save(); }   /* hours on the case count a case you walked out of too */
+  if(k!=='train'){ stat('playMs',playedMs()); save(); }   /* hours on the case count a case you walked out of too */
   G.ended=true; applyAudioState(); G=null; musicFromState(false); return false; }
 /* hidden in any moment of a case: mid-exhibit, on a lesson, or between two (where the next clock would start unseen) */
 addEventListener('visibilitychange',()=>{ if(document.hidden&&G&&G.live&&!G.paused) pauseGame(); });
@@ -3945,11 +3952,12 @@ function uiLose(R,info){
   const ansText=R.kind==='type'||R.kind==='path'?('It was '+art(R.type)+' <b>'+R.type.toUpperCase()+'</b>.'):R.kind==='valid'?('It was <b>'+(R.ans==='valid'?'credible':'corrupted')+'</b>.'):('The answer was <b>'+esc(optLabel(R,R.ans))+'</b>.');
   const tail=G.after==='fail'?'Continue &#9654;':(G.after==='end'?'See the verdict &#9654;':'Next exhibit &#9654;');
   const vp=document.createElement('div'); vp.className='vpanel'; vp.id='vpanel'; vp.setAttribute('role','alert');
-  vp.innerHTML='<div class="vh">'+head+' <span>'+ansText+'</span></div><div class="vt">'+(R.explain||'')+'</div>'+
-    (info.why?'<div class="vq">'+esc(info.why)+'</div>':(info.saved||G.kind==='train'||G.kind==='daily'?'':'<div class="vq">'+esc(rand(FAIL_QUIPS))+'</div>'))+
-    '<div class="vgo"><button class="btn sm yellow" id="vGo">'+tail+' <span class="k">space</span></button></div>';
+  /* the lesson can scroll where space is short (a phone on its side); the way forward sits outside it and never does */
+  vp.innerHTML='<div class="vbody"><div class="vh">'+head+' <span>'+ansText+'</span></div><div class="vt">'+(R.explain||'')+'</div>'+
+    (info.why?'<div class="vq">'+esc(info.why)+'</div>':(info.saved||G.kind==='train'||G.kind==='daily'?'':'<div class="vq">'+esc(rand(FAIL_QUIPS))+'</div>'))+'</div>'+
+    '<div class="vfoot"><div class="vgo"><button class="btn sm yellow" id="vGo">'+tail+' <span class="k">space</span></button></div></div>';
   /* a losing miss that Ctrl+Z can still undo says so: it is the one moment the gadget changes everything */
-  if(G.after==='fail'&&gadgetUsable('ctrlz')) vp.querySelector('.vgo').insertAdjacentHTML('beforebegin','<div class="vq rescue">&#8617;&#65039; <b>Ctrl+Z</b> can still undo this: tap it below'+(touch?'':' or press <b>R</b>')+'.</div>');
+  if(G.after==='fail'&&gadgetUsable('ctrlz')) vp.querySelector('.vgo').insertAdjacentHTML('beforebegin','<div class="rescue">&#8617;&#65039; <b>Ctrl+Z</b> can still undo this: tap it below'+(touch?'':' or press <b>R</b>')+'.</div>');
   $('stage').appendChild(vp);
   const go=$('vGo'); go.addEventListener('click',()=>{ if(verdictOpen()) afterLesson(); });
   vp._at=nowMs(); setTimeout(()=>{ try{ if($('vGo')) $('vGo').focus({preventScroll:true}); }catch(e){} },60);
@@ -3957,7 +3965,7 @@ function uiLose(R,info){
   bubbleEl.innerHTML=info.timedOut?rand(['“Time. I love that word.”','“You hesitated. I noticed.”','“The clock was always on my side.”']):loseQuip(R);
   say((info.timedOut?'Too slow. ':'Wrong. ')+ansText.replace(/<[^>]+>/g,'')+' '+String(R.explain||'').replace(/<[^>]+>/g,'')+(info.saved&&info.why?' '+info.why:'')+' Press space to continue.'); }
 /* Ctrl+Z on the losing miss: the panel stops saying the case is over */
-function uiRescued(){ const go=$('vGo'); if(go) go.innerHTML='Next exhibit &#9654; <span class="k">space</span>';
+function uiRescued(){ const go=$('vGo'); if(go){ go.innerHTML='Next exhibit &#9654; <span class="k">space</span>'; try{ go.focus({preventScroll:true}); }catch(e){} }   /* the gadget bar is rebuilt: keep the keyboard on the way forward */
   const vh=document.querySelector('#vpanel .vh'); if(vh&&!vh.querySelector('.saved')) vh.insertAdjacentHTML('beforeend',' <span class="saved">&#8617;&#65039; Undone. The case is still open.</span>');
   const hint=document.querySelector('#vpanel .rescue'); if(hint) hint.remove();
   armLesson(); say('Control Z. The case is still open.'); }
@@ -4317,7 +4325,7 @@ function showResults(res){
 /* "review what you missed": the last few misses of the sitting, closed until asked for */
 function missesHtml(log){
   const ms=(log||[]).filter(e=>!e.ok&&e.x!=null); if(!ms.length) return '';
-  const cut=t=>{ t=String(t); return t.length>48?t.slice(0,46)+'…':t; };
+  const cut=t=>{ const a=Array.from(String(t)); return a.length>48?a.slice(0,46).join('')+'…':a.join(''); };
   const show=ms.slice(-6);
   const gave=e=>e.w==null?'Time ran out.':e.sp?'You picked <span class="mono">'+esc(cut(e.w))+'</span>.':'You said '+esc(e.w)+'.';
   return '<details class="misses"><summary>Review what you missed <b>('+ms.length+')</b></summary><ol>'+
@@ -4355,7 +4363,7 @@ function renderResultsLevel(res){
   /* the first win of the final case has one way out: through the ending, back to the precinct */
   if(res.ending) h+='<button class="btn yellow" id="rMap" data-autofocus>Close the case &#9654;</button>';
   else if(res.won){ if(hasNext) h+='<button class="btn" id="rNext" data-autofocus>Next: case '+cid(N.id)+' &#9654;</button>';
-    h+='<button class="btn paper" id="rRetry">&#8635; Replay</button><button class="btn paper" id="rMap">Map</button>'; }
+    h+='<button class="btn paper" id="rRetry"'+(hasNext?'':' data-autofocus')+'>&#8635; Replay</button><button class="btn paper" id="rMap">Map</button>'; }
   else h+='<button class="btn" id="rRetry" data-autofocus>&#8635; Try again</button><button class="btn paper" id="rMap">Map</button>';
   h+='</div>';
   $('rSheet').innerHTML=h;
@@ -4614,7 +4622,7 @@ function renderSettings(){ const S=SAVE.set;
     if(k==='mute') setMutePref(v); else if(k==='music'){ initAudio(); setMusicPref(v); } else if(k==='rain'){ initAudio(); setRainPref(v); }
     else { SAVE.set[k]=v; save(); if(k==='cb') document.body.classList.toggle('cb',v); cue('click'); }
     renderSettings(); try{ $('stSheet').querySelector('[data-set="'+k+'"]').focus(); }catch(e){} if(SCREEN==='title') renderTitle(); }));
-  const ini=$('setIni'); ini.addEventListener('keydown',e=>e.stopPropagation()); ini.addEventListener('change',()=>{ SAVE.initials=(ini.value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU'; ini.value=SAVE.initials; save(); });
+  const ini=$('setIni'); ini.addEventListener('keydown',e=>{ if(e.key!=='Escape') e.stopPropagation(); }); ini.addEventListener('change',()=>{ SAVE.initials=(ini.value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU'; ini.value=SAVE.initials; save(); });
   $('setIntro').addEventListener('click',()=>{ closeModal('mSettings',true); playCutscene(()=>{}); });
   $('setExport').addEventListener('click',()=>showExport());
   $('setImport').addEventListener('click',()=>showImport());
@@ -4632,7 +4640,8 @@ function adoptSave(S){
   HARDVIEW=false; TAB='map'; GEARTAB='gadgets'; TRAIN_PICK={six:1}; TRAIN_D=4; HASH_TAB=''; Object.keys(MAP_OPEN).forEach(k=>delete MAP_OPEN[k]);
   toastQ.length=0; const tq=$('toaster'); if(tq) tq.innerHTML='';
   if(SAVE.rk<currentRank()) settleRanks();
-  recountStars(); checkAwards(true); save(); closeAllModals(); showScreen('title'); renderTitle(); }
+  recountStars(); checkAwards(true); save(); closeAllModals(); showScreen('title'); renderTitle();
+  try{ $('playBtn').focus({preventScroll:true}); }catch(e){} }
 
 /* ---- moving a file between devices: the save as a code. Base64url of the UTF-8 JSON behind a
        short prefix, so it survives chat apps and notes. A pasted code is untrusted input: it goes
@@ -4659,7 +4668,7 @@ function fileSummary(S){ const stars=LEVELS.reduce((n,L)=>n+popc(((S.lv[L.id]||{
   return 'Rank '+rankInfo(S.xp).rank+' · '+stars+'/'+TOTAL_STARS+' stars · '+fmt(S.clout)+' clout · '+filed+'/'+DOSSIER_ALL.length+' disguises filed'; }
 function showExport(){ const code=exportCode();
   openModal('mXfer',()=>{ $('xfSheet').innerHTML=xBtn('mXfer')+'<div class="kicker">Move your file</div><h2 id="xfTitle">Your case <span class="r">file</span></h2>'+
-    '<p style="margin-top:8px">Copy this code. On the other device, open <b>Settings</b>, then <b>Move your file &rsaquo; Paste code</b>. '+esc(fileSummary(SAVE))+'.</p>'+
+    '<p style="margin-top:8px">Copy this code. On the other device, open <b>Settings</b>, then <b>Move your file &rsaquo; Paste code</b>. '+esc(fileSummary(SAVE))+'. Settings stay with each device.</p>'+
     '<textarea id="xfCode" class="xfcode" readonly rows="5" aria-label="Your file as a code" spellcheck="false">'+esc(code)+'</textarea>'+
     '<div class="btnrow"><button class="btn yellow" id="xfCopy" data-autofocus>&#128203; Copy code</button><button class="btn paper" data-close="mXfer">Done</button></div>';
     wireClose($('xfSheet'));
@@ -4675,7 +4684,8 @@ function showImport(){
     $('xfLoad').addEventListener('click',()=>{ const r=decodeCode($('xfIn').value), msg=$('xfMsg');
       if(r.err){ msg.className='xfmsg bad'; msg.textContent=r.err; cue('deny'); return; }
       msg.className='xfmsg'; msg.textContent='';
-      confirmBox('Replace this file?',fileSummary(r.S)+'. The file on this device is replaced, and that cannot be undone.','Replace it',()=>{
+      confirmBox('Replace this file?',fileSummary(r.S)+'. Your progress on this device is replaced, and that cannot be undone. Settings on this device stay as they are.','Replace it',()=>{
+        r.S.set=Object.assign({},SAVE.set);   /* sound, extra time, the colour aid: they belong to this device */
         adoptSave(r.S); cue('unlock'); toast({ic:'📁',name:'File loaded',desc:fileSummary(SAVE)},'Moved'); }); }); }); }
 function confirmBox(title,body,okText,onOk){ openModal('mConfirm',()=>{ $('cfSheet').innerHTML=xBtn('mConfirm')+'<h2 id="cfTitle">'+esc(title)+'</h2><p style="margin-top:10px">'+esc(body)+'</p>'+
   '<div class="btnrow"><button class="btn paper" data-close="mConfirm" data-autofocus>Cancel</button><button class="btn" id="cfOk">'+esc(okText)+'</button></div>'; wireClose($('cfSheet'));
@@ -4831,6 +4841,7 @@ function startTrain(){
    keeps its own Enter/Space, so keyboard-only players can always reach every control. */
 addEventListener('keydown',e=>{
   const tg=e.target, tag=tg&&tg.tagName;
+  if(e.isComposing||e.keyCode===229) return;
   if((tag==='INPUT'||tag==='TEXTAREA')&&e.key!=='Escape') return;
   if($('cut').classList.contains('on')) return;
   const top=topModal();
@@ -4841,7 +4852,9 @@ addEventListener('keydown',e=>{
   if(top) return;
   if(SCREEN!=='play'||!G) return;
   if(e.ctrlKey||e.metaKey||e.altKey) return;
-  if(verdictOpen()&&(e.key===' '||e.key==='Enter'||e.key==='Spacebar')){ e.preventDefault(); afterLesson(); return; }
+  if(verdictOpen()&&(e.key===' '||e.key==='Enter'||e.key==='Spacebar')){
+    const ctl=tg&&tg.closest?tg.closest('button:not([disabled]),a[href],summary,[role="button"],[role="switch"]'):null;
+    if(!ctl||ctl.id==='vGo'){ e.preventDefault(); afterLesson(); return; } }
   if(G.paused) return;
   const k=String(e.key||'').toLowerCase();
   const gid=GADGET_ORDER.find(id=>GADGETS[id].key&&GADGETS[id].key===k);
