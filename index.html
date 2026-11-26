@@ -581,6 +581,13 @@ body.rainy .bg .rain{opacity:1;}
 .settings{display:grid;gap:8px;}
 .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--paper-2);border:1.5px solid rgba(25,19,8,.25);border-radius:5px;padding:9px 12px;}
 .setrow .sl{font-family:var(--ff-type);font-size:13px;color:var(--ink);}
+.setrow .xbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none;}
+/* a row with two buttons puts them under its text, or a phone squeezes the text into a column */
+.setrow.stack{flex-direction:column;align-items:stretch;gap:8px;} .setrow.stack .xbtns{justify-content:flex-start;}
+.xfcode{display:block;width:100%;margin-top:10px;font-family:var(--ff-mono);font-size:11.5px;line-height:1.4;color:var(--ink);background:var(--card);
+  border:2px dashed var(--ink);border-radius:5px;padding:8px 10px;resize:vertical;word-break:break-all;overflow-wrap:anywhere;}
+.xfmsg{font-family:var(--ff-type);font-size:12.5px;min-height:1.3em;margin-top:8px;color:var(--ink-2);}
+.xfmsg.bad{color:var(--red-ink);}
 .setrow .sl small{display:block;font-size:11px;color:var(--ink-2);margin-top:2px;line-height:1.35;}
 .tog{position:relative;width:52px;height:28px;flex:none;border-radius:99px;border:2px solid var(--ink);background:rgba(25,19,8,.2);transition:background .2s;}
 .tog::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--card);border:2px solid var(--ink);transition:transform .2s var(--ease);}
@@ -768,6 +775,8 @@ body.rainy .bg .rain{opacity:1;}
 @keyframes vpin{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 .vpanel .vh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--ff-display);font-size:clamp(18px,3.4vw,24px);text-transform:uppercase;line-height:1;}
 .vpanel .vh .bad{color:var(--red);}
+.vpanel .rescue{font-family:var(--ff-type);font-size:12.5px;color:var(--ink);background:rgba(247,217,76,.35);border-radius:4px;padding:5px 8px;margin-top:6px;}
+.nw{white-space:nowrap;}
 .vpanel .vh .saved{font-family:var(--ff-type);font-size:12.5px;text-transform:none;line-height:1.3;color:#1d6b3c;}
 .vpanel .vt{font-family:var(--ff-type);font-size:clamp(12.5px,1.9vw,14px);line-height:1.5;color:var(--ink);}
 .vpanel .vt b{background:var(--yellow);padding:0 3px;}
@@ -855,6 +864,15 @@ body.rainy .bg .rain{opacity:1;}
 .rgain .rk .rl{font-family:var(--ff-mono);font-size:10.5px;white-space:nowrap;}
 .rgain .newlist{display:flex;gap:6px;flex-wrap:wrap;}
 .rgain .newlist .chip{background:rgba(240,230,205,.14);color:var(--paper-2);border:1px solid rgba(240,230,205,.3);text-transform:none;font-size:10.5px;}
+.misses{margin-top:10px;font-family:var(--ff-type);font-size:12px;color:var(--ink);background:rgba(25,19,8,.05);border:1.5px solid rgba(25,19,8,.18);border-radius:5px;padding:6px 10px;}
+.misses summary{cursor:pointer;font-size:12.5px;padding:2px 0;}
+.misses summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:3px;}
+.misses ol{margin:6px 0 2px 18px;display:grid;gap:6px;}
+.misses li{line-height:1.4;}
+.misses .mx{font-family:var(--ff-mono);font-weight:700;overflow-wrap:anywhere;word-break:break-all;}
+.misses .mq{color:var(--ink-2);}
+.misses .ma{display:block;color:var(--ink-2);}
+.misses .mmore{margin:4px 0 0;color:var(--ink-2);font-size:11.5px;}
 .tipline{font-family:var(--ff-type);font-size:12px;line-height:1.5;color:var(--ink-2);background:rgba(25,19,8,.06);border-left:3px solid var(--blue);padding:7px 10px;margin-top:10px;}
 .tipline b{color:var(--ink);}
 .sharebox{font-family:var(--ff-mono);font-size:12px;line-height:1.5;background:var(--card);border:2px dashed var(--ink);border-radius:5px;padding:10px 12px;white-space:pre-wrap;
@@ -1048,6 +1066,7 @@ body.cb .j-mark{outline-style:dotted;outline-width:3px;}
 <div class="modal" id="mStory" role="dialog" aria-modal="true" aria-labelledby="syTitle"><div class="sheet paper" id="sySheet"></div></div>
 <div class="modal" id="mConfirm" role="dialog" aria-modal="true" aria-labelledby="cfTitle"><div class="sheet paper" id="cfSheet" style="width:min(440px,100%)"></div></div>
 <div class="modal" id="mCard" role="dialog" aria-modal="true" aria-labelledby="cdTitle"><div class="sheet paper" id="cdSheet" style="width:min(440px,100%)"></div></div>
+<div class="modal" id="mXfer" role="dialog" aria-modal="true" aria-labelledby="xfTitle"><div class="sheet paper" id="xfSheet" style="width:min(480px,100%)"></div></div>
 
 <!-- ================= CUTSCENE: the prompt that started it all ================= -->
 <div class="cut" id="cut" role="dialog" aria-modal="true" aria-label="Exhibit A: the prompt that started it all">
@@ -1113,6 +1132,8 @@ function dailyNo(k){ const p=String(k||dayKey()).split('-').map(Number); const t
 const ico=id=>`<svg class="di" aria-hidden="true" focusable="false"><use href="#di-${id}"/></svg>`;
 const starSvg=(on,cls)=>`<svg class="star${on?' on':''}${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-star"/></svg>`;
 const starsHtml=(n,cls)=>[0,1,2].map(i=>starSvg(i<n,cls)).join('');
+/* a case id is one word: "9-B" must never break at its hyphen */
+const cid=id=>'<span class="nw">'+esc(id)+'</span>';
 const heartSvg=cls=>`<svg class="heart${cls?' '+cls:''}" viewBox="0 0 24 22" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg>`;
 
 /* ---- live regions: the only channel a screen-reader player has during a timed round ---- */
@@ -1417,7 +1438,7 @@ const CASES=[
    One currency (clout), one job for it. Each gadget has five levels; `uses` is the charge
    count per case at each level and `pow` is its potency. Passive gadgets have no button. */
 const GADGETS={
-  coffee:{ic:'☕',n:'Coffee Break',key:'q',passive:false,
+  coffee:{ic:'☕\uFE0F',n:'Coffee Break',key:'q',passive:false,
     d:'Stops the clock on this exhibit and lifts the shutter on a sealed one.',
     uses:[1,2,2,3,3], pow:[0,0,30,30,60],
     pd:p=>p?('Answers given on a frozen clock hit <b>+'+p+'%</b> harder.'):'Freezes this exhibit until you answer.'},
@@ -1564,7 +1585,7 @@ const RULES=[
 
 /* ===================== COLD CASE PERKS (the roguelite, kept) ===================== */
 const PERKS={
- espresso :{ic:'☕',n:'Espresso IV',     tag:'+time',      d:'+18% thinking time on every exhibit. Sleep is a config option.'},
+ espresso :{ic:'☕\uFE0F',n:'Espresso IV',     tag:'+time',      d:'+18% thinking time on every exhibit. Sleep is a config option.'},
  second   :{ic:'🩺',n:'Second Opinion',  tag:'shield',     d:'Your first miss on each cold case costs no heart.'},
  copypaste:{ic:'📋',n:'Copy-Paste Pro',  tag:'+20% dmg',   d:'Every hit lands 20% harder. You did not write it. Nobody asked.'},
  seriesA  :{ic:'💸',n:'Series A',        tag:'+30% clout', d:'Clout +30% when the run ends. No revenue, huge valuation.'},
@@ -3412,7 +3433,7 @@ function startLevel(id,hard){
   const hearts=caseHearts(L,hard), backup=backupFor(L,hard);
   G=baseSession('level'); G.rng=mulberry32(newSeed());
   Object.assign(G,{L,hard:!!hard,name:L.boss?L.bossName:L.name,kicker:(hard?'Second file · ':'')+'Case '+L.id+(L.boss?' · Boss':'')+(L.tw?' · '+TWISTS[L.tw].n:''),
-    hpMax:Math.round(L.hp*(H?H.hpMul:1)),hearts,heartsMax:hearts,boss:!!L.boss,heat:L.dn,tut:(L.tut&&!hard)?0:-1});
+    hpMax:Math.round(L.hp*(H?H.hpMul:1)),hearts,heartsMax:hearts,boss:!!L.boss,heat:L.dn,tut:(L.tut&&!hard&&!cleared(L,false))?0:-1});
   if(G.tut===0) G.coached.six=1;   /* the guided six already taught it */
   G.backup=backup;
   G.hp=G.hpMax;
@@ -3549,7 +3570,7 @@ function answer(id){
   const frac=G.noClock?0.5:clamp(remain/(G.duration*1000),0,1);
   const timedOut=id==null;
   G.answered++; if(!G.noClock) G.timeSum+=Math.min(rt,G.duration*1000);
-  G.log.push({k:R.fam,ok,to:timedOut,t:R.type||''});
+  const e={k:R.fam,ok,to:timedOut,t:R.type||''}; if(!ok&&!R.guided) Object.assign(e,missEntry(R,id)); G.log.push(e);
   if(R.type) G.typeHist.push(R.type);
   const train=G.kind==='train';
   if(!train){ stat('answered'); if(R.type&&(R.kind==='type'||R.kind==='path')) perType(R.type,ok); seeCard(R.file,ok); }
@@ -3675,7 +3696,12 @@ function settleLevel(won){
   checkAwards();
   return {kind:'level',L,hard,won,first,mask,newBits,prevMask:prev.s|0,xp:gx,clout:gc,filed,lost,miles,ranks,rankBefore,
     score:G.score,best:Math.max(prev.b|0,G.score),newBest:won&&G.score>(prev.b|0)&&(prev.b|0)>0,mistakes:G.mistakes,streak:G.best,
-    time:G.timeSum/1000,hpLeft:G.hp,hpMax:G.hpMax,correct:G.correct,answered:G.answered,ending,tip:missTip(),backupNext}; }
+    time:G.timeSum/1000,hpLeft:G.hp,hpMax:G.hpMax,correct:G.correct,answered:G.answered,ending,tip:missTip(),backupNext,log:G.log.slice()}; }
+/* a miss, as the results sheet's review lists it: the exhibit, the right answer, and what was given */
+function missEntry(R,id){
+  const lab=x=>x==null?null:(R.kind==='type'||R.kind==='path')?((TYPE_BY_ID[x]||{}).label||x):optLabel(R,x);
+  if(R.kind==='spot') return {x:optLabel(R,R.ans),sp:1,a:(TYPE_BY_ID[R.target]||{}).label||R.target,w:lab(id)};
+  return {x:R.raw,q:R.kind==='path'?R.cap:'',a:lab(R.ans),w:lab(id)}; }
 /* the one sentence the results sheet says about how you lost, built from what you missed */
 function missTip(){ const miss={}; let worst='',n=0;
   (G.log||[]).forEach((e,i)=>{ if(!e.ok){ miss[e.k]=(miss[e.k]||0)+1; if(miss[e.k]>n){ n=miss[e.k]; worst=e.k; } } });
@@ -3726,7 +3752,7 @@ function resumeGame(){ if(!G||!G.paused) return; G.paused=false;
   uiPause(false); applyAudioState(); cue('resume');
   if(G.roundActive){ requestAnimationFrame(tick); return; }
   if(!G.live||G.ended) return;
-  if($('vpanel')){ G.vT=setTimeout(afterLesson,AUTO_CONTINUE); try{ $('vGo').focus({preventScroll:true}); }catch(e){} }
+  if($('vpanel')){ armLesson(); try{ $('vGo').focus({preventScroll:true}); }catch(e){} }
   else if(G.pendingNext||!G.round){ G.vT=setTimeout(nextRound,350); }
   G.pendingNext=false; }
 function quitSession(){ if(!G) return false; const k=G.kind; G.live=false; G.roundActive=false; G.paused=false; clearTimeout(G.vT); uiCloseVerdict();
@@ -3735,6 +3761,7 @@ function quitSession(){ if(!G) return false; const k=G.kind; G.live=false; G.rou
   /* so does walking out of today's first Daily sitting once it has begun: the rest go down unanswered.
      Otherwise a first look at the fifteen could be thrown away and the sitting taken again, knowing them */
   if(k==='daily'&&G.answered>0&&!G.ended&&dailyFirst()){ while(G.log.length<G.total) G.log.push({k:'',ok:false,to:true,t:''}); applyAudioState(); endSession(true); return true; }
+  if(k!=='train'){ stat('playMs',Math.round(nowMs()-G.startedAt)); save(); }   /* hours on the case count a case you walked out of too */
   G.ended=true; applyAudioState(); G=null; musicFromState(false); return false; }
 /* hidden in any moment of a case: mid-exhibit, on a lesson, or between two (where the next clock would start unseen) */
 addEventListener('visibilitychange',()=>{ if(document.hidden&&G&&G.live&&!G.paused) pauseGame(); });
@@ -3921,16 +3948,26 @@ function uiLose(R,info){
   vp.innerHTML='<div class="vh">'+head+' <span>'+ansText+'</span></div><div class="vt">'+(R.explain||'')+'</div>'+
     (info.why?'<div class="vq">'+esc(info.why)+'</div>':(info.saved||G.kind==='train'||G.kind==='daily'?'':'<div class="vq">'+esc(rand(FAIL_QUIPS))+'</div>'))+
     '<div class="vgo"><button class="btn sm yellow" id="vGo">'+tail+' <span class="k">space</span></button></div>';
+  /* a losing miss that Ctrl+Z can still undo says so: it is the one moment the gadget changes everything */
+  if(G.after==='fail'&&gadgetUsable('ctrlz')) vp.querySelector('.vgo').insertAdjacentHTML('beforebegin','<div class="vq rescue">&#8617;&#65039; <b>Ctrl+Z</b> can still undo this: tap it below'+(touch?'':' or press <b>R</b>')+'.</div>');
   $('stage').appendChild(vp);
   const go=$('vGo'); go.addEventListener('click',()=>{ if(verdictOpen()) afterLesson(); });
   vp._at=nowMs(); setTimeout(()=>{ try{ if($('vGo')) $('vGo').focus({preventScroll:true}); }catch(e){} },60);
-  G.vT=setTimeout(afterLesson,AUTO_CONTINUE+(SAVE.set.slow?2400:0));
+  armLesson();
   bubbleEl.innerHTML=info.timedOut?rand(['“Time. I love that word.”','“You hesitated. I noticed.”','“The clock was always on my side.”']):loseQuip(R);
   say((info.timedOut?'Too slow. ':'Wrong. ')+ansText.replace(/<[^>]+>/g,'')+' '+String(R.explain||'').replace(/<[^>]+>/g,'')+(info.saved&&info.why?' '+info.why:'')+' Press space to continue.'); }
 /* Ctrl+Z on the losing miss: the panel stops saying the case is over */
 function uiRescued(){ const go=$('vGo'); if(go) go.innerHTML='Next exhibit &#9654; <span class="k">space</span>';
   const vh=document.querySelector('#vpanel .vh'); if(vh&&!vh.querySelector('.saved')) vh.insertAdjacentHTML('beforeend',' <span class="saved">&#8617;&#65039; Undone. The case is still open.</span>');
-  say('Control Z. The case is still open.'); }
+  const hint=document.querySelector('#vpanel .rescue'); if(hint) hint.remove();
+  armLesson(); say('Control Z. The case is still open.'); }
+/* the lesson after a miss holds for as long as it takes to read (Space or the button moves on
+   sooner), and never moves on by itself while Ctrl+Z could still undo a lost case */
+function lessonHold(vp){ const all=(vp.textContent||'').length, btn=((vp.querySelector('.vgo')||{}).textContent||'').length;
+  return clamp(2600+42*Math.max(0,all-btn),AUTO_CONTINUE,11000)+(SAVE.set.slow?2400:0); }
+function armLesson(){ const vp=$('vpanel'); if(!G||!vp) return; clearTimeout(G.vT); G.vT=0;
+  if(G.after==='fail'&&gadgetUsable('ctrlz')) return;
+  G.vT=setTimeout(afterLesson,lessonHold(vp)); }
 function uiCloseVerdict(){ const v=$('vpanel'); if(v) v.remove(); }
 function verdictOpen(){ const v=$('vpanel'); return !!v&&nowMs()-(v._at||0)>350; }
 function uiGuidedRetry(R,id){ const b=answersEl.querySelector('[data-id="'+id+'"]'); if(b){ b.classList.remove('wrong'); void b.offsetWidth; b.classList.add('wrong'); setTimeout(()=>b.classList.remove('wrong'),600); }
@@ -4038,7 +4075,7 @@ function showScreen(name){ SCREEN=name;
 /* ---- modals: a stack, so a rank-up can sit on top of the results it came from. Focus enters
        on open, cycles inside, and goes back to whatever opened it on close. ---- */
 const MSTACK=[];
-const _focusables=m=>[...m.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(e=>e.offsetParent!==null);
+const _focusables=m=>[...m.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,summary,[tabindex]:not([tabindex="-1"])')].filter(e=>e.offsetParent!==null);
 function topModal(){ return MSTACK.length?MSTACK[MSTACK.length-1]:null; }
 function openModal(id,render,opts){ const m=$(id); if(!m) return; opts=opts||{};
   if(render) render();
@@ -4090,8 +4127,8 @@ setInterval(pumpToasts,400);
 
 /* ===================== TITLE ===================== */
 /* what the title says is next: a case, or once the first file is closed, the second one */
-function titleNext(N){ if(!LEVELS.every(L=>cleared(L,false))) return 'next: case '+N.id;
-  if(!LEVELS.every(L=>cleared(L,true))) return 'next: case '+nextLevel(true).id+' in the second file';
+function titleNext(N){ if(!LEVELS.every(L=>cleared(L,false))) return 'next: case '+cid(N.id);
+  if(!LEVELS.every(L=>cleared(L,true))) return 'next: case '+cid(nextLevel(true).id)+' in the second file';
   return 'both files closed'; }
 function renderTitle(){
   const first=!SAVE.flags.intro&&!SAVE.stats.games;
@@ -4229,7 +4266,7 @@ function boardHtml(D,hard,N){
       (un?', '+s+' of 3 stars':', locked')+'">'+
       (L.boss?'<span class="bstamp">Boss</span><span class="bossart"><span class="mascot" aria-hidden="true"></span></span>':'')+
       (L.tw?'<span class="ntw">'+TWISTS[L.tw].ic+' '+TWISTS[L.tw].n+'</span>':'')+
-      '<span class="nno">'+(un?'':'🔒 ')+'Case '+L.id+'</span><span class="nnm">'+esc(nm)+'</span>'+
+      '<span class="nno">'+(un?'':'🔒 ')+'Case '+cid(L.id)+'</span><span class="nnm">'+esc(nm)+'</span>'+
       '<span class="nst">'+starsHtml(s,hard?'red':'')+'</span>'+(isCur?'<span class="nplay">&#9654; '+(cl?'Replay':'Play')+'</span>':'')+'</button>'; });
   let d=''; pts.forEach((p,i)=>{ if(!i){ d+='M'+p[0]+' '+p[1]; return; } const q=pts[i-1]; d+=' Q'+((p[0]+q[0])/2)+' '+((p[1]+q[1])/2+30)+' '+p[0]+' '+p[1]; });
   return '<div class="dboard" style="height:'+H+'px"><svg class="yarn" viewBox="0 0 100 '+H+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+'" vector-effect="non-scaling-stroke"/></svg><div class="nodes">'+nodes+'</div></div>'; }
@@ -4244,7 +4281,7 @@ function renderBriefing(L,hard){
   const r=rec(L.id,hard), mask=r.s|0, H=hard?hardify(L):null;
   const hp=Math.round(L.hp*(H?H.hpMul:1)), hearts=caseHearts(L,hard), bk=backupFor(L,hard);
   const nm=L.boss?L.bossName:L.name;
-  let h=xBtn('mBrief')+'<div class="bno"><span class="kicker">District '+L.dn+' &middot; '+esc(L.D.name)+' &middot; case '+L.id+'</span>'+
+  let h=xBtn('mBrief')+'<div class="bno"><span class="kicker">District '+L.dn+' &middot; '+esc(L.D.name)+' &middot; case '+cid(L.id)+'</span>'+
     (L.tw?'<span class="chip">'+TWISTS[L.tw].ic+' '+TWISTS[L.tw].n+'</span>':'')+(L.boss?'<span class="chip" style="background:var(--purple)">Boss</span>':'')+
     (hard?'<span class="chip t-broken">Second file</span>':'')+'</div>';
   h+='<h2 id="bTitle">'+esc(nm)+'</h2>';
@@ -4277,6 +4314,16 @@ function showResults(res){
   const render=res.kind==='level'?()=>renderResultsLevel(res):res.kind==='cold'?()=>renderResultsCold(res):()=>renderResultsDaily(res);
   openModal('mResults',render,{closable:false});
   animateResults(res); }
+/* "review what you missed": the last few misses of the sitting, closed until asked for */
+function missesHtml(log){
+  const ms=(log||[]).filter(e=>!e.ok&&e.x!=null); if(!ms.length) return '';
+  const cut=t=>{ t=String(t); return t.length>48?t.slice(0,46)+'…':t; };
+  const show=ms.slice(-6);
+  const gave=e=>e.w==null?'Time ran out.':e.sp?'You picked <span class="mono">'+esc(cut(e.w))+'</span>.':'You said '+esc(e.w)+'.';
+  return '<details class="misses"><summary>Review what you missed <b>('+ms.length+')</b></summary><ol>'+
+    show.map(e=>'<li><span class="mx mono">'+esc(cut(e.x))+'</span>'+(e.q?'<span class="mq"> · at <b class="mono">'+esc(e.q)+'</b></span>':'')+
+      '<span class="ma">'+(e.sp?'This was the <b>'+esc(e.a)+'</b>. ':'Answer: <b>'+esc(e.a)+'</b>. ')+gave(e)+'</span></li>').join('')+'</ol>'+
+    (ms.length>show.length?'<p class="mmore">and '+plural(ms.length-show.length,'earlier miss','earlier misses')+'</p>':'')+'</details>'; }
 function gainsHtml(res){
   const after=rankInfo(SAVE.xp), before=res.rankBefore||after, up=after.rank>before.rank;
   let h='<div class="rgain">';
@@ -4294,19 +4341,20 @@ function gainsHtml(res){
 function renderResultsLevel(res){
   const L=res.L, nm=L.boss?L.bossName:L.name;
   let h='<div class="rstamp"><span class="stamp'+(res.won?' green':'')+'">'+(res.won?'Cracked':'He walked')+'</span></div>';
-  h+='<h2 id="rTitle">'+esc(nm)+'</h2><div class="sub" style="text-align:center">Case '+L.id+(res.hard?' &middot; second file':'')+(res.first?' &middot; first crack':'')+'</div>';
+  h+='<h2 id="rTitle">'+esc(nm)+'</h2><div class="sub" style="text-align:center">Case '+cid(L.id)+(res.hard?' &middot; second file':'')+(res.first?' &middot; first crack':'')+'</div>';
   h+='<div class="bigstars" aria-label="'+popc(res.mask)+' of 3 stars this time">'+L.stars.map((s,i)=>starSvg(false,(res.hard?'red ':'')+'pend')).join('')+'</div>';
   h+='<div class="starlabels">'+L.stars.map((s,i)=>'<span class="'+(((res.mask>>i)&1)?'got':'')+'">'+(((res.mask>>i)&1)?'&#10003; ':'')+esc(starText(s))+'</span>').join('')+'</div>';
   h+='<div class="rstats"><div class="st"><span class="l">Mistakes</span><span class="n">'+res.mistakes+'</span></div><div class="st"><span class="l">Best streak</span><span class="n">&times;'+Math.max(1,res.streak)+'</span></div>'+
     '<div class="st"><span class="l">Answer time</span><span class="n">'+res.time.toFixed(1)+'s</span></div><div class="st"><span class="l">Evidence'+(res.newBest?' &middot; best!':'')+'</span><span class="n">'+fmt(res.score)+'</span></div></div>';
   if(!res.won) h+='<div class="tipline">He had <b>'+Math.ceil(res.hpLeft)+' / '+res.hpMax+'</b> composure left. '+(res.tip||'')+(res.backupNext?' <b>Capt. Kanban is sending backup:</b> your next attempt starts with +'+plural(res.backupNext,'heart')+'.':'')+'</div>';
   else if(res.mistakes&&res.tip) h+='<div class="tipline">'+res.tip+'</div>';
+  h+=missesHtml(res.log);
   h+=gainsHtml(res);
   const N=nextLevel(res.hard), hasNext=res.won&&N&&N.id!==L.id&&unlocked(N,res.hard);
   h+='<div class="btnrow">';
   /* the first win of the final case has one way out: through the ending, back to the precinct */
   if(res.ending) h+='<button class="btn yellow" id="rMap" data-autofocus>Close the case &#9654;</button>';
-  else if(res.won){ if(hasNext) h+='<button class="btn" id="rNext" data-autofocus>Next: case '+N.id+' &#9654;</button>';
+  else if(res.won){ if(hasNext) h+='<button class="btn" id="rNext" data-autofocus>Next: case '+cid(N.id)+' &#9654;</button>';
     h+='<button class="btn paper" id="rRetry">&#8635; Replay</button><button class="btn paper" id="rMap">Map</button>'; }
   else h+='<button class="btn" id="rRetry" data-autofocus>&#8635; Try again</button><button class="btn paper" id="rMap">Map</button>';
   h+='</div>';
@@ -4395,7 +4443,7 @@ function renderCold(){ const p=$('pane-cold');
     (coldOpen()?'<div class="modecard"><div></div><div class="mrow"><button class="btn blue" id="chGo">&#9654; Take the challenge</button></div></div>':'')+'</div>'; }
   if(!coldOpen()) h+='<div class="card lockcard"><div class="big">🔒</div><h3>Cold cases are locked</h3><p>Beat <b>The Impostor</b> at the end of <b>The Quote District</b> and the cold case files open for good.</p></div>';
   else { const t=coldTier();
-    h+='<div class="card"><div class="modecard"><div class="mic">❄️</div><div><h3>Work a cold case run</h3><p>Suspect after suspect until your hearts run out. Draft a perk after every crack, a heart back every other case, deep cover every fifth. Uses your loadout and every technique from the districts you have cleared: '+coldTechs(t).map(x=>'<b>'+esc(TECHS[x].n)+'</b>').join(', ')+'.</p>'+
+    h+='<div class="card"><div class="modecard"><div class="mic">❄️</div><div><h3>Work a cold case run</h3><p>Suspect after suspect until your hearts run out. Draft a perk after every crack, a heart back every other case, a gadget charge back every third, deep cover every fifth. Uses your loadout and every technique from the districts you have cleared: '+coldTechs(t).map(x=>'<b>'+esc(TECHS[x].n)+'</b>').join(', ')+'.</p>'+
       '<div class="statline"><span class="s">Best <b>'+fmt(SAVE.cold.best)+'</b></span><span class="s">Deepest <b>case '+(SAVE.cold.bestCase|0)+'</b></span><span class="s">Runs <b>'+(SAVE.stats.coldRuns|0)+'</b></span></div>'+
       '<div class="mrow"><button class="btn" id="coldGo">&#9654; Open a cold case</button></div></div></div></div>';
     h+='<div class="card" style="margin-top:12px"><h3>Detective board</h3>'+(SAVE.cold.lb.length?'<div class="lb">'+SAVE.cold.lb.map((e,i)=>'<div class="lr"><span class="rk">'+(i+1)+'</span><span class="nm">'+esc(e.n)+'</span><span class="cs">case '+e.k+'</span><span class="sc">'+fmt(e.s)+'</span></div>').join('')+'</div>':'<p>No runs on the board yet.</p>')+'</div>'; }
@@ -4415,6 +4463,7 @@ function renderResultsCold(res){
   h+='<div class="rstats"><div class="st"><span class="l">Evidence'+(res.newBest?' · best!':'')+'</span><span class="n">'+fmt(res.score)+'</span></div><div class="st"><span class="l">Cracked</span><span class="n">'+res.cracked+'</span></div>'+
     '<div class="st"><span class="l">Best streak</span><span class="n">&times;'+Math.max(1,res.streak)+'</span></div><div class="st"><span class="l">Accuracy</span><span class="n">'+(res.answered?Math.round(res.correct/res.answered*100):0)+'%</span></div></div>';
   if(res.rival&&res.rival.rival){ const d=res.score-res.rival.rival; h+='<div class="tipline">'+(d>=0?'&#129351; You beat <b>'+esc(res.rival.name||'them')+'</b> by <b>'+fmt(d)+'</b>.':'&#129352; <b>'+esc(res.rival.name||'They')+'</b> is still ahead by <b>'+fmt(-d)+'</b>.')+'</div>'; }
+  h+=missesHtml(res.log);
   if(res.qual) h+='<div class="card" style="margin-top:10px;text-align:center"><p style="margin:0 0 8px">Top 8. Sign the report:</p><input id="lbIni" class="mono" maxlength="3" value="'+esc(SAVE.initials)+'" aria-label="Your initials" autocomplete="off" spellcheck="false" style="width:110px;text-align:center;font-size:24px;font-weight:700;letter-spacing:.2em;padding:6px;border:2px solid var(--ink);border-radius:4px;background:var(--paper-2);color:var(--ink)"> <button class="btn sm" id="lbSign">Sign</button></div>';
   h+=gainsHtml(res);
   h+='<div class="btnrow"><button class="btn" id="rAgain" data-autofocus>&#9654; '+(res.rival?'Retry the challenge':'Run it back')+'</button><button class="btn paper" id="rLink">&#128279; Copy challenge link</button><button class="btn paper" id="rMap">Precinct</button></div>';
@@ -4449,6 +4498,7 @@ function renderResultsDaily(res){ const h0={s:res.score,n:res.correct,of:res.tot
   h+='<div class="sharebox" style="text-align:center;font-size:18px;letter-spacing:2px">'+String(res.grid).split('').map(c=>GRID_EMOJI[c]||'').join('')+'</div>';
   h+='<div class="rstats"><div class="st"><span class="l">Correct</span><span class="n">'+res.correct+'/'+res.total+'</span></div><div class="st"><span class="l">Evidence</span><span class="n">'+fmt(res.score)+'</span></div>'+
     '<div class="st"><span class="l">Streak</span><span class="n">'+res.streak+'</span></div><div class="st"><span class="l">Tomorrow</span><span class="n">#'+(dailyNo(res.key)+1)+'</span></div></div>';
+  h+=missesHtml(res.log);
   if(res.first) h+=gainsHtml(res);
   h+='<div class="btnrow"><button class="btn yellow" id="rShare" data-autofocus>&#128203; Copy result</button><button class="btn paper" id="rMap">Precinct</button></div>';
   $('rSheet').innerHTML=h;
@@ -4555,6 +4605,7 @@ function renderSettings(){ const S=SAVE.set;
     row('slow','Extra time','Every clock runs 50% longer. Stars and rewards are unchanged; this is an accessibility setting, not a cheat.')+
     row('fx','Screen effects','Flashes, confetti, damage numbers and vibration.')+
     '<div class="setrow"><span class="sl">Initials<small>For the cold case board and challenge links.</small></span><input id="setIni" class="mono" maxlength="3" value="'+esc(SAVE.initials)+'" aria-label="Initials" style="width:76px;text-align:center;font-size:18px;font-weight:700;letter-spacing:.14em;padding:5px;border:2px solid var(--ink);border-radius:4px;background:var(--card);color:var(--ink)"></div>'+
+    '<div class="setrow stack"><span class="sl">Move your file<small>Copy a code here and paste it on another device. Your ranks, stars, gadgets and dossier go with it.</small></span><span class="xbtns"><button class="btn sm paper" id="setExport">Copy code</button><button class="btn sm paper" id="setImport">Paste code</button></span></div>'+
     '<div class="setrow"><span class="sl">Replay the opening<small>The prompt that started it all.</small></span><button class="btn sm paper" id="setIntro">Play</button></div>'+
     '<div class="setrow"><span class="sl">Start over<small>Wipes this save. v1 data on this device is never touched.</small></span><button class="btn sm" id="setReset">Reset</button></div></div>'+
     '<p style="font-size:11.5px;margin-top:12px">WHO IS JSON? v2 &middot; Dept. of Undefined Behavior. Keys: <b>1&ndash;6</b> answer, <b>Q W E R T</b> gadgets, <b>Space</b> continue, <b>Esc</b> pause.</p>';
@@ -4565,18 +4616,67 @@ function renderSettings(){ const S=SAVE.set;
     renderSettings(); try{ $('stSheet').querySelector('[data-set="'+k+'"]').focus(); }catch(e){} if(SCREEN==='title') renderTitle(); }));
   const ini=$('setIni'); ini.addEventListener('keydown',e=>e.stopPropagation()); ini.addEventListener('change',()=>{ SAVE.initials=(ini.value||'YOU').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'YOU'; ini.value=SAVE.initials; save(); });
   $('setIntro').addEventListener('click',()=>{ closeModal('mSettings',true); playCutscene(()=>{}); });
+  $('setExport').addEventListener('click',()=>showExport());
+  $('setImport').addEventListener('click',()=>showImport());
   $('setReset').addEventListener('click',()=>confirmBox('Start over?','This wipes your v2 progress on this device: ranks, stars, clout, gadgets, the dossier. It cannot be undone.','Wipe it',()=>{
     startOver(); })); }
 /* a fresh save, applied to the page in place: everything the old save had switched on (the colour aid, rain, the
    radio, a theme) is undone at once, and mig stays set so v1 data on this device is not imported again */
-function startOver(){
-  SAVE=defSave(); SAVE.flags.mig=1; save();
+function startOver(){ const S=defSave(); S.flags.mig=1; adoptSave(S); }
+/* a whole file put in place at once (a fresh one, or one carried over from another device) */
+function adoptSave(S){
+  SAVE=S; save();
   if(G){ G.live=false; G.ended=true; clearTimeout(G.vT); G=null; }
   try{ stopMusic(); if(!SAVE.set.rain) ambStop(); applyMuteGain(); reflectMusic(); }catch(e){}
   applyTheme(SAVE.themes.eq); document.body.classList.toggle('cb',!!SAVE.set.cb); document.body.classList.toggle('rainy',!!SAVE.set.rain&&!reduced);
   HARDVIEW=false; TAB='map'; GEARTAB='gadgets'; TRAIN_PICK={six:1}; TRAIN_D=4; HASH_TAB=''; Object.keys(MAP_OPEN).forEach(k=>delete MAP_OPEN[k]);
   toastQ.length=0; const tq=$('toaster'); if(tq) tq.innerHTML='';
-  recountStars(); checkAwards(true); closeAllModals(); showScreen('title'); renderTitle(); }
+  if(SAVE.rk<currentRank()) settleRanks();
+  recountStars(); checkAwards(true); save(); closeAllModals(); showScreen('title'); renderTitle(); }
+
+/* ---- moving a file between devices: the save as a code. Base64url of the UTF-8 JSON behind a
+       short prefix, so it survives chat apps and notes. A pasted code is untrusted input: it goes
+       through sanitize(), the same validator every save on this device goes through at boot. ---- */
+const XFER_PREFIX='WIJ2-';
+function b64urlFromBytes(bytes){ let bin=''; for(let i=0;i<bytes.length;i+=0x8000) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function bytesFromB64url(t){ t=t.replace(/-/g,'+').replace(/_/g,'/'); while(t.length%4) t+='=';
+  const bin=atob(t), out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+function exportCode(){ return XFER_PREFIX+b64urlFromBytes(new TextEncoder().encode(JSON.stringify(SAVE))); }
+function decodeCode(txt){
+  const raw=String(txt||'').trim(); if(!raw) return {err:'Paste a code first.'};
+  if(raw.length>400000) return {err:'That is far too long to be a case file.'};
+  let obj=null;
+  try{ if(raw.charAt(0)==='{') obj=JSON.parse(raw);            /* the raw save itself is accepted too */
+       else { let t=raw.replace(/\s+/g,''); if(t.indexOf(XFER_PREFIX)===0) t=t.slice(XFER_PREFIX.length);
+         if(!/^[A-Za-z0-9_-]+$/.test(t)) throw 0;
+         obj=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytesFromB64url(t))); } }
+  catch(e){ return {err:'That is not a complete WHO IS JSON? file. Copy the whole code and try again.'}; }
+  if(!isObj(obj)||obj.v!==2) return {err:'That is not a WHO IS JSON? file.'};
+  const S=sanitize(obj); S.flags.mig=1; return {S}; }
+function fileSummary(S){ const stars=LEVELS.reduce((n,L)=>n+popc(((S.lv[L.id]||{}).s)|0),0);
+  let filed=0; for(const k in S.dos) if(S.dos[k].f) filed++;
+  return 'Rank '+rankInfo(S.xp).rank+' · '+stars+'/'+TOTAL_STARS+' stars · '+fmt(S.clout)+' clout · '+filed+'/'+DOSSIER_ALL.length+' disguises filed'; }
+function showExport(){ const code=exportCode();
+  openModal('mXfer',()=>{ $('xfSheet').innerHTML=xBtn('mXfer')+'<div class="kicker">Move your file</div><h2 id="xfTitle">Your case <span class="r">file</span></h2>'+
+    '<p style="margin-top:8px">Copy this code. On the other device, open <b>Settings</b>, then <b>Move your file &rsaquo; Paste code</b>. '+esc(fileSummary(SAVE))+'.</p>'+
+    '<textarea id="xfCode" class="xfcode" readonly rows="5" aria-label="Your file as a code" spellcheck="false">'+esc(code)+'</textarea>'+
+    '<div class="btnrow"><button class="btn yellow" id="xfCopy" data-autofocus>&#128203; Copy code</button><button class="btn paper" data-close="mXfer">Done</button></div>';
+    wireClose($('xfSheet'));
+    const ta=$('xfCode'); ta.addEventListener('focus',()=>ta.select());
+    $('xfCopy').addEventListener('click',()=>{ ta.select(); copyOut($('xfCopy'),code,'&#10004; Copied','&#128203; Copy code'); }); }); }
+function showImport(){
+  openModal('mXfer',()=>{ $('xfSheet').innerHTML=xBtn('mXfer')+'<div class="kicker">Move your file</div><h2 id="xfTitle">Load a case <span class="r">file</span></h2>'+
+    '<p style="margin-top:8px">Paste the code from your other device. It replaces the file on this one.</p>'+
+    '<textarea id="xfIn" class="xfcode" rows="5" aria-label="Paste your code" placeholder="'+XFER_PREFIX+'…" spellcheck="false" autocomplete="off" data-autofocus></textarea>'+
+    '<div class="xfmsg" id="xfMsg" role="status"></div>'+
+    '<div class="btnrow"><button class="btn" id="xfLoad">Load this file</button><button class="btn paper" data-close="mXfer">Cancel</button></div>';
+    wireClose($('xfSheet'));
+    $('xfLoad').addEventListener('click',()=>{ const r=decodeCode($('xfIn').value), msg=$('xfMsg');
+      if(r.err){ msg.className='xfmsg bad'; msg.textContent=r.err; cue('deny'); return; }
+      msg.className='xfmsg'; msg.textContent='';
+      confirmBox('Replace this file?',fileSummary(r.S)+'. The file on this device is replaced, and that cannot be undone.','Replace it',()=>{
+        adoptSave(r.S); cue('unlock'); toast({ic:'📁',name:'File loaded',desc:fileSummary(SAVE)},'Moved'); }); }); }); }
 function confirmBox(title,body,okText,onOk){ openModal('mConfirm',()=>{ $('cfSheet').innerHTML=xBtn('mConfirm')+'<h2 id="cfTitle">'+esc(title)+'</h2><p style="margin-top:10px">'+esc(body)+'</p>'+
   '<div class="btnrow"><button class="btn paper" data-close="mConfirm" data-autofocus>Cancel</button><button class="btn" id="cfOk">'+esc(okText)+'</button></div>'; wireClose($('cfSheet'));
   $('cfOk').addEventListener('click',()=>{ closeModal('mConfirm',true); onOk(); }); }); }
@@ -4626,7 +4726,9 @@ function nextCase(){ if(!G||G.ended) return;
   G.cracking=false; const n=G.caseNo+1; setCase(n);
   if(n%2===1) G.hearts=Math.min(G.heartsMax,G.hearts+1);
   if(G.perks.deps){ const ids=Object.keys(G.gad).filter(id=>!GADGETS[id].passive); if(ids.length){ const g=G.gad[rand(ids)]; g.left=Math.min(g.max+2,g.left+1); } }
-  if(n%3===1) Object.keys(G.gad).forEach(id=>{ const g=G.gad[id]; if(!GADGETS[id].passive) g.left=Math.min(g.max,g.left+1); });
+  if(n%3===1){ Object.keys(G.gad).forEach(id=>{ const g=G.gad[id]; if(!GADGETS[id].passive) g.left=Math.min(g.max,g.left+1); });
+    /* the duck is a gadget too: before this it never came back once spent in a run */
+    if(G.gad.duck){ G.duckLeft=Math.min(G.gad.duck.max,(G.duckLeft|0)+1); G.gad.duck.left=G.duckLeft; } }
   enterPlay(); }
 function showPerkDraft(cb){
   const pool=Object.keys(PERKS).filter(id=>!G.perks[id]&&(id!=='deps'||Object.keys(G.gad).length)&&(id!=='standup'||G.hearts<G.heartsMax));
@@ -4652,7 +4754,7 @@ function settleCold(){
   const lb=SAVE.cold.lb, qual=G.score>0&&(lb.length<8||G.score>lb[lb.length-1].s);
   const ranks=settleRanks(); checkAwards();
   return {kind:'cold',score:G.score,cracked,correct:G.correct,answered:G.answered,streak:G.best,xp,clout:cl,filed,rankBefore,ranks,
-    newBest:best,qual,seed:G.seed,tier:G.tier,rival:G.rival,perks:Object.keys(G.perks)}; }
+    newBest:best,qual,seed:G.seed,tier:G.tier,rival:G.rival,perks:Object.keys(G.perks),log:G.log.slice()}; }
 
 /* ---- challenge links: #c=<seed36>.<tier>.<score36>.<initials>. Untrusted input: anything
        unexpected returns null and the page is an ordinary page. v1 links (#c=seed.n...) still
@@ -4698,7 +4800,7 @@ function settleDaily(){
     xp=gainXP(50+3*G.correct); cl=addClout(25+2*G.correct); filed=fileLocker(); }
   else G.locker=[];
   const ranks=settleRanks(); checkAwards();
-  return {kind:'daily',first,score:G.score,correct:G.correct,total:G.total,grid,streak:SAVE.daily.streak,xp,clout:cl,filed,rankBefore,ranks,key:k}; }
+  return {kind:'daily',first,score:G.score,correct:G.correct,total:G.total,grid,streak:SAVE.daily.streak,xp,clout:cl,filed,rankBefore,ranks,key:k,log:G.log.slice()}; }
 const GRID_EMOJI={g:'🟩',w:'🟥',t:'⬛'};
 function dailyShareText(h,k){ return 'WHO IS JSON? · Daily case #'+dailyNo(k)+'\n'+h.n+'/'+h.of+' · '+fmt(h.s)+' evidence\n'+
   String(h.g||'').split('').map(c=>GRID_EMOJI[c]||'').join('')+'\n'+siteURL()+'#daily'; }
@@ -4729,7 +4831,7 @@ function startTrain(){
    keeps its own Enter/Space, so keyboard-only players can always reach every control. */
 addEventListener('keydown',e=>{
   const tg=e.target, tag=tg&&tg.tagName;
-  if(tag==='INPUT'||tag==='TEXTAREA') return;
+  if((tag==='INPUT'||tag==='TEXTAREA')&&e.key!=='Escape') return;
   if($('cut').classList.contains('on')) return;
   const top=topModal();
   if(e.key==='Escape'){
